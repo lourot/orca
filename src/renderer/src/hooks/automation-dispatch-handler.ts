@@ -1,6 +1,7 @@
 import { listAutomationRunsForTarget } from '@/components/automations/automation-host-client'
 import { translate } from '@/i18n/i18n'
 import { submitPromptToAgentPty } from '@/lib/agent-paste-draft'
+import { expandSidebarGroupsForWorkspace } from '@/lib/expand-sidebar-groups-for-workspace'
 import { launchAgentBackgroundSession } from '@/lib/launch-agent-background-session'
 import { observeExistingAutomationSession } from '@/lib/automation-session-observer'
 import { findReusableAutomationSession } from '@/lib/automation-session-reuse'
@@ -82,6 +83,10 @@ export async function handleAutomationDispatchRequest({
     })
     if (!worktree) {
       return
+    }
+    // Expand only, never navigate: the focus restore below is deliberate.
+    if (useAppStore.getState().settings?.expandProjectOnAutomationStart !== false) {
+      expandSidebarGroupsForWorkspace(worktree)
     }
     const completion = createAutomationDispatchCompletion({
       run,
