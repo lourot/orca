@@ -38,6 +38,8 @@ Never use vague names like `helpers`, `utils`, `common`, `misc`, or `shared-stuf
 - **Typecheck**: `pnpm tc` (or `tc:node` / `tc:cli` / `tc:web`)
 - **Test**: `pnpm test [path/to/file.test.ts]`
 - **Lint**: `oxlint`, or `pnpm run check:code-quality:changed` for changed files (full `pnpm lint` is slow); format with `pnpm format`
+- **New user-facing strings**: add the English text to `src/renderer/src/i18n/locales/en.json`, then regenerate the derived catalogs with `pnpm run sync:localization-catalog` and `pnpm run sync:localization-runtime-catalog` — the `verify:localization-*` gates inside `pnpm lint` fail otherwise. Leave the other locales alone; they fall back to the inline English default.
+- `pnpm format` runs `oxfmt` over the whole repo, markdown included, and it mangles nested lists and fenced blocks. Format the files you changed instead: `npx oxfmt --write <paths>`.
 
 # Considerations
 
