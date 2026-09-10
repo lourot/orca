@@ -84,9 +84,15 @@ export async function handleAutomationDispatchRequest({
     if (!worktree) {
       return
     }
-    // Expand only, never navigate: the focus restore below is deliberate.
-    if (useAppStore.getState().settings?.expandProjectOnAutomationStart !== false) {
-      expandSidebarGroupsForWorkspace(worktree)
+    // Expand only, never navigate: the focus restore below is deliberate. And never
+    // let a sidebar convenience fail the run it is decorating.
+    try {
+      if (useAppStore.getState().settings?.expandProjectOnAutomationStart !== false) {
+        expandSidebarGroupsForWorkspace(worktree)
+      }
+    } catch (error) {
+      // Warn, not error: the run itself dispatched fine, only the decoration failed.
+      console.warn(`Could not expand the project folder for automation run ${run.id}:`, error)
     }
     const completion = createAutomationDispatchCompletion({
       run,
