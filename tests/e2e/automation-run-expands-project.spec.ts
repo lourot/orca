@@ -2,10 +2,8 @@
  * A run dispatched into a collapsed project must open the project that holds it,
  * and must not navigate there.
  *
- * E2E rather than a unit test because the group keys are computed from the live
- * store while the collapsed headers are rendered from the same state by a
- * different path. Only the real sidebar proves the two agree — a mocked store
- * cannot tell a stale key from a correct one.
+ * E2E rather than a unit test because the group keys and the rendered headers come
+ * from the same state by different paths. Only the real sidebar proves they agree.
  */
 
 import { test, expect } from './helpers/orca-app'

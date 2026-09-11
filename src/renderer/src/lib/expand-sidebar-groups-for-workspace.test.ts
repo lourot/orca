@@ -87,8 +87,7 @@ describe('expandSidebarGroupsForWorkspace', () => {
   })
 
   it('expands for a workspace the store has not indexed yet', async () => {
-    // A new_per_run workspace is created moments before dispatch; looking it up
-    // by id would find nothing and expand nothing.
+    // new_per_run creates it moments before dispatch, so an id lookup finds nothing.
     setState([], ['host:local', 'project:repo:repo-1'])
 
     await expand(makeWorktree({ id: 'fresh-worktree' }))

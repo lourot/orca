@@ -84,8 +84,7 @@ export async function handleAutomationDispatchRequest({
     if (!worktree) {
       return
     }
-    // Expand only, never navigate: the focus restore below is deliberate. And never
-    // let a sidebar convenience fail the run it is decorating.
+    // Expand only, never navigate: the focus restore below is deliberate.
     try {
       if (useAppStore.getState().settings?.expandProjectOnAutomationStart !== false) {
         expandSidebarGroupsForWorkspace(worktree)

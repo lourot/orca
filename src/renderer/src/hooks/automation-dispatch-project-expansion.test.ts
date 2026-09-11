@@ -113,8 +113,7 @@ describe('automation dispatch sidebar expansion', () => {
   })
 
   it('still dispatches when the expansion throws', async () => {
-    // The sidebar is decoration; a store shape it did not expect must not turn a
-    // real run into dispatch_failed.
+    // A store shape the sidebar did not expect must not turn a real run into dispatch_failed.
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     expandSidebarGroupsForWorkspace.mockImplementation(() => {
       throw new Error('collapsedGroups is not iterable')
