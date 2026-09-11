@@ -47,6 +47,8 @@ Avoid type assertions except `as const`. Unavoidable casts need a line-specific 
 - **Test**: `pnpm test [path/to/file.test.ts]`
 - **Lint**: `oxlint`, or `pnpm run check:code-quality:changed` for changed files (full `pnpm lint` is slow); format with `pnpm format`
 - **Design system**: `pnpm run lint:design-system` for the full renderer report (not a gate); the changed-lines gate above is what CI enforces
+- **New user-facing strings**: add the English text to `src/renderer/src/i18n/locales/en.json`, then regenerate the derived catalogs with `pnpm run sync:localization-catalog` and `pnpm run sync:localization-runtime-catalog` — the `verify:localization-*` gates inside `pnpm lint` fail otherwise. Leave the other locales alone; they fall back to the inline English default.
+- `pnpm format` runs `oxfmt` over the whole repo, markdown included, and it mangles nested lists and fenced blocks. Format the files you changed instead: `npx oxfmt --write <paths>`.
 
 # Considerations
 
