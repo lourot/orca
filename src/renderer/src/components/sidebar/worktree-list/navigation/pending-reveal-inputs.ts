@@ -15,8 +15,7 @@ import type {
   PinnedWorktreeDisplayPolicy,
   WorktreeGroupBy
 } from '../../../../../../shared/sidebar-list/row-types'
-import { getFolderWorkspaceRevealGroupKeys } from './folder-reveal'
-import { getWorktreeRevealCollapsedGroupKeys } from './worktree-reveal-group-keys'
+import { collectCollapsedGroupKeysHidingWorkspace } from './collapsed-groups-hiding-workspace'
 
 export const MAX_REVEAL_RETRIES = 8
 
@@ -59,39 +58,11 @@ export function expandGroupsForWorktreeReveal(
   const hostScopedGroups = args.renderRows.some(
     (row) => row.type === 'host-header' || (row.type === 'header' && row.collapseKey !== undefined)
   )
-  const folderGroupKeys = getFolderWorkspaceRevealGroupKeys(
+  for (const groupKey of collectCollapsedGroupKeysHidingWorkspace(
+    { ...args, hostScopedGroups },
     worktreeId,
-    args.folderWorkspaces,
-    args.projectGroups,
-    {
-      groupBy: args.groupBy,
-      workspaceStatuses: args.workspaceStatuses,
-      defaultHostId: args.defaultHostId,
-      hostScopedGroups,
-      executionHostId
-    }
-  )
-  if (folderGroupKeys.length > 0) {
-    for (const groupKey of folderGroupKeys) {
-      if (args.collapsedGroups.has(groupKey)) {
-        args.toggleGroup(groupKey)
-      }
-    }
-    return
-  }
-  const targetWorktree = args.worktrees.find(
-    (worktree) =>
-      worktree.id === worktreeId &&
-      (!executionHostId || !worktree.hostId || worktree.hostId === executionHostId)
-  )
-  if (!targetWorktree) {
-    return
-  }
-  for (const groupKey of getWorktreeRevealCollapsedGroupKeys({
-    ...args,
-    worktree: targetWorktree,
-    hostScopedGroups
-  })) {
+    executionHostId
+  )) {
     args.toggleGroup(groupKey)
   }
 }
