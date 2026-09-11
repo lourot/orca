@@ -25,6 +25,8 @@ export function expandSidebarGroupsForWorkspace(
 ): void {
   const state = useAppStore.getState()
   const worktreeId = typeof target === 'string' ? target : target.id
+  // One id can name a row on two hosts, so narrow to the caller's host when known.
+  const hostId = executionHostId ?? (typeof target === 'string' ? undefined : target.hostId)
   const storeWorktrees = getAllWorktreesFromState(state)
   const worktrees =
     typeof target === 'string' || storeWorktrees.some((worktree) => worktree.id === target.id)
@@ -37,6 +39,7 @@ export function expandSidebarGroupsForWorkspace(
       worktrees,
       folderWorkspaces: state.folderWorkspaces,
       repoMap: getRepoMapFromState(state),
+      // The store's own map, not a copy: the lineage projection caches on its identity.
       worktreeMap: getWorktreeMapFromState(state),
       worktreeLineageById: state.worktreeLineageById,
       collapsedGroups: state.collapsedGroups,
@@ -53,7 +56,7 @@ export function expandSidebarGroupsForWorkspace(
       }
     },
     worktreeId,
-    executionHostId
+    hostId
   )
 
   for (const groupKey of collapsedGroupKeys) {

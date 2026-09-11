@@ -11693,7 +11693,7 @@
           "showButton": "Show Automations Button",
           "showButtonDescription": "Show the Automations shortcut in the sidebar.",
           "expandProjectOnRunStart": "Expand the project when a run starts",
-          "expandProjectOnRunStartDescription": "Open the collapsed project folder holding the run’s workspace. The sidebar does not scroll.",
+          "expandProjectOnRunStartDescription": "Open the collapsed project folder that holds the workspace for this run. The sidebar does not scroll.",
           "howItWorksTitle": "How Automations work",
           "howItWorksDescription": "Schedule agent work once, then let Orca create each run and keep its results together.",
           "defineStepTitle": "Describe the work",

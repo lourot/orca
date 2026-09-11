@@ -39,7 +39,7 @@ export function AutomationsSettingsPane({
         )}
         description={translate(
           'auto.components.settings.automations.expandProjectOnRunStartDescription',
-          'Open the collapsed project folder holding the run’s workspace. The sidebar does not scroll.'
+          'Open the collapsed project folder that holds the workspace for this run. The sidebar does not scroll.'
         )}
         checked={settings.expandProjectOnAutomationStart !== false}
         onChange={() =>
