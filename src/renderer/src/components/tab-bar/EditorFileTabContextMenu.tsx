@@ -8,6 +8,8 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { useAppStore } from '@/store'
+import { isExternalReloadableEditorTab } from '@/components/editor/editor-autosave'
+import { requestEditorTabDiskReload } from '@/components/editor/editor-tab-disk-reload'
 import { useOptionalShortcutLabel } from '@/hooks/useShortcutLabel'
 import type { OpenFile } from '../../store/slices/editor'
 import { translate } from '@/i18n/i18n'
@@ -97,6 +99,8 @@ export function EditorFileTabContextMenu({
     })
   )
   const revealBlocked = isRevealOrEditorOpenBlocked(revealOwner)
+  // Why: virtual tabs have synthetic ids, nothing on disk to reload.
+  const canReloadFromDisk = !isVirtualEditorFile(file) && isExternalReloadableEditorTab(file)
 
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange} modal={false}>
@@ -166,32 +170,46 @@ export function EditorFileTabContextMenu({
         </DropdownMenuItem>
         <CloseSplitPaneMenuItem onCloseSplitPane={onCloseSplitPane} />
         {isVirtualEditorFile(file) ? null : <DropdownMenuSeparator />}
-        {canShowMarkdownPreview ? (
-          <>
-            <DropdownMenuItem
-              inset
-              onSelect={() => {
-                onActivate()
-                onOpenMarkdownPreview(
-                  {
-                    filePath: file.filePath,
-                    relativePath: file.relativePath,
-                    worktreeId: file.worktreeId,
-                    runtimeEnvironmentId: file.runtimeEnvironmentId,
-                    language: resolvedLanguage
-                  },
-                  { sourceFileId: file.id }
-                )
-              }}
-            >
-              {translate(
-                'auto.components.tab.bar.EditorFileTabContextMenu.bfd5797ef4',
-                'Open Markdown Preview'
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
+        {canReloadFromDisk ? (
+          <DropdownMenuItem
+            inset
+            onSelect={() => {
+              // Why activate first: a background tab's reload lands lazily on
+              // reveal — activating makes the fresh content visible immediately.
+              onActivate()
+              requestEditorTabDiskReload(file.id)
+            }}
+          >
+            {translate(
+              'components.tab.bar.EditorFileTabContextMenu.reloadFromDisk',
+              'Reload from Disk'
+            )}
+          </DropdownMenuItem>
         ) : null}
+        {canShowMarkdownPreview ? (
+          <DropdownMenuItem
+            inset
+            onSelect={() => {
+              onActivate()
+              onOpenMarkdownPreview(
+                {
+                  filePath: file.filePath,
+                  relativePath: file.relativePath,
+                  worktreeId: file.worktreeId,
+                  runtimeEnvironmentId: file.runtimeEnvironmentId,
+                  language: resolvedLanguage
+                },
+                { sourceFileId: file.id }
+              )
+            }}
+          >
+            {translate(
+              'auto.components.tab.bar.EditorFileTabContextMenu.bfd5797ef4',
+              'Open Markdown Preview'
+            )}
+          </DropdownMenuItem>
+        ) : null}
+        {canReloadFromDisk || canShowMarkdownPreview ? <DropdownMenuSeparator /> : null}
         {/* Why: virtual editor tabs use synthetic ids instead of on-disk paths. */}
         {!isVirtualEditorFile(file) && (
           <>

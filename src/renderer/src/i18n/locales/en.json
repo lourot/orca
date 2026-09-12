@@ -1,4 +1,7 @@
 {
+  "workspaceBoard": {
+    "sleeping": "Sleeping"
+  },
   "agentLaunch": {
     "opencode": {
       "updateRequired": "OpenCode cannot safely start with a chosen model on this version. Update OpenCode to a supported release, or omit the model choice.",
@@ -68,11 +71,24 @@
     "failed": "Failed to open the file."
   },
   "sidebar": {
+    "messages": {
+      "recentUnseen": "Recent unseen messages"
+    },
     "revealFiltered": {
       "title": "Reveal hidden workspace?",
       "description": "The active workspace is hidden in the sidebar. Revealing it will adjust only the filters hiding it.",
       "confirm": "Adjust filters and reveal",
       "cancel": "Keep filters"
+    },
+    "uncommittedChanges": {
+      "projectIndicator": "Uncommitted changes in this project",
+      "workspaceIndicator": "Uncommitted changes in this workspace"
+    },
+    "projectActivity": {
+      "summary": "{{count}} agent turns in the last {{days}} days",
+      "summary_one": "{{count}} agent turn in the last {{days}} days",
+      "summary_other": "{{count}} agent turns in the last {{days}} days",
+      "lastActive": "Last active {{date}}"
     },
     "wslMoved": {
       "movedToHost": "Moved to {{distro}} host",
@@ -480,6 +496,15 @@
         "noContent": "No content to export",
         "timedOut": "Export timed out"
       }
+    },
+    "gitGuiBlame": {
+      "open": "Open in git gui blame",
+      "launchFailed": "Could not start git gui. Check that it is installed (`git gui` from a terminal).",
+      "notInWorktree": "This file is not inside its git worktree."
+    },
+    "docLink": {
+      "missing": "No note named {{target}} in this workspace.",
+      "ambiguous": "Several notes are named {{target}}; link one by its path."
     }
   },
   "githubChecks": {
@@ -615,7 +640,6 @@
       },
       "statusBar": {
         "claudeToggleDescription": "Show Claude token and cost usage for the active workspace.",
-        "codexToggleDescription": "Show Codex token and cost usage for the active workspace.",
         "geminiToggleDescription": "Show Gemini token and cost usage for the active workspace.",
         "opencodeGoToggleDescription": "Show OpenCode Go token and cost usage for the active workspace.",
         "kimiToggleDescription": "Show Kimi subscription usage for the active workspace.",
@@ -626,7 +650,9 @@
         "antigravityToggleDescription": "Show Antigravity subscription usage for the active workspace.",
         "grokToggleDescription": "Show Grok subscription credit usage when signed in via Grok CLI.",
         "cursorToggleDescription": "Show Cursor plan usage when signed in through cursor-agent or Cursor IDE.",
-        "zcodeToggleDescription": "Show ZCode Coding Plan quota usage."
+        "zcodeToggleDescription": "Show ZCode Coding Plan quota usage.",
+        "codexDescriptionWithCredits": "Show Codex usage and monthly credits in the status bar.",
+        "codexToggleDescriptionWithCredits": "Show Codex usage and monthly credits for the active account."
       },
       "menuBarIcon": {
         "title": "Show Menu Bar Icon",
@@ -966,6 +992,21 @@
         "senseVoice": "Chinese, English, Japanese, Korean, and Cantonese with automatic language detection.",
         "gpt4oMiniTranscribe": "Cloud transcription with strong accuracy and low cost. Requires an OpenAI API key.",
         "gpt4oTranscribe": "Cloud transcription with higher accuracy. Requires an OpenAI API key."
+      },
+      "cleanup": {
+        "recipe": "Transcript cleanup",
+        "recipeDescription": "Fix recognition errors in the dictated text before it is inserted.",
+        "title": "Transcript cleanup",
+        "description": "After you stop dictating, an agent fixes recognition errors before the text is inserted. Takes a few seconds; the raw text is inserted if it fails.",
+        "searchPolish": "polish",
+        "searchAgent": "agent",
+        "searchDisclaimer": "disclaimer",
+        "searchMisspelled": "misspelled",
+        "markForAgents": "Mark dictated text for agents",
+        "markForAgentsDescription": "Wraps text inserted into agent terminals and chats in a note that it was dictated and may contain misspellings.",
+        "enable": "Clean up dictated text",
+        "saveFailed": "Could not save transcript cleanup settings.",
+        "modelNote": "Runs on this computer. To choose the model, add --model <id> to the extra arguments; otherwise the agent’s default model is used."
       }
     },
     "diagnostics": {
@@ -1024,7 +1065,8 @@
     "copy": "Copy",
     "selectAll": "Select All",
     "quitAndStopAllSessions": "Quit Completely...",
-    "quitAndStopAllSessionsTooltip": "Also stops every terminal session, including running agents. Plain Quit keeps them running so Orca reattaches on next launch."
+    "quitAndStopAllSessionsTooltip": "Also stops every terminal session, including running agents. Plain Quit keeps them running so Orca reattaches on next launch.",
+    "showMessagesButton": "Show Messages Button"
   },
   "tray": {
     "openOrca": "Open Orca",
@@ -3923,22 +3965,24 @@
           },
           "TerminalAgentSessionForkDialog": {
             "17fc841e59": "Copy context",
-            "0c8a8629b1": "The fork appears as its own workspace, not as a nested child. The new agent receives a bounded transcript as an editable draft.",
-            "620461df22": "Top-level fork",
-            "619b5a35d2": "Create a top-level workspace fork and start a fresh agent tab with captured context.",
             "64e292e8e3": "Fork Agent Session",
             "9d25de2920": "Create fork",
             "2b10412cfc": "Creating...",
             "2f95327d0a": "Only Claude and local Codex sessions can be forked with their full conversation.",
             "a0bb16776b": "No session id captured for this pane yet.",
-            "4835d8f456": "The fork appears as its own workspace, not as a nested child. Choose what the new agent starts from.",
+            "description": "Choose what the new agent starts from and where it opens.",
             "a6b56a11b8": "What the forked agent starts from",
             "6948d1847a": "Full conversation",
-            "b961b7c227": "Resumes this agent session in the new workspace with its whole history, under a new session id. The original is left untouched.",
+            "fullConversationDescription": "Resumes this agent session with its whole history, under a new session id. The original is left untouched.",
             "db34dacd3a": "New",
             "2e15cf62bb": "Recent context",
             "7be47ba4c8": "Starts a fresh agent and hands it a bounded transcript of this pane as an editable draft.",
-            "checkingCodex": "Checking whether this local Codex session can be forked."
+            "checkingCodex": "Checking whether this local Codex session can be forked.",
+            "destinationLabel": "Where the fork opens",
+            "newWorkspace": "New workspace",
+            "newWorkspaceDescription": "A new top-level git worktree, branched from this one.",
+            "thisWorkspace": "This workspace",
+            "thisWorkspaceDescription": "A new tab here, beside this session."
           },
           "TerminalContextMenu": {
             "b4cdd9314e": "Clear Screen",
@@ -4087,7 +4131,8 @@
                   "f62b40e2c7": "No terminal context to copy",
                   "373a3103e7": "Context copied",
                   "3fc568a49d": "Failed to copy context.",
-                  "97c87c36a7": "This agent session can no longer be forked with its full conversation."
+                  "97c87c36a7": "This agent session can no longer be forked with its full conversation.",
+                  "openedInNewTab": "Session fork opened in a new tab"
                 }
               }
             },
@@ -4613,6 +4658,8 @@
             "cursorUsageMenu": "Cursor Usage",
             "hiddenUsageProviders": "Also: {{value0}}",
             "zcodeUsageMenu": "ZCode Usage",
+            "openCodeMonthlyCostLabel": "Monthly estimate from ccusage",
+            "openCodeProviderName": "OpenCode",
             "rateLimitResetsAvailable_one": "{{count}} rate-limit reset available",
             "rateLimitResetsAvailable_other": "{{count}} rate-limit resets available",
             "staleCodexSessions_one": "{{count}} Codex session is still on the old account.",
@@ -4977,6 +5024,23 @@
             "used": "Used",
             "remaining": "Remaining"
           },
+          "codexCreditShortLabel": "cr",
+          "codexCreditMonthlyShortLabel": "mo",
+          "codexCreditScopeActiveFull": "Active account",
+          "codexCreditScopeLocalEstimateFull": "Local accounts · estimated",
+          "codexCreditUnlimited": "Unlimited credits",
+          "codexCreditUsedOfLimit": "{{value0}} / {{value1}} credits",
+          "codexCreditRemaining": "{{value0}} credits remaining",
+          "codexCreditEstimated": "~{{value0}} credits",
+          "codexCreditUnavailable": "Credits unavailable",
+          "codexCreditUsedOfLimitWithVerb": "{{value0}} / {{value1}} credits used",
+          "codexCreditEstimatedWithVerb": "~{{value0}} credits estimated",
+          "codexCreditMonthlyLabel": "monthly credits",
+          "codexCreditEstimatedShortLabel": "est.",
+          "codexCreditBalanceShortLabel": "bal.",
+          "codexCreditEstimatedLabel": "estimated credits",
+          "codexCreditBalanceLabel": "credit balance",
+          "codexCreditMonthlySection": "Monthly credits",
           "mergeSnapshotAndSessions": {
             "unattributed": "Unattributed"
           },
@@ -5198,7 +5262,11 @@
           "rangeLast7Days": "Last 7 days",
           "rangeLast30Days": "Last 30 days",
           "rangeLast90Days": "Last 90 days",
-          "rangeAllTime": "All time"
+          "rangeAllTime": "All time",
+          "openCodeMonthlyCapLabel": "Monthly comparison amount (USD)",
+          "openCodeMonthlyCapDescription": "Compared with the current-month estimate reported by ccusage for all OpenCode usage.",
+          "openCodeMonthlyCostError": "Monthly OpenCode estimate unavailable: {{value0}}",
+          "openCodeMonthlyCostLabel": "OpenCode estimate (month)"
         },
         "ShareUsageButton": {
           "7d6b25323d": "Share on X",
@@ -6265,7 +6333,8 @@
           "fee535205b": "Tasks",
           "d599269755": "Hide from sidebar",
           "artifacts": "Artifacts",
-          "skills": "Skills"
+          "skills": "Skills",
+          "messages": "Messages"
         },
         "SidebarRepositoryFilterSection": {
           "d3a9c4cea1": "Clear",
@@ -6373,6 +6442,7 @@
           "folderPathIdentity": "Branch / folder path",
           "cli": "Orca CLI",
           "workspaceOptions": "Workspace options",
+          "4a1e6fb2c9": "Alphabetical by displayed name",
           "optionsActiveFilters_one": "Workspace options ({{count}} filter active)",
           "optionsActiveFilters_other": "Workspace options ({{count}} filters active)",
           "optionsFilterCount_one": "Workspace options ({{count}} filter)",
@@ -6485,7 +6555,10 @@
           "cliCreated": "Created by Orca CLI",
           "jiraIssue": "Jira {{value0}}",
           "viewOnJira": "View on Jira",
-          "linkedJira": "Linked Jira {{value0}}"
+          "linkedJira": "Linked Jira {{value0}}",
+          "reviewNotesHeader": "Review notes",
+          "unsentReviewNotes_one": "{{count}} unsent review note",
+          "unsentReviewNotes_other": "{{count}} unsent review notes"
         },
         "WorktreeCardMetadataStatusBadges": {
           "fe188062a1": "State: Open",
@@ -7236,6 +7309,23 @@
           "outsideDistro": "Pick a folder inside {{value0}}.",
           "underDistro": "This host can only add folders under \\\\wsl.localhost\\{{value0}}."
         },
+        "WorkspaceStatusDot": {
+          "workspaceStatus": "Workspace status: {{status}}",
+          "statusIdle": "{{status}} · No open tab"
+        },
+        "WorktreeColorTagMenuItems": {
+          "noColor": "No color",
+          "removeColor": "Remove color {{value0}}",
+          "useColor": "Use color {{value0}}",
+          "groupColorMulti": "Group color for selected workspaces",
+          "groupColor": "Group color",
+          "usedBy": "used by {{count}} workspaces",
+          "usedBy_one": "used by {{count}} workspace",
+          "usedBy_other": "used by {{count}} workspaces"
+        },
+        "worktree-card-surface": {
+          "colorTag": "Group color {{value0}}"
+        },
         "RemoteFileBrowserEntryList": {
           "pathEmpty": "{{path}} is empty"
         },
@@ -7654,7 +7744,8 @@
           "showPinnedWorktreesInGroups": {
             "title": "Also show pinned worktrees in their original lists",
             "description": "Pinned worktrees stay in Pinned and also appear in All, Project, Status, and PR."
-          }
+          },
+          "showMessagesButton": "Show Messages Button"
         },
         "AutoRenameBranchFromWorkSetting": {
           "1626524572": "Nautilus",
@@ -9821,7 +9912,6 @@
             "5bfb874d05": "Gemini Usage",
             "97957e374e": "openai",
             "8dfd676c28": "codex",
-            "e9e4412545": "Show Codex token and cost usage in the status bar.",
             "54b1acf24f": "Codex Usage",
             "dea0a9a665": "anthropic",
             "c9fe3a7876": "claude",
@@ -9891,7 +9981,11 @@
               "kw": {
                 "cursor": "cursor"
               }
-            }
+            },
+            "messagesTitle": "Show Messages Button",
+            "messagesDescription": "Show the Messages button, the log of text sent to terminals with orca terminal send, at the top of the left sidebar.",
+            "messagesKeyword": "messages",
+            "messagesAgentsKeyword": "agents"
           }
         },
         "auto": {
@@ -10410,7 +10504,12 @@
             "command": "command",
             "confirm": "confirm",
             "close": "close",
-            "omp": "OMP"
+            "omp": "OMP",
+            "jiraKeyLinksTitle": "Jira Issue Key Links",
+            "jiraKeyLinksDescription": "Turn issue keys such as PROJ-123 into links to your Jira site in Markdown files.",
+            "jiraKeyLinksJira": "jira",
+            "jiraKeyLinksLink": "link",
+            "jiraKeyLinksTicket": "ticket"
           }
         },
         "git": {
@@ -11774,16 +11873,16 @@
             "skill": {
               "install": {
                 "cta": {
+                  "copiedCommand": "Copied command.",
+                  "copyFailed": "Failed to copy command.",
                   "skillLabel": "Agent skill:",
                   "checking": "Checking...",
                   "installed": "Installed",
                   "notInstalled": "Not installed",
                   "recheck": "Re-check",
-                  "description": "Let agents read and edit Linear tasks. Full guided setup (connect + skill + visibility) is under Settings → Task Sources.",
-                  "copyFailed": "Failed to copy command.",
-                  "copyCommand": "Copy command",
                   "installedDescription": "Agent skill installed. To update it, run:",
-                  "copiedCommand": "Copied command."
+                  "description": "Let agents read and edit Linear tasks. Full guided setup (connect + skill + visibility) is under Settings → Task Sources.",
+                  "copyCommand": "Copy command"
                 }
               },
               "search": {
@@ -12357,8 +12456,6 @@
         "automations": {
           "showButton": "Show Automations Button",
           "showButtonDescription": "Show the Automations shortcut in the sidebar.",
-          "expandProjectOnRunStart": "Expand the project when a run starts",
-          "expandProjectOnRunStartDescription": "Open the collapsed project folder that holds the workspace for this run. The sidebar does not scroll.",
           "howItWorksTitle": "How Automations work",
           "howItWorksDescription": "Schedule agent work once, then let Orca create each run and keep its results together.",
           "defineStepTitle": "Describe the work",
@@ -12375,6 +12472,8 @@
           "keywordSchedule": "schedule",
           "keywordAgent": "agent",
           "keywordRuns": "runs",
+          "expandProjectOnRunStart": "Expand the project when a run starts",
+          "expandProjectOnRunStartDescription": "Open the collapsed project folder that holds the workspace for this run. The sidebar does not scroll.",
           "keywordProject": "project"
         },
         "AgentAwakeSetting": {
@@ -12844,6 +12943,10 @@
           "terminalsUnknown": "Orca couldn’t confirm whether terminals are running on this host, so it didn’t restart Orca’s server.",
           "terminalsRunning": "{{count}} terminals are still running on this host. Close them, then restart Orca’s server."
         },
+        "rolling-agent-title-copy": {
+          "title": "Keep agent titles up to date",
+          "description": "Rename agent tabs and sidebar rows from the latest finished turn, using the Branch name model. Costs one model call per turn, at most one every two minutes. Manual renames always win."
+        },
         "RuntimeRepairDialog": {
           "title": "Re-pair {{name}}",
           "submit": "Re-pair",
@@ -13016,12 +13119,12 @@
           "connectHost": "Connect to this SSH host to install its skills."
         },
         "OrchestrationSkillPromptDialog": {
-          "d3dc559225": "Failed to copy install command.",
           "f08d45293d": "Copy command",
-          "b99f375eb2": "Run this command in a terminal to install the orchestration skill for your agents.",
           "35550f3b3b": "Done",
-          "2914abcfa2": "Install orchestration skill",
           "1bdce1911e": "Copy orchestration skill install command",
+          "b99f375eb2": "Run this command in a terminal to install the orchestration skill for your agents.",
+          "2914abcfa2": "Install orchestration skill",
+          "d3dc559225": "Failed to copy install command.",
           "239bf9132b": "Copied install command."
         },
         "bundledSkillSetupCopy": {
@@ -13388,6 +13491,14 @@
         },
         "pluginTryAction": {
           "incompleteLanguage": "This language pack is too incomplete to switch to."
+        },
+        "JiraKeyLinksSetting": {
+          "title": "Jira Issue Key Links",
+          "description": "Turn issue keys such as PROJ-123 into links to your Jira site in Markdown files: source, rich and preview. Keys inside URLs stay as they are.",
+          "baseUrlLabel": "Jira site URL",
+          "projectKeysLabel": "Jira project keys, separated by commas",
+          "baseUrlPlaceholder": "https://your-site.atlassian.net",
+          "projectKeysPlaceholder": "PROJ, OPS"
         }
       },
       "right": {
@@ -13625,6 +13736,11 @@
             "d56d140747": "Press Enter to search",
             "98c8435e36": "Select a workspace to search",
             "dcc294f28d": "(results truncated)",
+            "scopeLabel": "Search scope",
+            "scopeCurrent": "Current worktree",
+            "scopePrimary": "All primary checkouts",
+            "scopeAll": "All local worktrees",
+            "unavailableRoots": "({{value0}} worktrees unavailable)",
             "resultsInFiles": "{{results}} in {{files}}",
             "resultCount_one": "{{count}} result",
             "resultCount_other": "{{count}} results",
@@ -13848,6 +13964,7 @@
             "entryDeleteFailed": "Failed to delete “{{value0}}”",
             "entryFailedInWorkspace": "{{value0}} in {{value1}}",
             "diffCommentNotesCopyFailed": "Failed to copy notes",
+            "ceb08a733d": "File",
             "conflictCount_one": "{{count}} conflict",
             "conflictCount_other": "{{count}} conflicts",
             "statusReadFailed": "Git could not read this workspace. Changes shown may be out of date.",
@@ -16382,6 +16499,9 @@
           "bb9c69a0c9": "Notes sent.",
           "50f7e753ea": "Sending notes..."
         },
+        "ReviewNotesSendOtherWorkspacesMenu": {
+          "otherWorkspaces": "Other workspaces"
+        },
         "RichMarkdownAnnotationOverlay": {
           "069b5677b8": "Selected text",
           "6f2f3a6001": "Add review note"
@@ -17502,6 +17622,8 @@
           "b09b2384fd": "Paused",
           "eaa02014f8": "Enabled",
           "29baf8f4c2": "Source",
+          "aa31524e63": "Cooldown",
+          "e3ccecdf50": "Overlap",
           "lastRunFailed": "Last run failed.",
           "noGrace": "No grace",
           "graceMinutes_one": "{{count}} minute",
@@ -17515,8 +17637,11 @@
           "projectDefault": "Project default",
           "reuseLiveSession": "Reuse live session",
           "freshEachRun": "Fresh each run",
+          "skipWhileSessionOpen": "Skip while a session is open",
+          "freshEachRunKeptOpen": "Fresh each run, left open",
           "precheckEnabled": "Enabled, {{timeout}}",
-          "precheckNone": "None"
+          "precheckNone": "None",
+          "noCooldown": "No cooldown"
         },
         "AutomationEditorDialog": {
           "fb1896a5e7": "Cancel",
@@ -17606,7 +17731,11 @@
           "c90888ee94": "Fresh",
           "b675112193": "Reuse sends future runs to the previous live automation session. If that session is gone, Orca starts a fresh one.",
           "4bdce31f37": "Session reuse help",
-          "5ad314118e": "Session"
+          "5ad314118e": "Session",
+          "skipIfOpen": "Skip if open",
+          "skipIfOpenHelp": "Skip if open skips a run while this automation's previous session is still open, including Run now. Once it is closed, the next run starts a fresh one.",
+          "closeWhenDone": "Close the session when the run finishes",
+          "closeWhenDoneHelp": "Reuse and Skip if open always leave the session open when a run finishes."
         },
         "AutomationsPage": {
           "c3a28c9793": "Select an automation to view runs.",
@@ -17950,6 +18079,26 @@
           "helper": "Added to this host's default arguments for each fresh session.",
           "detailLabel": "Extra arguments"
         },
+        "AutomationCooldownField": {
+          "64d2d43b2e": "Cooldown",
+          "ec15594db0": "Run cooldown help",
+          "b63f9c88b2": "Skips a scheduled run when this automation already started one within the window. Manual runs ignore it.",
+          "fefec60705": "No cooldown",
+          "f35ec1df75": "30 minutes",
+          "17efb5d92c": "1 hour",
+          "bdb5654071": "3 hours",
+          "d0f5ada630": "12 hours",
+          "247d06bf28": "24 hours",
+          "74d5a976fa": "16 hours",
+          "c160789c45": "20 hours"
+        },
+        "AutomationRunOverlapField": {
+          "ec134960b6": "Overlap",
+          "58167e9b76": "Overlapping runs help",
+          "6161c86175": "Skips a scheduled run while a previous run of this automation is still going, so two agents never share one workspace. Manual runs are blocked too.",
+          "9b9fa9e30f": "Skip",
+          "3c0ba07648": "Allow"
+        },
         "runHistory": {
           "runCountSummary_one": "{{count}} run · {{completed}} completed",
           "runCountSummary_other": "{{count}} runs · {{completed}} completed",
@@ -17959,7 +18108,7 @@
           "occurrencesWithLatestCount_one": "{{count}} time, most recently {{date}}"
         },
         "capabilityProbe": {
-          "createIdempotencyUpdateRequired": "Moving automations to this host requires a newer Orca server. Update the HUB and try again."
+          "createIdempotencyUpdateRequired": "Creating automations on this host requires a newer Orca server. Update the HUB and try again."
         },
         "editDraft": {
           "unsupportedSchedule": "This automation has an unsupported saved schedule. Pick a supported schedule before saving changes."
@@ -17978,7 +18127,9 @@
           "runStatusSkippedMissed": "Skipped",
           "runStatusSkippedUnavailable": "Unavailable",
           "runStatusSkippedNeedsInteractiveAuth": "Needs credentials",
-          "runStatusDispatchFailed": "Failed"
+          "runStatusDispatchFailed": "Failed",
+          "runStatusSkippedCooldown": "Ran recently",
+          "runStatusSkippedRunActive": "Run in progress"
         },
         "runContent": {
           "noOutput": "No output content available."
@@ -18713,6 +18864,20 @@
           "block": "Block",
           "localFiles": "Local files",
           "fileTitle": "This file wants to"
+        },
+        "annotate": {
+          "detachedNotes": {
+            "count_one": "{{count}} unsent note from a closed page",
+            "count_other": "{{count}} unsent notes from closed pages",
+            "discardTitle_one": "Discard {{count}} unsent note?",
+            "discardTitle_other": "Discard {{count}} unsent notes?",
+            "discardConfirm": "Discard",
+            "attachHere": "Add to this page",
+            "reopen": "Reopen with notes",
+            "discard": "Discard notes"
+          },
+          "notFoundOnPage": "Element not found on this page; the note still sends",
+          "notFound": "not found"
         }
       },
       "HostedReviewUnlinkMenuItem": {
@@ -18927,6 +19092,21 @@
           "PluginsSectionDescription": {
             "openWith": "Open anytime with"
           }
+        }
+      },
+      "messages": {
+        "MessagesPage": {
+          "loadFailed": "Could not load messages.",
+          "title": "Messages",
+          "refresh": "Refresh",
+          "retentionNotice": "Text sent to terminals with `orca terminal send` in the last {{days}} days. Older messages are deleted.",
+          "capNotice": "Showing the latest {{count}}.",
+          "retry": "Retry",
+          "empty": "No messages yet. They appear here when an agent or script runs `orca terminal send`.",
+          "refused": "Not delivered",
+          "failed": "Failed",
+          "recipientLabel": "Sent to",
+          "recipientTerminal": "terminal {{handle}}"
         }
       }
     },
@@ -20066,7 +20246,8 @@
           "unmuteTab": "Unmute Tab"
         },
         "EditorFileTabContextMenu": {
-          "closeOthers": "Close Others"
+          "closeOthers": "Close Others",
+          "reloadFromDisk": "Reload from Disk"
         },
         "CopyTabIdMenuItem": {
           "copied": "Tab ID copied",
@@ -20555,6 +20736,11 @@
       "stepDownload": "Download",
       "stepUnpack": "Unpack",
       "stepCheck": "Check"
+    },
+    "editor": {
+      "editorTabDiskReload": {
+        "reloaded": "Reloaded from disk"
+      }
     }
   },
   "dashboardPopout": {
@@ -20840,7 +21026,8 @@
       "patch": "The branch diff against the base branch used for PR-details generation.",
       "firstPrompt": "The first user request for this workspace or chat.",
       "assistantMessage": "The initial agent response, when Orca has one available.",
-      "linkedIssue": "The GitHub issue number linked to this workspace. Empty when no GitHub issue is linked (including GitLab-linked workspaces). Prefer instructional templates: a bare \"Fixes #{linkedIssue}\" becomes \"Fixes #\" when unlinked."
+      "linkedIssue": "The GitHub issue number linked to this workspace. Empty when no GitHub issue is linked (including GitLab-linked workspaces). Prefer instructional templates: a bare \"Fixes #{linkedIssue}\" becomes \"Fixes #\" when unlinked.",
+      "transcript": "The raw dictated text, before cleanup."
     },
     "model": {
       "configDefault": "Config default",
@@ -20889,14 +21076,18 @@
         "commandTemplateEmptyPullRequest": "Command template is empty for pull request details.",
         "commandTemplateEmptyBranchName": "Command template is empty for branch names.",
         "commandTemplateEmptyChatName": "Command template is empty for chat names.",
+        "commandTemplateEmptyDictationCleanup": "Command template is empty for dictation cleanup.",
         "sourceControlAgentUnsupported": "Choose a supported Source Control AI agent for this action in Settings -> Git -> Source Control AI. Supported agents: {{agents}}, or Custom command.",
         "chatNameAgentUnsupported": "Choose a supported chat name agent for this action in Settings -> Chat -> Chat names. Supported agents: {{agents}}, or Custom command.",
+        "dictationCleanupAgentUnsupported": "Choose a supported dictation cleanup agent for this action in Settings -> Voice -> Transcript cleanup. Supported agents: {{agents}}, or Custom command.",
         "sourceControlCustomCommandEmpty": "Custom command is empty. Add one in Settings -> Git -> Source Control AI.",
         "chatNameCustomCommandEmpty": "Custom command is empty. Add one in Settings -> Chat -> Chat names.",
+        "dictationCleanupCustomCommandEmpty": "Custom command is empty. Add one in Settings -> Voice -> Transcript cleanup.",
         "agentCannotGenerateCommitMessage": "Agent \"{{agent}}\" does not support Source Control AI commit messages. Supported agents: {{agents}}, or Custom command.",
         "agentCannotGeneratePullRequest": "Agent \"{{agent}}\" does not support Source Control AI pull request details. Supported agents: {{agents}}, or Custom command.",
         "agentCannotGenerateBranchName": "Agent \"{{agent}}\" does not support Source Control AI branch names. Supported agents: {{agents}}, or Custom command.",
         "agentCannotGenerateChatName": "Agent \"{{agent}}\" does not support chat names. Supported agents: {{agents}}, or Custom command.",
+        "agentCannotGenerateDictationCleanup": "Agent \"{{agent}}\" does not support dictation cleanup. Supported agents: {{agents}}, or Custom command.",
         "noModelForAgent": "No model is available for {{label}}.",
         "planCustomCommandEmpty": "Custom command is empty. Add one in Settings → Git → AI Commit Messages.",
         "planAgentUnsupported": "Agent \"{{agent}}\" does not support AI commit messages.",
@@ -21539,6 +21730,9 @@
   },
   "fileSearch": {
     "failed": "Search failed. Try again.",
+    "resultsOutdated": "Results may be outdated",
+    "refresh": "Refresh",
+    "untrackedRoots": "(changes in {{value0}} workspaces aren't tracked)",
     "filters": {
       "toggle": "Toggle search details",
       "active": "{{count}} active"
@@ -21658,6 +21852,65 @@
   },
   "projectField": {
     "updateFailed": "Failed to update project field"
+  },
+  "backlog": {
+    "legacyStatus": "{{status}} (not configured)",
+    "unsupportedHost": "Update the project’s Orca server to use Backlog.md.",
+    "providerName": "Backlog.md",
+    "providerDescription": "Browse project tasks without an account. Create and edit with the project Backlog CLI.",
+    "setupDescription": "Select a project in Tasks → Backlog.md. Its configuration and CLI are checked on the execution host.",
+    "editTitle": "Edit {{id}}",
+    "createTitle": "New Backlog task",
+    "saveDescription": "Saved through the project Backlog CLI on its execution host.",
+    "title": "Title",
+    "description": "Description",
+    "status": "Status",
+    "taskStatus": "Task status",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "saveTask": "Save task",
+    "project": "Backlog project",
+    "selectProject": "Select a project",
+    "rememberProjectFailed": "Could not remember the Backlog project.",
+    "addProject": "Add a project or folder to browse Backlog.md tasks.",
+    "back": "Back to tasks",
+    "startWorkspace": "Start workspace",
+    "editTask": "Edit task",
+    "searchLabel": "Search Backlog tasks",
+    "search": "Search tasks",
+    "statusFilter": "Backlog status",
+    "allStatuses": "All statuses",
+    "newTask": "New task",
+    "refresh": "Refresh",
+    "unconfirmedSave": "Save completion is unconfirmed. Refresh and inspect tasks before trying again.",
+    "loading": "Loading Backlog tasks…",
+    "noDetails": "No task details.",
+    "noMatches": "No matching tasks.",
+    "previous": "Previous",
+    "taskCount": "{{count}} tasks",
+    "next": "Next",
+    "assignees": "Assignees",
+    "assigneesHint": "@name, @other",
+    "blocks": "Blocks",
+    "dependsOn": "Depends on",
+    "dependsOnHint": "Task IDs this one waits on, e.g. TASK-1, TASK-2",
+    "documentation": "Documentation",
+    "dueDate": "Due date",
+    "labels": "Labels",
+    "labelsHint": "Comma-separated, e.g. work, repo:orca",
+    "none": "None",
+    "parent": "Parent",
+    "priority": "Priority",
+    "priorityHint": "e.g. low",
+    "newTaskDefaultsTitle": "New task defaults",
+    "newTaskDefaultsDescription": "Optional. Prefilled when you create a task, in every project; you can still change them before saving.",
+    "references": "References",
+    "referencesHint": "One per line: a URL, a file path, or a task ID to mark it related",
+    "related": "Related",
+    "subtasks": "Subtasks",
+    "taskPriority": "Task priority",
+    "taskType": "Task type",
+    "type": "Type"
   },
   "mediaPreview": {
     "unavailable": "Unable to play this media file. The file may be unavailable or use an unsupported codec.",
@@ -21934,6 +22187,26 @@
       "noTransition": "No status change to {{column}} is available for {{key}}.",
       "queryTooLong": "The Jira query is too long. Shorten the query or clear filters."
     },
+    "linkedIssues": {
+      "title": "Linked issues",
+      "parent": "Parent",
+      "subtasks": "Sub-tasks"
+    },
+    "issueList": {
+      "truncated": "Only the first {{shown}} loaded. Narrow the query to see the rest.",
+      "truncatedOfTotal": "Only the first {{shown}} of {{total}} loaded. Narrow the query to see the rest.",
+      "truncatedOfApproximateTotal": "Only the first {{shown}} of about {{total}} loaded. Narrow the query to see the rest."
+    },
+    "jqlPrompt": {
+      "open": "Ask an agent to edit the JQL",
+      "placeholder": "e.g. only bugs, updated this week",
+      "generate": "Generate",
+      "stop": "Stop",
+      "canceled": "Generation canceled.",
+      "failed": "Failed to generate a JQL query.",
+      "hostUpdateRequired": "Generating JQL requires a newer Orca server. Update the Jira connection’s host and try again.",
+      "webUnavailable": "Generating JQL is unavailable in the web client."
+    },
     "favourites": {
       "loadFailed": "Could not load Jira favourites.",
       "clearFailed": "Could not clear the saved filter. Retry after it finishes loading or saving.",
@@ -22010,6 +22283,20 @@
       "unavailable": "This workspace is protected or unavailable."
     },
     "rowActions": "Actions for {{name}}"
+  },
+  "dictation": {
+    "indicator": {
+      "polishing": "Polishing…",
+      "skipPolish": "Skip"
+    },
+    "polish": {
+      "timeout": "Transcript cleanup took too long. Inserted the raw text.",
+      "failed": "Transcript cleanup failed: {{value0}} Inserted the raw text."
+    },
+    "insert": {
+      "copiedToClipboard": "Could not insert the dictated text, so it was copied to the clipboard.",
+      "lost": "Could not insert the dictated text or copy it to the clipboard."
+    }
   },
   "wslMove": {
     "entry": {
@@ -22246,6 +22533,25 @@
     "killAllLocal": "Kill all local sessions",
     "killFailed": "The terminal could not be ended. Last-observed sessions are retained."
   },
+  "generalNotes": {
+    "add": "Add note for the AI",
+    "addAnother": "Add note",
+    "addEllipsis": "Add note for the AI…",
+    "deleteFailed": "Failed to delete note",
+    "dialogDescription": "Todos for this workspace, not tied to a file. Send them to an agent when ready.",
+    "dialogTitle": "Notes for the AI",
+    "draftLabel": "General note",
+    "edit": "Edit note",
+    "empty": "The note is empty.",
+    "emptyHint": "Notes here are not tied to a file. They go out with Send notes.",
+    "groupLabel": "General",
+    "hostUpdateRequired": "Update Orca on this host to save general notes.",
+    "save": "Save",
+    "saveFailed": "Failed to save note",
+    "saving": "Saving...",
+    "send": "Send notes",
+    "workspaceGone": "The workspace is gone."
+  },
   "browserExtensions": {
     "permission": {
       "history": "Read your browsing history",
@@ -22412,7 +22718,9 @@
       "terminalSwitchInputSource": "Switch input source / language (native)",
       "newAgentTab": "New {{agent}} tab",
       "tabNewBrowserSplitRight": "New browser tab in right split",
-      "viewPlugins": "Open Plugins"
+      "viewPlugins": "Open Plugins",
+      "editorReloadFromDisk": "Reload from Disk",
+      "editorCopyRelativePathWithLines": "Copy Relative Path with Lines"
     },
     "group": {
       "global": "Global",
@@ -22661,6 +22969,11 @@
     }
   },
   "taskProviders": {
+    "dueDate": "Due {{date}}",
+    "overdue": "Overdue, due {{date}}",
+    "blockedBy": "Blocked by {{ids}}",
+    "openIssue": "Open {{key}}",
+    "openIssueFailed": "Couldn’t open {{key}}",
     "linear": {
       "updateAccess": "Update access",
       "addAccess": "Add Linear access",
@@ -22790,6 +23103,16 @@
     }
   },
   "automations": {
+    "runAhead": {
+      "action": "Run ahead of schedule"
+    },
+    "duplicate": {
+      "action": "Duplicate",
+      "copyName": "{{name}} (copy)",
+      "numberedCopyName": "{{name}} (copy {{number}})",
+      "created": "Created {{name}}",
+      "sourceMissing": "This automation is no longer on this host. Refresh and try again."
+    },
     "runFailures": {
       "noDispatchHost": "No Orca window was available to launch the automation.",
       "unevaluableSchedule": "Orca could not evaluate this automation and skipped the occurrence.",
@@ -22797,6 +23120,9 @@
       "wslMoveInProgress": "This automation's project is moving to its WSL host, so Orca skipped this run. Runs resume when the move finishes.",
       "wslMoveOwnedByHost": "This automation's project now runs on its WSL host, which runs this automation there. Orca no longer runs this local copy.",
       "missedGraceWindow": "This run was past its missed-run grace window when Orca next checked.",
+      "skippedCooldown": "This automation ran recently, so the scheduled run was skipped.",
+      "skippedRunActive": "A previous run was still active, so the scheduled run was skipped.",
+      "skippedSessionOpen": "This automation's previous session is still open, so the run was skipped.",
       "targetMissing": "The automation host is no longer registered, so this automation has nowhere to run.",
       "targetReplaced": "The automation host was removed and re-registered, so this automation must be re-adopted before it can run.",
       "workspaceHostAmbiguous": "The automation workspace spans more than one host, so Orca cannot tell which one to run it on.",

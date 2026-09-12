@@ -11,6 +11,8 @@ import {
 } from './editor-autosave'
 import type { DiffContent, FileContent } from './editor-panel-content-types'
 import { isReloadableSingleFileDiffTab } from './editor-panel-diff-reload'
+import { getExternalEventGeneration } from './editor-external-event-generation'
+import { useEditorPanelReloadRequestEvents } from './use-editor-panel-reload-request-events'
 import { createEditorWatcherReloadCoalescer } from './editor-watcher-reload-coalescer'
 import { markFileChangedOnDisk } from './editor-changed-on-disk-mark'
 import { hasRecentSelfWrite } from './editor-self-write-registry'
@@ -26,7 +28,7 @@ export type EditorPanelContentLoadOptions = {
   wakeWslDistro?: boolean
 }
 
-type UseEditorPanelExternalContentEventsParams = {
+export type UseEditorPanelExternalContentEventsParams = {
   activeContentFileIdRef: MutableRefObject<string | null>
   invalidateContent: (fileIds: string[]) => void
   invalidateDiffContent: (fileIds: string[]) => void
@@ -43,19 +45,6 @@ type UseEditorPanelExternalContentEventsParams = {
   editorViewModeRef: MutableRefObject<EditorViewModeByFile>
   setFileContents: Dispatch<SetStateAction<Record<string, FileContent>>>
   setDiffContents: Dispatch<SetStateAction<Record<string, DiffContent>>>
-}
-
-const externalEventGenerations = new WeakMap<Event, number>()
-let externalEventGenerationCounter = 0
-
-function getExternalEventGeneration(event: Event): number {
-  const existing = externalEventGenerations.get(event)
-  if (existing !== undefined) {
-    return existing
-  }
-  const generation = ++externalEventGenerationCounter
-  externalEventGenerations.set(event, generation)
-  return generation
 }
 
 export function useEditorPanelExternalContentEvents({
@@ -170,6 +159,17 @@ export function useEditorPanelExternalContentEvents({
     loadFileContent,
     openFilesRef
   ])
+
+  useEditorPanelReloadRequestEvents({
+    activeContentFileIdRef,
+    editorViewModeRef,
+    invalidateContent,
+    invalidateDiffContent,
+    isVisibleRef,
+    loadDiffContent,
+    loadFileContent,
+    openFilesRef
+  })
 
   useEffect(() => {
     const handler = (event: Event): void => {
