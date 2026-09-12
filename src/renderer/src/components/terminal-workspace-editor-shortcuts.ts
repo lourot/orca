@@ -5,6 +5,7 @@ import {
   type EditorRequestCmdSaveDetail
 } from './editor/editor-autosave'
 import { getEditorCmdSaveFileId } from './editor/editor-cmd-save-target'
+import { requestEditorTabDiskReload } from './editor/editor-tab-disk-reload'
 import { isEventTargetInsideFloatingWorkspacePanel } from '@/lib/floating-workspace-terminal-actions'
 
 type EditorShortcutContext = {
@@ -60,6 +61,18 @@ export function handleTerminalWorkspaceEditorShortcut({
         const wrapOn = state.settings?.editorWordWrap !== false
         void state.updateSettings({ editorWordWrap: !wrapOn })
       }
+      return true
+    }
+  }
+  // Why: the conflict banner is the only other way to reach a disk reload, and it
+  // needs unsaved edits plus a watcher hit — this is the lever for a tab the user
+  // already suspects is stale (#11085).
+  if (!event.repeat && matchShortcut('editor.reloadFromDisk')) {
+    const state = useAppStore.getState()
+    if (state.activeTabType === 'editor' && state.activeFileId) {
+      event.preventDefault()
+      notifyTerminalCapture('editor.reloadFromDisk')
+      requestEditorTabDiskReload(state.activeFileId)
       return true
     }
   }

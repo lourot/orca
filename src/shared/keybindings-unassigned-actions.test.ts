@@ -215,6 +215,26 @@ describe('keybindings', () => {
     )
   })
 
+  it('keeps reload from disk unassigned because Ctrl+R and Ctrl+Shift+R are taken', () => {
+    const binding = { key: 'r', code: 'KeyR', control: true, meta: false, alt: false, shift: false }
+    const platforms: readonly KeybindingPlatform[] = ['darwin', 'linux', 'win32']
+
+    for (const platform of platforms) {
+      expect(getEffectiveKeybindingsForAction('editor.reloadFromDisk', platform)).toEqual([])
+    }
+    expect(keybindingMatchesAction('editor.reloadFromDisk', binding, 'linux')).toBe(false)
+    expect(
+      keybindingMatchesAction('editor.reloadFromDisk', binding, 'linux', {
+        'editor.reloadFromDisk': ['Ctrl+R']
+      })
+    ).toBe(true)
+
+    const definition = getKeybindingDefinition('editor.reloadFromDisk')
+    expect(definition?.title).toBe('Reload from Disk')
+    expect(definition?.group).toBe('Editors')
+    expect(definition?.scope).toBe('editor')
+  })
+
   it('leaves floating workspace minimize unassigned because floating terminal toggle owns show and hide', () => {
     const platforms: readonly KeybindingPlatform[] = ['darwin', 'linux', 'win32']
     const minimizeAction = 'floatingWorkspace.minimize' as KeybindingActionId

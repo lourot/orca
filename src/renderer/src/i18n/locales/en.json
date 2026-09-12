@@ -17381,7 +17381,8 @@
         },
         "EditorFileTabContextMenu": {
           "closeOthers": "Close Others",
-          "closeTabsToLeft": "Close Tabs To The Left"
+          "closeTabsToLeft": "Close Tabs To The Left",
+          "reloadFromDisk": "Reload from Disk"
         }
       }
     },
@@ -17686,6 +17687,11 @@
             "spaces": "spaces"
           }
         }
+      }
+    },
+    "editor": {
+      "editorTabDiskReload": {
+        "reloaded": "Reloaded from disk"
       }
     }
   },

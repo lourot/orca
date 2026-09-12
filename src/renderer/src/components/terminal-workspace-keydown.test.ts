@@ -20,7 +20,8 @@ const mocks = vi.hoisted(() => ({
   callRuntimeRpc: vi.fn(async () => ({ ok: true })),
   cancelStructuredAgentLaunch: vi.fn(),
   floatingFocused: false,
-  targetInsideFloatingPanel: false
+  targetInsideFloatingPanel: false,
+  requestEditorTabDiskReload: vi.fn()
 }))
 
 vi.mock('../store', () => ({ useAppStore: { getState: () => mocks.state } }))
@@ -45,6 +46,10 @@ vi.mock('@/lib/terminal-shortcut-capture-notification', () => ({
 }))
 vi.mock('./terminal-agent-tab-shortcut', () => ({
   resolveTerminalAgentTabShortcut: () => ({ actionId: null, agent: null })
+}))
+
+vi.mock('./editor/editor-tab-disk-reload', () => ({
+  requestEditorTabDiskReload: mocks.requestEditorTabDiskReload
 }))
 
 vi.mock('./terminal/terminal-tab-actions', () => ({ closeTerminalTab: mocks.closeTerminalTab }))
@@ -129,6 +134,63 @@ describe('handleTerminalWorkspaceKeyDown editor.save', () => {
   it('does not swallow the chord outside the workspace view', () => {
     mocks.state.activeView = 'tasks'
     expect(pressCmdS()).toEqual([])
+  })
+})
+
+function pressReloadFromDiskChord(keybindings?: Record<string, string[]>): void {
+  const target = document.createElement('div')
+  document.body.appendChild(target)
+  const event = new KeyboardEvent('keydown', {
+    key: 'r',
+    code: 'KeyR',
+    metaKey: true,
+    altKey: true,
+    shiftKey: true,
+    cancelable: true
+  })
+  Object.defineProperty(event, 'target', { value: target })
+  try {
+    handleTerminalWorkspaceKeyDown(
+      event,
+      { ...controller, keybindings } as unknown as TerminalActivationController,
+      'darwin'
+    )
+  } finally {
+    target.remove()
+  }
+}
+
+describe('handleTerminalWorkspaceKeyDown editor.reloadFromDisk', () => {
+  beforeEach(() => {
+    mocks.requestEditorTabDiskReload.mockClear()
+    mocks.floatingFocused = false
+    mocks.targetInsideFloatingPanel = false
+    mocks.state = {
+      activeView: 'terminal',
+      activeTabType: 'editor',
+      activeFileId: 'file-1',
+      getActiveTab: () => null
+    }
+  })
+
+  it('reloads the active editor tab once the user assigns a chord', () => {
+    pressReloadFromDiskChord({ 'editor.reloadFromDisk': ['Mod+Alt+Shift+R'] })
+
+    expect(mocks.requestEditorTabDiskReload).toHaveBeenCalledExactlyOnceWith('file-1')
+  })
+
+  it('stays inert while the action ships unbound', () => {
+    pressReloadFromDiskChord()
+
+    expect(mocks.requestEditorTabDiskReload).not.toHaveBeenCalled()
+  })
+
+  it('ignores the chord when the active tab is not an editor', () => {
+    mocks.state.activeTabType = 'terminal'
+
+    pressReloadFromDiskChord({ 'editor.reloadFromDisk': ['Mod+Alt+Shift+R'] })
+
+    expect(mocks.requestEditorTabDiskReload).not.toHaveBeenCalled()
   })
 })
 

@@ -36,6 +36,9 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
 }))
 
 vi.mock('lucide-react', () => ({
+  RefreshCw: function RefreshCw(props: Record<string, unknown>) {
+    return { type: 'RefreshCw', props }
+  },
   ArrowDown: function ArrowDown(props: Record<string, unknown>) {
     return { type: 'ArrowDown', props }
   },

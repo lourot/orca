@@ -81,6 +81,16 @@ export const KEYBINDING_DEFINITION_CORE_3: readonly KeybindingDefinition[] = [
     defaultBindings: platformBindings(['Alt+Z'])
   },
   {
+    id: 'editor.reloadFromDisk',
+    title: 'Reload from Disk',
+    group: 'Editors',
+    scope: 'editor',
+    searchKeywords: ['shortcut', 'editor', 'reload', 'refresh', 'revert', 'disk', 'external'],
+    // Why: unbound by default — Ctrl+R and Ctrl+Shift+R are already taken on Windows/Linux
+    // (see workspace.rename), so there is no safe cross-platform chord to claim.
+    defaultBindings: platformBindings([])
+  },
+  {
     id: 'editor.copyContext',
     title: 'Copy Context',
     group: 'Editors',
