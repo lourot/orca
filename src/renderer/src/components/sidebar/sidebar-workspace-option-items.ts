@@ -86,7 +86,11 @@ export const PROJECT_ORDER_OPTIONS = localizeChoices<
   ChoiceId<typeof WORKSPACE_PROJECT_ORDER_CHOICES>
 >(
   WORKSPACE_PROJECT_ORDER_CHOICES,
-  { manual: manualLabel, recent: recentLabel },
+  {
+    manual: manualLabel,
+    recent: recentLabel,
+    name: () => translate('auto.components.sidebar.SidebarWorkspaceOptionsMenu.3728165cdd', 'Name')
+  },
   {
     manual: () =>
       translate(
@@ -97,6 +101,11 @@ export const PROJECT_ORDER_OPTIONS = localizeChoices<
       translate(
         'auto.components.sidebar.SidebarWorkspaceOptionsMenu.af9249c505',
         'Most recent workspace activity'
+      ),
+    name: () =>
+      translate(
+        'auto.components.sidebar.SidebarWorkspaceOptionsMenu.4a1e6fb2c9',
+        'Alphabetical by displayed name'
       )
   }
 )

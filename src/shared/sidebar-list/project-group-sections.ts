@@ -14,6 +14,7 @@ import type { OrderedGroupEntry } from './worktree-group-entry'
 import {
   compareRecentRank,
   createRecentRankLookup,
+  sortProjectEntriesByRenderedLabel,
   withRepoSectionDisplayLabels
 } from '../project-section-order'
 import { buildFolderWorkspaceRow } from './row-builders'
@@ -41,6 +42,9 @@ export function appendProjectGroupSections(
   }
 
   const sortRepoEntriesWithinGroup = (entries: OrderedGroupEntry[]): OrderedGroupEntry[] => {
+    if (projectOrderBy === 'name') {
+      return sortProjectEntriesByRenderedLabel(entries)
+    }
     if (projectOrderBy === 'recent') {
       if (entries.length < 2) {
         return [...entries]

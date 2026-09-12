@@ -1,4 +1,4 @@
-/** Disambiguate equal names by parent paths on projected project headers as well as legacy repo headers. */
+/** Headers always carry one parent segment, adding more for equal names, on projected project headers as well as legacy repo headers. */
 import { describe, expect, it } from 'vitest'
 import { buildRows } from './worktree-list/grouping/build-rows.test-fixture'
 import { project, projectHostSetups, repo, worktree } from './worktree-list-groups-test-fixtures'
@@ -68,14 +68,14 @@ describe('sidebar section headers with colliding display names', () => {
     ])
   })
 
-  it('leaves a lone project header un-suffixed', () => {
+  it('parent-qualifies a lone project header too', () => {
     expect(
       buildHeaders(
         [workRepo],
         [makeProject('github:acme/api', workRepo.id)],
         [makeSetup(workRepo, 'github:acme/api')]
       )
-    ).toMatchObject([{ key: 'project:github:acme/api', label: 'api' }])
+    ).toMatchObject([{ key: 'project:github:acme/api', label: 'work/api' }])
   })
 
   it('path-disambiguates untracked repo headers that share a display name', () => {

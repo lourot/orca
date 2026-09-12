@@ -31,6 +31,8 @@ import {
   WORKTREE_SECTION_HEADER_PADDING_LEFT
 } from './indentation'
 import { FolderPathStatusIndicator } from './FolderPathStatusIndicator'
+import { ProjectActivityHeatmap } from '../../ProjectActivityIndicator'
+import { SectionHeaderTitle } from './SectionHeaderTitle'
 import { RepoScanUnavailableIndicator } from './RepoScanUnavailableIndicator'
 import {
   ProjectGroupCreateWorkspaceButton,
@@ -54,6 +56,8 @@ export type SectionHeaderRowContext = {
   collapsedGroups: Set<string>
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   projectGroups: readonly ProjectGroup[]
+  /** Repos with at least one local worktree holding uncommitted changes. */
+  dirtyRepoIds: ReadonlySet<string>
   highlightedRevealRowKey: string | null
   dragOverStatus: WorkspaceStatus | null
   pinDragOver: boolean
@@ -236,7 +240,9 @@ export function renderWorktreeSectionHeaderRow(args: {
           data-workspace-pin-drop-target={isPinnedHeader ? '' : undefined}
           className={cn(
             // Keep grab on the title; action buttons use pointer cursors.
-            'group relative flex h-7 w-full items-center gap-1.5 pr-2 text-left transition-all',
+            // Keep h-6 in sync with GROUP_HEADER_ROW_HEIGHT; the virtualizer sizes this row
+            // from the constant, not from the DOM, so a mismatch overlaps rows permanently.
+            'group relative flex h-6 w-full items-center gap-1.5 pr-2 text-left transition-all',
             !(isDraggableRepoHeader || isDraggableProjectGroupHeader) && 'cursor-pointer',
             ctx.highlightedRevealRowKey === row.key &&
               'rounded-md bg-worktree-sidebar-accent ring-1 ring-worktree-sidebar-ring/50',
@@ -334,13 +340,14 @@ export function renderWorktreeSectionHeaderRow(args: {
 
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-1.5">
-                <div className="min-w-0 truncate text-[13px] font-semibold leading-4">{label}</div>
+                <SectionHeaderTitle label={label} repo={headerRepo} dirtyIds={ctx.dirtyRepoIds} />
                 {hostContext ? <ProjectHeaderHostLabel context={hostContext} /> : null}
                 <RepoForkIndicator upstream={row.repo?.upstream} />
                 <FolderPathStatusIndicator status={projectGroupPathStatus} />
                 {isRepoHeader ? <RepoScanUnavailableIndicator repo={row.repo!} /> : null}
               </div>
             </div>
+            {isRepoHeader ? <ProjectActivityHeatmap repoId={row.repo!.id} /> : null}
           </div>
 
           <ProjectHeaderActions>

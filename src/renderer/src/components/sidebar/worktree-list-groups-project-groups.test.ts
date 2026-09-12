@@ -376,7 +376,7 @@ describe('project groups', () => {
       'Platform',
       'payments/api',
       'billing/api',
-      'web'
+      'platform/web'
     ])
     expect(paymentsApi.displayName).toBe('api')
     expect(billingApi.displayName).toBe('api')
@@ -454,7 +454,7 @@ describe('project groups', () => {
       'Platform',
       'payments/api',
       'billing/api',
-      'web'
+      'platform/web'
     ])
     expect(paymentsApi.displayName).toBe('api')
     expect(billingApi.displayName).toBe('api')
