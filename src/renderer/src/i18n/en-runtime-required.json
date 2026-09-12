@@ -2437,6 +2437,11 @@
           "MobileDriverOverlay": {
             "3eed73394f": "Your keyboard is paused"
           },
+          "TerminalAgentSessionForkDialog": {
+            "0c8a8629b1": "The fork appears as its own workspace, not as a nested child. The new agent receives a bounded transcript as an editable draft.",
+            "619b5a35d2": "Create a top-level workspace fork and start a fresh agent tab with captured context.",
+            "620461df22": "Top-level fork"
+          },
           "TerminalRemoteRuntimeReconnectBanner": {
             "retryingBody": "Orca will retry for up to one minute. This terminal will resume if the connection returns."
           },

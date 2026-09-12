@@ -13,6 +13,7 @@ const mockToast = {
 const mockWriteClipboardText = vi.fn(async () => undefined)
 const mockMarkTrusted = vi.fn(async () => undefined)
 const LEAF_ID = '11111111-1111-4111-8111-111111111111'
+const SESSION_ID = 'c0ffee00-1111-4222-8333-444455556666'
 
 const store = {
   activeRepoId: 'repo-1',
@@ -30,7 +31,10 @@ const store = {
     string,
     { id: string; repoId: string; path?: string; projectId?: string }[]
   >,
-  agentStatusByPaneKey: {} as Record<string, { agentType?: string }>,
+  agentStatusByPaneKey: {} as Record<
+    string,
+    { agentType?: string; providerSession?: { key: 'session_id' | 'conversation_id'; id: string } }
+  >,
   tabsByWorktree: {} as Record<string, { id: string; launchAgent?: string | null }[]>,
   getKnownWorktreeById: vi.fn(),
   createWorktree: mockCreateWorktree
@@ -590,6 +594,26 @@ describe('forkAgentSessionFromPane', () => {
     )
   })
 
+  it('carries the source provider session into the prepared fork', async () => {
+    store.agentStatusByPaneKey = {
+      [`tab-1:${LEAF_ID}`]: {
+        agentType: 'claude',
+        providerSession: { key: 'session_id', id: SESSION_ID }
+      }
+    }
+    const { prepareAgentSessionForkFromPane } = await import('./terminal-agent-session-fork')
+
+    const fork = prepareAgentSessionForkFromPane({
+      pane: makePane('User: keep going'),
+      tabId: 'tab-1',
+      worktreeId: 'wt-1',
+      groupId: null
+    })
+
+    expect(fork?.providerSession).toEqual({ key: 'session_id', id: SESSION_ID })
+    expect(fork?.mode).toBe('recent-context')
+  })
+
   it('surfaces clipboard failures instead of closing the fallback path silently', async () => {
     mockWriteClipboardText.mockRejectedValueOnce(new Error('clipboard denied'))
     const pane = makePane('Assistant: copy fallback context')
@@ -608,56 +632,108 @@ describe('forkAgentSessionFromPane', () => {
   })
 })
 
-describe('copyAgentSessionContextFromPane', () => {
+describe('startAgentSessionFork full-conversation mode', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockWriteClipboardText.mockResolvedValue(undefined)
+    store.repos = [{ id: 'repo-1', kind: 'git' }]
+    store.projects = [{ id: 'repo-1', sourceRepoIds: ['repo-1'] }]
+    store.settings = { localWindowsRuntimeDefault: { kind: 'windows-host' } }
+    store.worktreesByRepo = {
+      'repo-1': [{ id: 'wt-1', repoId: 'repo-1', path: 'C:\\repo', projectId: 'repo-1' }]
+    }
+    store.agentStatusByPaneKey = {}
+    store.tabsByWorktree = { 'wt-1': [{ id: 'tab-1' }] }
+    store.getKnownWorktreeById.mockReturnValue({
+      id: 'wt-1',
+      repoId: 'repo-1',
+      displayName: 'auth-feature',
+      branch: 'feature/auth'
+    })
+    mockCreateWorktree.mockResolvedValue({ worktree: { id: 'wt-fork' } })
+    mockLaunchAgentInNewTab.mockReturnValue({ tabId: 'tab-2', startupPlan: {} })
     vi.stubGlobal('window', {
-      api: { ui: { writeTerminalClipboardText: mockWriteClipboardText } }
+      api: {
+        ui: { writeTerminalClipboardText: mockWriteClipboardText },
+        agentTrust: { markTrusted: mockMarkTrusted },
+        platform: { get: () => ({ platform: 'win32' }) }
+      }
     })
   })
 
-  it('copies the bounded transcript without the fork prompt framing', async () => {
-    const pane = makePane('User: standalone copy\nAssistant: acknowledged')
-    const { copyAgentSessionContextFromPane } = await import('./terminal-agent-session-fork')
+  it('launches the forking resume argv instead of a transcript draft', async () => {
+    const { startAgentSessionFork } = await import('./terminal-agent-session-fork')
 
-    const copied = await copyAgentSessionContextFromPane(pane)
+    const started = await startAgentSessionFork({
+      prompt: 'bounded transcript',
+      agent: 'claude',
+      worktreeId: 'wt-1',
+      pane: makePane('User: keep going'),
+      providerSession: { key: 'session_id', id: SESSION_ID },
+      mode: 'full-conversation'
+    })
 
-    expect(copied).toBe(true)
-    expect(mockWriteClipboardText).toHaveBeenCalledTimes(1)
-    const clipped = (mockWriteClipboardText.mock.calls as unknown as string[][])[0][0]
-    expect(clipped).toContain('User: standalone copy')
-    // Why: standalone copy must not carry the fork header/footer the dialog adds.
-    expect(clipped).not.toContain('fork of an existing Orca agent session')
-    expect(clipped).not.toContain('wait for my next instruction')
-    expect(mockToast.message).toHaveBeenCalledWith('Context copied')
-    expect(mockToast.message).not.toHaveBeenCalledWith(
-      'Fork context copied. Launch an agent and paste it to start the fork.'
-    )
-    expect(pane.terminal.focus).toHaveBeenCalled()
+    expect(started).toBe(true)
+    const args = mockLaunchAgentInNewTab.mock.calls[0][0] as Record<string, unknown>
+    expect(args.agentArgs).toBe(`--resume ${SESSION_ID} --fork-session`)
+    expect(args.prompt).toBeUndefined()
+    expect(args.promptDelivery).toBeUndefined()
+    // Why: the child mints its own session id, so seeding the parent's would make
+    // Orca believe both panes own one conversation.
+    expect(JSON.stringify(args)).not.toContain('providerSession')
   })
 
-  it('shows a copy-specific empty-context error without writing the clipboard', async () => {
-    const pane = makePane('\x1b[0m\r\n\x1bc\x07')
-    const { copyAgentSessionContextFromPane } = await import('./terminal-agent-session-fork')
+  it('refuses the launch when the pane never reported a session id', async () => {
+    const { startAgentSessionFork } = await import('./terminal-agent-session-fork')
 
-    const copied = await copyAgentSessionContextFromPane(pane)
+    const started = await startAgentSessionFork({
+      prompt: 'bounded transcript',
+      agent: 'claude',
+      worktreeId: 'wt-1',
+      pane: makePane('User: keep going'),
+      providerSession: null,
+      mode: 'full-conversation'
+    })
 
-    expect(copied).toBe(false)
+    expect(started).toBe(false)
+    expect(mockCreateWorktree).not.toHaveBeenCalled()
+    expect(mockLaunchAgentInNewTab).not.toHaveBeenCalled()
     expect(mockWriteClipboardText).not.toHaveBeenCalled()
-    expect(mockToast.error).toHaveBeenCalledWith('No terminal context to copy')
-    expect(pane.terminal.focus).toHaveBeenCalled()
+    expect(mockToast.error).toHaveBeenCalledWith(
+      'This agent session can no longer be forked with its full conversation.'
+    )
   })
 
-  it('surfaces clipboard write failures', async () => {
-    mockWriteClipboardText.mockRejectedValueOnce(new Error('clipboard denied'))
-    const pane = makePane('User: copy this')
-    const { copyAgentSessionContextFromPane } = await import('./terminal-agent-session-fork')
+  it('refuses a non-Claude agent rather than resuming it under the parent id', async () => {
+    const { startAgentSessionFork } = await import('./terminal-agent-session-fork')
 
-    const copied = await copyAgentSessionContextFromPane(pane)
+    const started = await startAgentSessionFork({
+      prompt: 'bounded transcript',
+      agent: 'codex',
+      worktreeId: 'wt-1',
+      pane: makePane('User: keep going'),
+      providerSession: { key: 'session_id', id: SESSION_ID },
+      mode: 'full-conversation'
+    })
 
-    expect(copied).toBe(false)
-    expect(mockToast.error).toHaveBeenCalledWith('clipboard denied')
-    expect(pane.terminal.focus).toHaveBeenCalled()
+    expect(started).toBe(false)
+    expect(mockCreateWorktree).not.toHaveBeenCalled()
+  })
+
+  it('still sends the bounded transcript as a draft in recent-context mode', async () => {
+    const { startAgentSessionFork } = await import('./terminal-agent-session-fork')
+
+    await startAgentSessionFork({
+      prompt: 'bounded transcript',
+      agent: 'claude',
+      worktreeId: 'wt-1',
+      pane: makePane('User: keep going'),
+      providerSession: { key: 'session_id', id: SESSION_ID },
+      mode: 'recent-context'
+    })
+
+    const args = mockLaunchAgentInNewTab.mock.calls[0][0] as Record<string, unknown>
+    expect(args.prompt).toBe('bounded transcript')
+    expect(args.promptDelivery).toBe('draft')
+    expect(args.agentArgs).toBeUndefined()
   })
 })

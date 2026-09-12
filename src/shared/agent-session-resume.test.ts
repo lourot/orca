@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   agentProviderSessionsEqual,
+  canForkAgentConversation,
   extractAgentProviderSession,
+  getAgentForkResumeArgv,
   getAgentResumeArgv,
   isResumableTuiAgent,
-  normalizeAgentProviderSession
+  normalizeAgentProviderSession,
+  RESUMABLE_TUI_AGENTS
 } from './agent-session-resume'
 
 describe('agent session resume metadata', () => {
@@ -165,5 +168,62 @@ describe('agent session resume metadata', () => {
         transcriptPath: '/tmp/bad\npath.jsonl'
       })
     ).toEqual({ key: 'session_id', id: 'ok' })
+  })
+})
+
+describe('agent conversation forking', () => {
+  const claudeSession = { key: 'session_id', id: 'c0ffee00-1111-4222-8333-444455556666' } as const
+
+  it('appends --fork-session after the session id so claude mints a new one', () => {
+    expect(getAgentForkResumeArgv('claude', claudeSession)).toEqual([
+      'claude',
+      '--resume',
+      'c0ffee00-1111-4222-8333-444455556666',
+      '--fork-session'
+    ])
+  })
+
+  // Why: waking a hibernated pane resumes the SAME conversation. A --fork-session
+  // leaking into the default argv would silently branch it on every wake.
+  it('leaves the plain resume argv free of any fork flag', () => {
+    expect(getAgentResumeArgv('claude', claudeSession)).toEqual([
+      'claude',
+      '--resume',
+      'c0ffee00-1111-4222-8333-444455556666'
+    ])
+  })
+
+  it.each(RESUMABLE_TUI_AGENTS.filter((agent) => agent !== 'claude'))(
+    'refuses to fork %s, which has no flag that mints a new session id',
+    (agent) => {
+      expect(
+        getAgentForkResumeArgv(agent, { key: 'session_id', id: 's1', transcriptPath: '/tmp/s' })
+      ).toBeNull()
+    }
+  )
+
+  it('refuses to fork claude when the provider reports a conversation id', () => {
+    expect(getAgentForkResumeArgv('claude', { key: 'conversation_id', id: 's1' })).toBeNull()
+  })
+
+  // Why: the fork argv travels as one string and the launcher re-splits it, so an
+  // id that is not a single bare word would resume the wrong id or fail to launch.
+  it.each(['two words', "quo'te", 'semi;colon', '$(echo hi)', ''])(
+    'refuses to fork a session id that is not one bare word: %j',
+    (id) => {
+      expect(getAgentForkResumeArgv('claude', { key: 'session_id', id })).toBeNull()
+      expect(canForkAgentConversation('claude', { key: 'session_id', id })).toBe(false)
+    }
+  )
+
+  it.each([
+    ['claude with a session id', 'claude', claudeSession, true],
+    ['claude without a session', 'claude', null, false],
+    ['claude with a conversation id', 'claude', { key: 'conversation_id', id: 's1' }, false],
+    ['claude with a non-bare session id', 'claude', { key: 'session_id', id: 'a b' }, false],
+    ['codex with a session id', 'codex', claudeSession, false],
+    ['an unknown agent', undefined, claudeSession, false]
+  ] as const)('reports %s as forkable=%s', (_label, agent, providerSession, expected) => {
+    expect(canForkAgentConversation(agent, providerSession)).toBe(expected)
   })
 })

@@ -30,7 +30,24 @@ Turn the popover off under [Settings → Browser → Show terminal link actions]
 
 ## Copy terminal context
 
-Right-click a terminal and choose **Copy Context** to copy a bounded transcript from that pane. Use it when you want to paste recent agent output into another tool without starting an Orca fork.
+Right-click a terminal and choose **Copy Context** to copy a bounded transcript from that pane. Use it when you want to paste recent agent output into another tool — nothing is created in Orca. To branch the work itself, [fork the session](#fork-an-agent-session) instead.
+
+## Fork an agent session
+
+Right-click an agent terminal and choose **Fork Agent Session…** to branch the work you're doing into its own workspace. The same action is in the [native chat](/docs/agents/native-chat) context menu. Orca creates a **top-level** git worktree off the current branch — not a nested child — and opens a fresh agent tab in it.
+
+The dialog asks what the new agent starts from:
+
+- **Full conversation** — resumes this Claude session in the new workspace with its whole history, under a **new session id**. The forked agent knows everything the original knows and you can keep working in both; neither writes to the other's transcript. This is the default when it's available.
+- **Recent context** — starts a fresh agent and hands it a bounded transcript of the pane as an editable draft. The new agent has only what it can read in that draft.
+
+**Full conversation** needs a Claude pane whose session id Orca has already captured (it arrives with the agent's first hook report). When either is missing, the card is disabled and says which — Orca never quietly gives you the weaker fork instead.
+
+**Copy context** in the same dialog does the same as the menu action above, so it works whichever mode is selected.
+
+Forking needs a git worktree to branch from, so it's unavailable in folder workspaces, the floating terminal, and archived or bare worktrees.
+
+A fork is one of three ways a conversation continues in Orca: [resuming](/docs/agents/session-history) replays a past session under its own id, [hibernation](/docs/agents/hibernation) wakes a paused one under its own id automatically, and forking copies one into a new id so both can run at once.
 
 ## Themes
 

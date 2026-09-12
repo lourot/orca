@@ -1,10 +1,10 @@
 import type { ManagedPane } from '@/lib/pane-manager/pane-manager'
 import type { PaneCwdMap } from './resolve-split-cwd'
 import {
-  copyAgentSessionContextFromPane,
   prepareAgentSessionForkFromPane,
   type PreparedAgentSessionFork
 } from './terminal-agent-session-fork'
+import { copyAgentSessionContextFromPane } from './terminal-agent-session-fork-clipboard'
 import { prepareAgentSessionContinuationFromPane } from './terminal-agent-session-continuation'
 import type { AgentSessionContinuationRequest } from '@/lib/agent-session-continuation'
 

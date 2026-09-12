@@ -84,6 +84,10 @@ All changes must consider the SSH use case. Don't assume local-only execution. B
 
 All changes must consider folder workspaces as well as git worktrees. Don't assume every workspace is a git worktree.
 
+## Resuming vs. Forking an Agent Session
+
+A wake, a cold restore and an Agent Session History resume all reuse the provider's session id; a session fork must mint a new one. Two panes resuming the same Claude id append to one transcript, because the dedupe guard is worktree-scoped. Before touching either argv builder in `src/shared/agent-session-resume.ts`, or adding a second forkable agent, read [`docs/reference/agent-session-fork-argv.md`](./docs/reference/agent-session-fork-argv.md).
+
 ## Agent Status
 
 The execution host owns agent status in one store, the hook server's, and every reader (sidebar, `worktree ps`, mobile, dashboard) subscribes to it. Before adding a producer, a cache, or a reader-side precedence rule, read [`docs/reference/agent-status-store.md`](./docs/reference/agent-status-store.md): new producers write into that store, and readers keep only presentation policy.

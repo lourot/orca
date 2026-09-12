@@ -290,3 +290,42 @@ export function getAgentResumeArgv(
       return providerSession.key === 'session_id' ? ['kimi', '--session', id] : null
   }
 }
+
+/** The fork argv travels as one string and the launcher re-splits it, so an id
+ *  with whitespace would resume the *wrong* id and one with a quote would fail
+ *  tokenization. `normalizeSessionId` permits both; Claude's ids are UUIDs. */
+const BARE_SESSION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
+
+/** Argv that resumes a conversation into a *copy* under a new session id.
+ *
+ *  Separate from `getAgentResumeArgv` so a caller must opt in: waking a
+ *  hibernated pane has to reuse the same id.
+ *
+ *  Claude only — no other agent documents a flag that mints a new id, and two
+ *  same-id `--resume` processes append to one transcript (#17807) because the
+ *  dedupe guard is worktree-scoped. Unsafe, not merely unimplemented. */
+export function getAgentForkResumeArgv(
+  agent: ResumableTuiAgent,
+  providerSession: AgentProviderSessionMetadata
+): string[] | null {
+  if (
+    agent !== 'claude' ||
+    providerSession.key !== 'session_id' ||
+    !BARE_SESSION_ID.test(providerSession.id)
+  ) {
+    return null
+  }
+  return ['claude', '--resume', providerSession.id, '--fork-session']
+}
+
+/** Whether this pane's conversation can be forked into a fresh worktree.
+ *  Derived from the argv builder so the dialog can never offer a fork the
+ *  launch would then refuse. */
+export function canForkAgentConversation(
+  agent: string | undefined,
+  providerSession: AgentProviderSessionMetadata | undefined | null
+): boolean {
+  return Boolean(
+    providerSession && isResumableTuiAgent(agent) && getAgentForkResumeArgv(agent, providerSession)
+  )
+}

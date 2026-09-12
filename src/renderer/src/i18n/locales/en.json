@@ -3115,7 +3115,16 @@
             "619b5a35d2": "Create a top-level workspace fork and start a fresh agent tab with captured context.",
             "64e292e8e3": "Fork Agent Session",
             "9d25de2920": "Create fork",
-            "2b10412cfc": "Creating..."
+            "2b10412cfc": "Creating...",
+            "2f95327d0a": "Only Claude sessions can be forked with their full conversation.",
+            "a0bb16776b": "No session id captured for this pane yet.",
+            "4835d8f456": "The fork appears as its own workspace, not as a nested child. Choose what the new agent starts from.",
+            "a6b56a11b8": "What the forked agent starts from",
+            "6948d1847a": "Full conversation",
+            "b961b7c227": "Resumes this agent session in the new workspace with its whole history, under a new session id. The original is left untouched.",
+            "db34dacd3a": "New",
+            "2e15cf62bb": "Recent context",
+            "7be47ba4c8": "Starts a fresh agent and hands it a bounded transcript of this pane as an editable draft."
           },
           "TerminalContextMenu": {
             "b4cdd9314e": "Clear Screen",
@@ -3243,7 +3252,8 @@
                   "c00421d320": "Fork context copied. Launch an agent and paste it to start the fork.",
                   "f62b40e2c7": "No terminal context to copy",
                   "373a3103e7": "Context copied",
-                  "3fc568a49d": "Failed to copy context."
+                  "3fc568a49d": "Failed to copy context.",
+                  "97c87c36a7": "This agent session can no longer be forked with its full conversation."
                 }
               }
             },

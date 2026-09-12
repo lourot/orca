@@ -1,10 +1,8 @@
 import { toast } from 'sonner'
 import type { ManagedPane } from '@/lib/pane-manager/pane-manager'
 import { launchAgentInNewTab } from '@/lib/launch-agent-in-new-tab'
-import {
-  buildAgentSessionForkPrompt,
-  buildBoundedSessionTranscript
-} from '@/lib/agent-session-fork-context'
+import { buildAgentSessionForkPrompt } from '@/lib/agent-session-fork-context'
+import { copyAgentSessionForkContext } from './terminal-agent-session-fork-clipboard'
 import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import { useAppStore } from '@/store'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
@@ -14,6 +12,11 @@ import { preflightAgentTrust } from '@/lib/agent-trust-preflight'
 import { slugifyForWorkspaceName } from '../../../../shared/workspace-name'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import {
+  getAgentForkResumeArgv,
+  isResumableTuiAgent,
+  type AgentProviderSessionMetadata
+} from '../../../../shared/agent-session-resume'
 import { getLocalProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
 import { translate } from '@/i18n/i18n'
 import { planAgentSessionLaunch } from '@/lib/agent-session-launch-plan'
@@ -25,11 +28,18 @@ type ForkAgentSessionFromPaneArgs = {
   groupId: string | null
 }
 
+/** `full-conversation` resumes the agent's real transcript into the new worktree;
+ *  `recent-context` hands it a bounded scrollback capture as an editable draft. */
+export type AgentSessionForkMode = 'full-conversation' | 'recent-context'
+
 export type PreparedAgentSessionFork = {
   prompt: string
   agent: TuiAgent | null
   worktreeId: string
   pane: ManagedPane
+  /** The source pane's provider session, when its agent reported one. */
+  providerSession: AgentProviderSessionMetadata | null
+  mode: AgentSessionForkMode
 }
 
 function buildForkWorkspaceName(sourceName: string): string {
@@ -62,31 +72,6 @@ function getUsableForkBase(
   return branch
 }
 
-async function copyForkContext(prompt: string, pane: ManagedPane): Promise<boolean> {
-  try {
-    await window.api.ui.writeTerminalClipboardText(prompt)
-    toast.message(
-      translate(
-        'auto.components.terminal.pane.terminal.agent.session.fork.c00421d320',
-        'Fork context copied. Launch an agent and paste it to start the fork.'
-      )
-    )
-    pane.terminal.focus()
-    return true
-  } catch (error) {
-    toast.error(
-      error instanceof Error
-        ? error.message
-        : translate(
-            'auto.components.terminal.pane.terminal.agent.session.fork.2317900211',
-            'Failed to copy fork context.'
-          )
-    )
-    pane.terminal.focus()
-    return false
-  }
-}
-
 export function prepareAgentSessionForkFromPane({
   pane,
   tabId,
@@ -94,13 +79,15 @@ export function prepareAgentSessionForkFromPane({
 }: ForkAgentSessionFromPaneArgs): PreparedAgentSessionFork | null {
   const paneKey = makePaneKey(tabId, pane.leafId)
   const state = useAppStore.getState()
-  const sourceAgent = resolveTuiAgent(state.agentStatusByPaneKey[paneKey]?.agentType)
+  const paneStatus = state.agentStatusByPaneKey[paneKey]
+  const sourceAgent = resolveTuiAgent(paneStatus?.agentType)
   const tabAgent = resolveTuiAgent(
     state.tabsByWorktree[worktreeId]?.find((tab) => tab.id === tabId)?.launchAgent
   )
   const agent = sourceAgent ?? tabAgent
-  // Why: v1 is a context fork, not a process clone. Capturing scrollback keeps
-  // SSH and local panes on the same path because both expose xterm state here.
+  // Why capture scrollback even in full-conversation mode: it backs the
+  // `recent-context` fork and every clipboard fallback, and it keeps SSH and
+  // local panes on one path because both expose xterm state here.
   const prompt = buildAgentSessionForkPrompt({
     capturedText: pane.serializeAddon.serialize({ scrollback: 800 }),
     sourceLabel: paneKey,
@@ -122,58 +109,40 @@ export function prepareAgentSessionForkFromPane({
     prompt,
     agent,
     worktreeId,
-    pane
+    pane,
+    providerSession: paneStatus?.providerSession ?? null,
+    mode: 'recent-context'
   }
 }
 
-export async function copyAgentSessionForkContext(
-  fork: PreparedAgentSessionFork
-): Promise<boolean> {
-  return copyForkContext(fork.prompt, fork.pane)
-}
-
-// Why: the standalone "Copy Context" action copies the bounded transcript on its
-// own — for pasting into another tool — so it must not carry the fork prompt's
-// "this is a fork… acknowledge and wait" framing the dialog button uses.
-export async function copyAgentSessionContextFromPane(pane: ManagedPane): Promise<boolean> {
-  const transcript = buildBoundedSessionTranscript(
-    pane.serializeAddon.serialize({ scrollback: 800 })
-  )
-  if (!transcript) {
-    toast.error(
-      translate(
-        'auto.components.terminal.pane.terminal.agent.session.fork.f62b40e2c7',
-        'No terminal context to copy'
-      )
-    )
-    pane.terminal.focus()
-    return false
+/** CLI arguments that resume the source conversation into a fresh copy, or null
+ *  when this fork is a scrollback capture. */
+function getForkResumeAgentArgs(fork: PreparedAgentSessionFork): string | null {
+  if (fork.mode !== 'full-conversation' || !fork.agent || !isResumableTuiAgent(fork.agent)) {
+    return null
   }
-  try {
-    await window.api.ui.writeTerminalClipboardText(transcript)
-    toast.message(
-      translate(
-        'auto.components.terminal.pane.terminal.agent.session.fork.373a3103e7',
-        'Context copied'
-      )
-    )
-    pane.terminal.focus()
-    return true
-  } catch (error) {
-    toast.error(
-      error instanceof Error
-        ? error.message
-        : translate(
-            'auto.components.terminal.pane.terminal.agent.session.fork.3fc568a49d',
-            'Failed to copy context.'
-          )
-    )
-    pane.terminal.focus()
-    return false
-  }
+  const argv = fork.providerSession
+    ? getAgentForkResumeArgv(fork.agent, fork.providerSession)
+    : null
+  // Safe to join bare: the launcher re-quotes every word for the target shell,
+  // and getAgentForkResumeArgv only returns ids that survive being re-split.
+  return argv ? argv.slice(1).join(' ') : null
 }
 
 export async function startAgentSessionFork(fork: PreparedAgentSessionFork): Promise<boolean> {
+  const resumeAgentArgs = getForkResumeAgentArgs(fork)
+  if (fork.mode === 'full-conversation' && !resumeAgentArgs) {
+    // Unreachable from the dialog, which gates on the same predicate — so this
+    // means the session vanished. Say so rather than quietly forking the
+    // scrollback the user chose against.
+    toast.error(
+      translate(
+        'auto.components.terminal.pane.terminal.agent.session.fork.97c87c36a7',
+        'This agent session can no longer be forked with its full conversation.'
+      )
+    )
+    return false
+  }
   const store = useAppStore.getState()
   const sourceWorktree = store.getKnownWorktreeById(fork.worktreeId)
   if (!sourceWorktree) {
@@ -251,9 +220,12 @@ export async function startAgentSessionFork(fork: PreparedAgentSessionFork): Pro
   const result = launchAgentInNewTab({
     agent: fork.agent,
     worktreeId: forkWorktreeId,
-    prompt: fork.prompt,
-    promptDelivery: 'draft',
     launchSource: 'terminal_context_menu',
+    // Why: the resumed conversation already holds the history, so sending the
+    // scrollback draft too would make the agent read it back as new input.
+    ...(resumeAgentArgs
+      ? { agentArgs: resumeAgentArgs }
+      : { prompt: fork.prompt, promptDelivery: 'draft' as const }),
     agentSessionLaunchPlan,
     beforeSurfaceOpen: (surface) =>
       activateAndRevealWorktree(forkWorktreeId, {
