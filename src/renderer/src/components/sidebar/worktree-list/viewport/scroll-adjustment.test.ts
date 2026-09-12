@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 import { countRecordKeysByReference } from './use-row-measurement'
-import { shouldAdjustWorktreeSidebarMeasuredRowScroll } from './use-scroll-suppression'
 import { resolvePendingSidebarReveal } from '../navigation/pending-reveal-inputs'
 import {
   getScrollTopToRevealBounds,
@@ -46,7 +45,7 @@ const makeImportedCardRow = (): Extract<Row, { type: 'imported-worktrees-card' }
 const makeScrollContainer = (scrollTop: number, clientHeight: number): HTMLElement =>
   ({ scrollTop, clientHeight }) as HTMLElement
 
-describe('shouldAdjustWorktreeSidebarMeasuredRowScroll', () => {
+describe('worktree sidebar reveal inputs', () => {
   it('counts record keys once per object reference', () => {
     const keysSpy = vi.spyOn(Object, 'keys')
     const first = { a: 1, b: 2 }
@@ -60,36 +59,6 @@ describe('shouldAdjustWorktreeSidebarMeasuredRowScroll', () => {
     } finally {
       keysSpy.mockRestore()
     }
-  })
-
-  it('suppresses measured-row scroll correction while TanStack is scrolling', () => {
-    expect(
-      shouldAdjustWorktreeSidebarMeasuredRowScroll({
-        isScrolling: true,
-        now: 1_000,
-        suppressUntil: 0
-      })
-    ).toBe(false)
-  })
-
-  it('suppresses measured-row scroll correction during direct scroll input grace period', () => {
-    expect(
-      shouldAdjustWorktreeSidebarMeasuredRowScroll({
-        isScrolling: false,
-        now: 1_000,
-        suppressUntil: 1_250
-      })
-    ).toBe(false)
-  })
-
-  it('allows measured-row scroll correction after direct scrolling settles', () => {
-    expect(
-      shouldAdjustWorktreeSidebarMeasuredRowScroll({
-        isScrolling: false,
-        now: 1_500,
-        suppressUntil: 1_250
-      })
-    ).toBe(true)
   })
 
   it('keeps pending reveal requests when the worktree still exists but the row is unresolved', () => {

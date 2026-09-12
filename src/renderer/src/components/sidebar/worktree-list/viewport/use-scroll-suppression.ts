@@ -10,14 +10,6 @@ import {
 export const USER_SCROLL_MEASUREMENT_ADJUSTMENT_SUPPRESS_MS = 500
 export const EXPANDING_CARD_MEASUREMENT_ADJUSTMENT_SUPPRESS_MS = 300
 
-export function shouldAdjustWorktreeSidebarMeasuredRowScroll(args: {
-  isScrolling: boolean
-  now: number
-  suppressUntil: number
-}): boolean {
-  return !args.isScrolling && args.now >= args.suppressUntil
-}
-
 export type WorktreeSidebarScrollSuppression = ReturnType<
   typeof useWorktreeSidebarScrollSuppression
 >
