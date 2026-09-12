@@ -6,9 +6,11 @@ import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 
 describe('buildRows project grouping order', () => {
-  const repoA: Repo = { ...repo, id: 'repo-a', displayName: 'alpha' }
-  const repoB: Repo = { ...repo, id: 'repo-b', displayName: 'beta' }
-  const repoC: Repo = { ...repo, id: 'repo-c', displayName: 'gamma' }
+  // Distinct paths: labels are keyed by host::path, so repos sharing the shared fixture's
+  // /tmp/orca would alias onto one label and every label tiebreak below would tie.
+  const repoA: Repo = { ...repo, id: 'repo-a', path: '/x/alpha', displayName: 'alpha' }
+  const repoB: Repo = { ...repo, id: 'repo-b', path: '/x/beta', displayName: 'beta' }
+  const repoC: Repo = { ...repo, id: 'repo-c', path: '/x/gamma', displayName: 'gamma' }
   const map = new Map([
     [repoA.id, repoA],
     [repoB.id, repoB],
@@ -518,5 +520,182 @@ describe('project groups', () => {
     expect(rows.filter((row) => row.type === 'header').map((row) => row.projectGroupDepth)).toEqual(
       [0, 1, 1, 0]
     )
+  })
+})
+
+describe('buildRows Name project order', () => {
+  // Parent folders invert the bare-name order: by displayName it is alpha, beta;
+  // by rendered label it is a/beta, z/alpha. A sort that ran before labelling — or
+  // one that read repo.displayName — would produce the first order.
+  const repoAlpha: Repo = { ...repo, id: 'repo-alpha', path: '/z/alpha', displayName: 'alpha' }
+  const repoBeta: Repo = { ...repo, id: 'repo-beta', path: '/a/beta', displayName: 'beta' }
+  const map = new Map([
+    [repoAlpha.id, repoAlpha],
+    [repoBeta.id, repoBeta]
+  ])
+  const wAlpha: Worktree = { ...worktree, id: 'wt-alpha', repoId: repoAlpha.id }
+  const wBeta: Worktree = { ...worktree, id: 'wt-beta', repoId: repoBeta.id }
+
+  it('orders project headers by the qualified label, not the repo display name', () => {
+    const rows = buildRows(
+      'repo',
+      [wAlpha, wBeta],
+      map,
+      null,
+      new Set(),
+      new Map([
+        [repoAlpha.id, 0],
+        [repoBeta.id, 1]
+      ]),
+      undefined,
+      'name'
+    )
+
+    expect(rows.filter((row) => row.type === 'header').map((row) => row.label)).toEqual([
+      'a/beta',
+      'z/alpha'
+    ])
+  })
+
+  it('orders by name even when no manual repoOrder is persisted', () => {
+    const rows = buildRows(
+      'repo',
+      [wAlpha, wBeta],
+      map,
+      null,
+      new Set(),
+      undefined,
+      undefined,
+      'name'
+    )
+
+    expect(rows.filter((row) => row.type === 'header').map((row) => row.key)).toEqual([
+      'repo:repo-beta',
+      'repo:repo-alpha'
+    ])
+  })
+
+  it('orders projects inside a Project Group by name while the group keeps its tab order', () => {
+    const makeGroup = (id: string, name: string, tabOrder: number): ProjectGroup => ({
+      id,
+      name,
+      parentPath: `/${id}`,
+      parentGroupId: null,
+      createdFrom: 'folder-scan',
+      tabOrder,
+      isCollapsed: false,
+      color: null,
+      createdAt: 1,
+      updatedAt: 1
+    })
+    // Zulu sorts last by name but first by tabOrder; group headers must follow tabOrder.
+    const zulu = makeGroup('group-zulu', 'Zulu', 0)
+    const alpha = makeGroup('group-alpha', 'Alpha', 1)
+    // projectGroupOrder deliberately contradicts the name order, so a within-group
+    // sorter that fell through to the manual rank would put z/alpha first.
+    const grouped = new Map([
+      [repoAlpha.id, { ...repoAlpha, projectGroupId: zulu.id, projectGroupOrder: 0 }],
+      [repoBeta.id, { ...repoBeta, projectGroupId: zulu.id, projectGroupOrder: 1 }]
+    ])
+    const rows = buildRows(
+      'repo',
+      [wAlpha, wBeta],
+      grouped,
+      null,
+      new Set(),
+      undefined,
+      undefined,
+      'name',
+      undefined,
+      undefined,
+      false,
+      undefined,
+      [zulu, alpha]
+    )
+
+    expect(rows.filter((row) => row.type === 'header').map((row) => row.key)).toEqual([
+      'project-group:group-zulu',
+      'repo:repo-beta',
+      'repo:repo-alpha',
+      'project-group:group-alpha'
+    ])
+  })
+
+  it('breaks case-only label differences on the exact label, not encounter order', () => {
+    // Base-sensitivity collation reports dup/Orca and DUP/orca as equal, so the
+    // comparator has to fall through to an exact comparison to stay deterministic.
+    const upper: Repo = { ...repo, id: 'repo-upper', path: '/dup/Orca', displayName: 'Orca' }
+    const lower: Repo = { ...repo, id: 'repo-lower', path: '/DUP/orca', displayName: 'orca' }
+    const dupMap = new Map([
+      [upper.id, upper],
+      [lower.id, lower]
+    ])
+    const wUpper: Worktree = { ...worktree, id: 'wt-upper', repoId: upper.id }
+    const wLower: Worktree = { ...worktree, id: 'wt-lower', repoId: lower.id }
+
+    const forward = buildRows(
+      'repo',
+      [wUpper, wLower],
+      dupMap,
+      null,
+      new Set(),
+      undefined,
+      undefined,
+      'name'
+    )
+    const reversed = buildRows(
+      'repo',
+      [wLower, wUpper],
+      dupMap,
+      null,
+      new Set(),
+      undefined,
+      undefined,
+      'name'
+    )
+
+    const keys = (rows: ReturnType<typeof buildRows>): string[] =>
+      rows.filter((row) => row.type === 'header').map((row) => row.key)
+    expect(keys(forward)).toEqual(keys(reversed))
+  })
+
+  it('breaks fully equal labels on the section key so the order survives a re-render', () => {
+    // Two repos on one path alias onto a single label, so both tiers above tie and
+    // only the section key is left. Without it the winner would be whichever the
+    // grouping Map happened to yield first, and that is worktree-encounter order.
+    const upper: Repo = { ...repo, id: 'repo-upper', path: '/dup/Orca', displayName: 'Orca' }
+    const lower: Repo = { ...repo, id: 'repo-lower', path: '/dup/Orca', displayName: 'orca' }
+    const dupMap = new Map([
+      [upper.id, upper],
+      [lower.id, lower]
+    ])
+    const wUpper: Worktree = { ...worktree, id: 'wt-upper', repoId: upper.id }
+    const wLower: Worktree = { ...worktree, id: 'wt-lower', repoId: lower.id }
+
+    const forward = buildRows(
+      'repo',
+      [wUpper, wLower],
+      dupMap,
+      null,
+      new Set(),
+      undefined,
+      undefined,
+      'name'
+    )
+    const reversed = buildRows(
+      'repo',
+      [wLower, wUpper],
+      dupMap,
+      null,
+      new Set(),
+      undefined,
+      undefined,
+      'name'
+    )
+
+    const keys = (rows: ReturnType<typeof buildRows>): string[] =>
+      rows.filter((row) => row.type === 'header').map((row) => row.key)
+    expect(keys(forward)).toEqual(['repo:repo-lower', 'repo:repo-upper'])
+    expect(keys(reversed)).toEqual(keys(forward))
   })
 })

@@ -84,4 +84,38 @@ describe('getRepoDisplayLabelsByPath', () => {
       'billing/api'
     )
   })
+
+  it('parent-qualifies every label at minDepth 2, collision or not', () => {
+    const items = [
+      { path: '/workspace/platform/web', displayName: 'web' },
+      { path: '/workspace/platform/worker', displayName: 'worker' }
+    ]
+    const labels = getRepoDisplayLabelsByPath(items, { minDepth: 2 })
+
+    expect(labels.get(getRepoDisplayLabelKey(items[0]!))).toBe('platform/web')
+    expect(labels.get(getRepoDisplayLabelKey(items[1]!))).toBe('platform/worker')
+    // Omitting minDepth must stay bare - that is what protects the callers documented
+    // on getRepoDisplayLabelsByPath.
+    const bare = getRepoDisplayLabelsByPath(items)
+    expect(bare.get(getRepoDisplayLabelKey(items[0]!))).toBe('web')
+    expect(bare.get(getRepoDisplayLabelKey(items[1]!))).toBe('worker')
+  })
+
+  it('expands past minDepth when the parent-qualified labels still collide', () => {
+    const items = [
+      { path: '/workspace/team1/shared/api', displayName: 'api' },
+      { path: '/workspace/team2/shared/api', displayName: 'api' }
+    ]
+    const labels = getRepoDisplayLabelsByPath(items, { minDepth: 2 })
+
+    expect(labels.get(getRepoDisplayLabelKey(items[0]!))).toBe('team1/shared/api')
+    expect(labels.get(getRepoDisplayLabelKey(items[1]!))).toBe('team2/shared/api')
+  })
+
+  it('degrades to the bare name at minDepth 2 for a repo at the filesystem root', () => {
+    const items = [{ path: '/srv', displayName: 'srv' }]
+    const labels = getRepoDisplayLabelsByPath(items, { minDepth: 2 })
+
+    expect(labels.get(getRepoDisplayLabelKey(items[0]!))).toBe('srv')
+  })
 })

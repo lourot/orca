@@ -2,6 +2,7 @@ import type { Repo } from '../../../../../../shared/repo-types'
 import type { ProjectOrderBy } from '../../../../../../shared/ui-chrome-types'
 import type { WorkspaceStatusDefinition, Worktree } from '../../../../../../shared/worktree/types'
 import type { AppState } from '../../../../store/types'
+import { compareBaseSensitivityLocaleText } from '@/lib/locale-text-collators'
 import { getRepoDisplayLabelKey, getRepoDisplayLabelsByPath } from '@/lib/repo-display-labels'
 import { ALL_GROUP_KEY } from './group-keys'
 import type {
@@ -78,6 +79,8 @@ export function orderMainWorktreeFirst(worktrees: Worktree[]): Worktree[] {
 // name while it was the only repo-backed section and the checkout name as soon
 // as a second one rendered, so filtering workspaces renamed the project
 // (#16127). Path suffixes still resolve genuinely identical labels.
+// Qualification is unconditional (minDepth 2) so every header reads
+// <parent>/<name> and 'name' ordering can sort the string actually rendered.
 export function withRepoSectionDisplayLabels(
   entries: readonly OrderedGroupEntry[]
 ): OrderedGroupEntry[] {
@@ -87,7 +90,7 @@ export function withRepoSectionDisplayLabels(
   if (labelItems.length === 0) {
     return [...entries]
   }
-  const labelsByPath = getRepoDisplayLabelsByPath(labelItems)
+  const labelsByPath = getRepoDisplayLabelsByPath(labelItems, { minDepth: 2 })
   return entries.map(([key, group]) => [
     key,
     group.repo
@@ -171,16 +174,42 @@ export function getManualOrderAnchorRepo(
 }
 
 /**
+ * Alphabetical order for project headers, on the label as rendered.
+ *
+ * Base sensitivity makes `Orca` and `orca` compare equal, so the tie is broken by the exact
+ * label and then by the section key: entry order comes from a Map keyed in worktree-encounter
+ * order, which is not stable across renders, so a stable sort alone would let equal-labelled
+ * projects swap positions.
+ */
+export function compareProjectEntriesByName(a: OrderedGroupEntry, b: OrderedGroupEntry): number {
+  const byLocale = compareBaseSensitivityLocaleText(a[1].label, b[1].label)
+  if (byLocale !== 0) {
+    return byLocale
+  }
+  const byExactLabel = a[1].label.localeCompare(b[1].label)
+  if (byExactLabel !== 0) {
+    return byExactLabel
+  }
+  return a[0].localeCompare(b[0])
+}
+
+/**
  * Order project header entries by the user's project-order preference. Manual
  * follows the canonical repoOrder; Recent follows each project's most recent
  * visible workspace activity (descending), with empty/imported-only projects
- * sorting after active ones, then by manual rank, then label.
+ * sorting after active ones, then by manual rank, then label. Name is
+ * alphabetical on the rendered label.
  */
 export function sortProjectEntries(
   entries: OrderedGroupEntry[],
   projectOrderBy: ProjectOrderBy,
   repoOrder: Map<string, number> | undefined
 ): OrderedGroupEntry[] {
+  // Ahead of the !repoOrder guard below: Name must work for users who never
+  // dragged a project and so have no persisted manual order.
+  if (projectOrderBy === 'name') {
+    return [...entries].sort(compareProjectEntriesByName)
+  }
   if (projectOrderBy === 'recent') {
     return [...entries].sort((a, b) => {
       const byRecent = compareRecentRank(recentRankForEntry(a), recentRankForEntry(b))

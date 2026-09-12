@@ -310,7 +310,7 @@ describe('buildRows with pinned worktrees', () => {
     const lowercaseRepo = { ...repo, displayName: 'c15t' }
     const rows = buildRows('repo', [worktree], new Map([[repo.id, lowercaseRepo]]), null, new Set())
 
-    expect(rows[0]).toMatchObject({ type: 'header', label: 'c15t' })
+    expect(rows[0]).toMatchObject({ type: 'header', label: 'tmp/c15t' })
   })
 
   it('groups folder-mode workspaces under their folder name', () => {
@@ -341,7 +341,7 @@ describe('buildRows with pinned worktrees', () => {
     expect(rows[0]).toMatchObject({
       type: 'header',
       key: 'repo:folder-1',
-      label: 'design-assets',
+      label: 'tmp/design-assets',
       repo: folderRepo
     })
     expect(rows[1]).toMatchObject({ type: 'item', worktree: { id: folderWorktree.id } })

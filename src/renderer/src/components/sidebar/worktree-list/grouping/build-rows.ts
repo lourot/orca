@@ -42,7 +42,7 @@ import type {
   Row,
   WorktreeGroupBy
 } from './row-types'
-import { getRenderedNaturalAnchorRepoIds, withRepoSectionDisplayLabels } from './section-order'
+import { getRenderedNaturalAnchorRepoIds } from './section-order'
 import { buildOrderedGroups } from './worktree-grouping'
 
 export function buildRows(
@@ -233,10 +233,7 @@ export function buildRows(
   }
 
   if (groupBy !== 'repo' || projectGroups.length === 0) {
-    appendOrderedGroups(
-      sectionContext,
-      groupBy === 'repo' ? withRepoSectionDisplayLabels(orderedGroups) : orderedGroups
-    )
+    appendOrderedGroups(sectionContext, orderedGroups)
     return result
   }
 

@@ -26,7 +26,11 @@ import type {
   PendingCreationRef,
   WorktreeGroupBy
 } from './row-types'
-import { getManualOrderAnchorRepo, sortProjectEntries } from './section-order'
+import {
+  getManualOrderAnchorRepo,
+  sortProjectEntries,
+  withRepoSectionDisplayLabels
+} from './section-order'
 
 /** Lane label for a lane a folder workspace opened before any worktree did. */
 function getLaneLabelForKey(
@@ -230,10 +234,17 @@ export function buildOrderedGroups(args: {
       // same persisted order source the row sorter reads.
       group.repo = getManualOrderAnchorRepo(group, repoMap, repoOrder)
     }
+    // Why here: 'name' order sorts the header's final rendered string, so labels
+    // must exist before sortProjectEntries; the anchor loop above settles the repo
+    // whose path supplies the parent segment.
+    const labelled =
+      groupBy === 'repo'
+        ? withRepoSectionDisplayLabels(Array.from(grouped.entries()))
+        : Array.from(grouped.entries())
     // Why: project header order is its own user choice (projectOrderBy),
     // decoupled from workspace sortBy. Manual uses the canonical repoOrder so
     // header drag has a stable source of truth; Recent follows activity.
-    const entries = sortProjectEntries(Array.from(grouped.entries()), projectOrderBy, repoOrder)
+    const entries = sortProjectEntries(labelled, projectOrderBy, repoOrder)
     // Why: large imported repo sets can have one group per repo; spreading
     // those entries into push can exceed V8's argument limit.
     for (const entry of entries) {

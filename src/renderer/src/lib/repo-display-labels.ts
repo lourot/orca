@@ -36,18 +36,29 @@ function hasDuplicateLabels(labels: readonly string[]): boolean {
   return new Set(labels).size !== labels.length
 }
 
+/**
+ * Maps each repo to the label its header should render, expanding path segments until
+ * same-named repos are distinguishable.
+ *
+ * `minDepth` raises the floor: at 2 every label is parent-qualified (`enpal/orca`) whether or
+ * not anything collides. The sidebar passes 2 so `'name'` ordering can sort the string the
+ * header actually renders; the default of 1 keeps bare names for the Cmd-J repository filter
+ * chips and the nested-repo import checklist.
+ */
 export function getRepoDisplayLabelsByPath(
-  items: readonly RepoDisplayLabelItem[]
+  items: readonly RepoDisplayLabelItem[],
+  options?: { minDepth?: number }
 ): Map<string, string> {
+  const minDepth = Math.max(1, options?.minDepth ?? 1)
   const labels = new Map<string, string>()
   const itemsByName = new Map<string, RepoDisplayLabelItem[]>()
 
   for (const item of items) {
-    const displayName = item.displayName || item.path
-    labels.set(getRepoDisplayLabelKey(item), displayName)
-    const colliding = itemsByName.get(displayName) ?? []
-    colliding.push({ ...item, displayName })
-    itemsByName.set(displayName, colliding)
+    const named = { ...item, displayName: item.displayName || item.path }
+    labels.set(getRepoDisplayLabelKey(item), labelForDepth(named, minDepth))
+    const colliding = itemsByName.get(named.displayName) ?? []
+    colliding.push(named)
+    itemsByName.set(named.displayName, colliding)
   }
 
   for (const collidingItems of itemsByName.values()) {
@@ -57,7 +68,8 @@ export function getRepoDisplayLabelsByPath(
     const maxDepth = Math.max(
       ...collidingItems.map((item) => normalizePathSegments(item.path).length)
     )
-    let depth = 1
+    // Start at minDepth so genuinely duplicate parent/name pairs still expand further.
+    let depth = minDepth
     let nextLabels = collidingItems.map((item) => labelForDepth(item, depth))
     while (depth < maxDepth && hasDuplicateLabels(nextLabels)) {
       depth += 1

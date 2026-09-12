@@ -9,11 +9,7 @@ import { PROJECT_GROUP_META, getProjectGroupHeaderKey } from './group-keys'
 import { appendOrderedGroups } from './group-sections'
 import type { SectionAppendContext } from './group-sections'
 import type { OrderedGroupEntry } from './project-grouping'
-import {
-  compareRecentRank,
-  recentRankForEntry,
-  withRepoSectionDisplayLabels
-} from './section-order'
+import { compareProjectEntriesByName, compareRecentRank, recentRankForEntry } from './section-order'
 import { buildFolderWorkspaceRow } from './row-builders'
 
 export function appendProjectGroupSections(
@@ -39,6 +35,9 @@ export function appendProjectGroupSections(
   }
 
   const sortRepoEntriesWithinGroup = (entries: OrderedGroupEntry[]): OrderedGroupEntry[] => {
+    if (projectOrderBy === 'name') {
+      return [...entries].sort(compareProjectEntriesByName)
+    }
     if (projectOrderBy === 'recent') {
       return [...entries].sort((left, right) =>
         compareRecentRank(recentRankForEntry(left), recentRankForEntry(right))
@@ -111,7 +110,7 @@ export function appendProjectGroupSections(
       for (const pair of folderWorkspacesByProjectGroupId.get(projectGroup.id) ?? []) {
         result.push(buildFolderWorkspaceRow(pair, depth + 1))
       }
-      appendOrderedGroups(ctx, withRepoSectionDisplayLabels(repoEntries), depth + 1)
+      appendOrderedGroups(ctx, repoEntries, depth + 1)
       for (const childGroup of childGroups) {
         appendProjectGroup(childGroup, depth + 1)
       }
@@ -132,9 +131,5 @@ export function appendProjectGroupSections(
     // not fetched yet; missing metadata must not make those repos disappear.
     remainingRepoEntries.push(...entries)
   }
-  appendOrderedGroups(
-    ctx,
-    withRepoSectionDisplayLabels(sortRepoEntriesWithinGroup(remainingRepoEntries)),
-    0
-  )
+  appendOrderedGroups(ctx, sortRepoEntriesWithinGroup(remainingRepoEntries), 0)
 }

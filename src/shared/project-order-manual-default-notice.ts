@@ -9,8 +9,10 @@ export function resolveProjectOrderManualDefaultNoticeDismissed(args: {
   if (!args.isExistingProfile) {
     return true
   }
-  // Why: users who already opted into recent ordering keep it without a notice.
-  if (args.rawProjectOrderBy === 'recent') {
+  // Why: users who already opted out of manual ordering keep their choice without a notice.
+  // Listed explicitly rather than `!== 'manual'` so an absent value, which normalises to
+  // manual, still gets the notice.
+  if (args.rawProjectOrderBy === 'recent' || args.rawProjectOrderBy === 'name') {
     return true
   }
   return false

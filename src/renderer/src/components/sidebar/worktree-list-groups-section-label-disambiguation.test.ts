@@ -1,9 +1,9 @@
 /**
- * Sidebar section headers disambiguate identical display names by appending
- * parent path segments. Every tracked repo is projected into a project, so
- * `project:` headers — not just `repo:` ones — are where collisions surface;
- * stabilising which model layer supplies the label (#16127) must not turn the
- * disambiguation off.
+ * Sidebar section headers always carry one parent path segment, and append more
+ * until identical display names are distinguishable. Every tracked repo is
+ * projected into a project, so `project:` headers — not just `repo:` ones — are
+ * where collisions surface; stabilising which model layer supplies the label
+ * (#16127) must not turn the extra disambiguation off.
  */
 import { describe, expect, it } from 'vitest'
 import { buildRows } from './worktree-list/grouping/build-rows'
@@ -74,14 +74,14 @@ describe('sidebar section headers with colliding display names', () => {
     ])
   })
 
-  it('leaves a lone project header un-suffixed', () => {
+  it('parent-qualifies a lone project header too', () => {
     expect(
       buildHeaders(
         [workRepo],
         [makeProject('github:acme/api', workRepo.id)],
         [makeSetup(workRepo, 'github:acme/api')]
       )
-    ).toMatchObject([{ key: 'project:github:acme/api', label: 'api' }])
+    ).toMatchObject([{ key: 'project:github:acme/api', label: 'work/api' }])
   })
 
   it('path-disambiguates untracked repo headers that share a display name', () => {

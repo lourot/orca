@@ -290,5 +290,19 @@ export const PROJECT_ORDER_OPTIONS = [
         'Most recent workspace activity'
       )
     }
+  },
+  {
+    id: 'name',
+    get label() {
+      return translate('auto.components.sidebar.SidebarWorkspaceOptionsMenu.3728165cdd', 'Name')
+    },
+    // A description is required, not optional: the project-order submenu wraps every
+    // entry in a Tooltip unconditionally, unlike the sort submenu.
+    get description() {
+      return translate(
+        'auto.components.sidebar.SidebarWorkspaceOptionsMenu.4a1e6fb2c9',
+        'Alphabetical by displayed name'
+      )
+    }
   }
 ] as const
