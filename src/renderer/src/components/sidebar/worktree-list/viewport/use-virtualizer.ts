@@ -19,6 +19,7 @@ import {
   shouldAdjustWorktreeSidebarMeasuredRowScroll,
   USER_SCROLL_MEASUREMENT_ADJUSTMENT_SUPPRESS_MS
 } from './use-scroll-suppression'
+import { readMeasuredRowScrollAdjustmentArgs } from './measured-row-scroll-adjustment'
 
 export type WorktreeListVirtualizer = ReturnType<typeof useWorktreeListVirtualizer>
 
@@ -139,16 +140,13 @@ export function useWorktreeListVirtualizer(args: {
   // Why: TanStack's default correction writes scrollTop while cards remeasure mid-wheel, which feels like rubber-banding.
   // TODO(scroll-origin-migration): wall-clock suppression misclassifies under jank; migrate to programmaticScrollMarks + restoreSignal (see CombinedDiffViewer).
   virtualizer.shouldAdjustScrollPositionOnItemSizeChange = (item, _delta, instance) =>
-    shouldAdjustWorktreeSidebarMeasuredRowScroll({
-      isScrolling: instance.isScrolling,
-      now: window.performance.now(),
-      suppressUntil: args.suppressMeasurementAdjustmentUntilRef.current,
-      itemStart: item.start,
-      itemEnd: item.end,
-      scrollOffset: (instance.scrollOffset ?? scrollOffsetRef.current) + instance.scrollAdjustments,
-      isFirstMeasurement: !instance.itemSizeCache.has(item.key),
-      scrollDirection: instance.scrollDirection
-    })
+    shouldAdjustWorktreeSidebarMeasuredRowScroll(
+      readMeasuredRowScrollAdjustmentArgs(item, instance, {
+        now: window.performance.now(),
+        suppressUntil: args.suppressMeasurementAdjustmentUntilRef.current,
+        fallbackScrollOffset: scrollOffsetRef.current
+      })
+    )
 
   return {
     virtualizer,
