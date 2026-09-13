@@ -1,10 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  authorizeExternalPathMock,
   enoent,
   readdirMock,
   resolveAuthorizedPathMock,
   statMock
 } from './orca-runtime-files-mock-registry'
+import {
+  EXTERNAL_OPEN_NON_LOCAL_WORKSPACE_MESSAGE,
+  EXTERNAL_OPEN_PAIRED_CLIENT_MESSAGE
+} from './runtime-file-external-open'
 import {
   createRuntimeFileCommands,
   useRuntimeFileCommandsLifecycle
@@ -168,6 +173,99 @@ describe('RuntimeFileCommands', () => {
     await expect(commands.openMobileFile('id:wt-1', 'docs/missing.md')).rejects.toThrow(
       "ENOENT: no such file or directory, open '/remote/repo/docs/missing.md'"
     )
+    expect(openFile).not.toHaveBeenCalled()
+  })
+
+  it('opens a path outside every workspace for a local caller, granting it first', async () => {
+    const openFile = vi.fn()
+    const { commands } = createRuntimeFileCommands({ openFile })
+    resolveAuthorizedPathMock.mockResolvedValue('/home/alice/.zshrc')
+    statMock.mockResolvedValue({ isDirectory: () => false })
+
+    const result = await commands.openMobileFile('id:wt-1', '/home/alice/.zshrc', {
+      allowOutsideWorkspace: true
+    })
+
+    // The grant has to precede the read, or the editor's own read and save are denied.
+    expect(authorizeExternalPathMock).toHaveBeenCalledWith('/home/alice/.zshrc')
+    expect(openFile).toHaveBeenCalledWith(
+      'wt-1',
+      '/home/alice/.zshrc',
+      '/home/alice/.zshrc',
+      undefined
+    )
+    expect(result).toEqual({
+      worktree: 'wt-1',
+      relativePath: '/home/alice/.zshrc',
+      kind: 'text',
+      opened: true,
+      outsideWorkspace: true
+    })
+  })
+
+  it('folds dot segments before deciding a path is outside the workspace', async () => {
+    const openFile = vi.fn()
+    const { commands } = createRuntimeFileCommands({ openFile })
+    resolveAuthorizedPathMock.mockResolvedValue('/repo/docs/readme.md')
+    statMock.mockResolvedValue({ isDirectory: () => false })
+
+    const result = await commands.openMobileFile('id:wt-1', '/repo/assets/../docs/readme.md')
+
+    // Inside the root after folding, so it takes the workspace-relative flow and needs no grant.
+    expect(authorizeExternalPathMock).not.toHaveBeenCalled()
+    expect(openFile).toHaveBeenCalledWith(
+      'wt-1',
+      '/repo/docs/readme.md',
+      'docs/readme.md',
+      undefined
+    )
+    expect(result).toEqual({
+      worktree: 'wt-1',
+      relativePath: 'docs/readme.md',
+      kind: 'markdown',
+      opened: true
+    })
+  })
+
+  it('refuses an outside path for a paired client, which is every caller that omits the option', async () => {
+    const openFile = vi.fn()
+    const { commands } = createRuntimeFileCommands({ openFile })
+
+    await expect(commands.openMobileFile('id:wt-1', '/home/alice/.zshrc')).rejects.toThrow(
+      EXTERNAL_OPEN_PAIRED_CLIENT_MESSAGE
+    )
+    expect(authorizeExternalPathMock).not.toHaveBeenCalled()
+    expect(openFile).not.toHaveBeenCalled()
+  })
+
+  it('refuses an outside path when the workspace runs on a remote host', async () => {
+    const openFile = vi.fn()
+    const resolveRuntimeFileTarget = vi.fn(async () => ({
+      worktree: { id: 'wt-1', repoId: 'repo-1', path: '/remote/repo' },
+      executionHostId: 'ssh:ssh-1'
+    }))
+    const { commands } = createRuntimeFileCommands({
+      openFile,
+      path: '/remote/repo',
+      resolveRuntimeFileTarget
+    })
+
+    await expect(
+      commands.openMobileFile('id:wt-1', '/home/alice/.zshrc', { allowOutsideWorkspace: true })
+    ).rejects.toThrow(EXTERNAL_OPEN_NON_LOCAL_WORKSPACE_MESSAGE)
+    expect(authorizeExternalPathMock).not.toHaveBeenCalled()
+    expect(openFile).not.toHaveBeenCalled()
+  })
+
+  it('refuses an outside directory instead of opening an empty tab', async () => {
+    const openFile = vi.fn()
+    const { commands } = createRuntimeFileCommands({ openFile })
+    resolveAuthorizedPathMock.mockResolvedValue('/home/alice/notes')
+    statMock.mockResolvedValue({ isDirectory: () => true })
+
+    await expect(
+      commands.openMobileFile('id:wt-1', '/home/alice/notes', { allowOutsideWorkspace: true })
+    ).rejects.toThrow('Cannot open a directory: /home/alice/notes')
     expect(openFile).not.toHaveBeenCalled()
   })
 

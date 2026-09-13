@@ -16,6 +16,7 @@ export const openMock: Mock<(...args: Parameters<typeof FsPromises.open>) => Pro
   vi.fn()
 export const readdirMock: Mock<(path: string, options?: unknown) => Promise<unknown>> = vi.fn()
 export const renameMock: Mock<(from: string, to: string) => Promise<unknown>> = vi.fn()
+export const authorizeExternalPathMock: Mock<(targetPath: string) => void> = vi.fn()
 export const resolveAuthorizedPathMock: Mock<
   (targetPath: string, store?: unknown, options?: unknown) => Promise<unknown>
 > = vi.fn()
@@ -81,6 +82,7 @@ export async function filesystemAuthModuleMock() {
   const actual = await vi.importActual<typeof FilesystemAuth>('../ipc/filesystem-auth')
   return {
     ...actual,
+    authorizeExternalPath: authorizeExternalPathMock,
     resolveAuthorizedPath: resolveAuthorizedPathMock
   }
 }
@@ -122,6 +124,7 @@ export const sshFilesystemDispatchMock = {
 }
 
 export function resetRuntimeFileMocks(): void {
+  authorizeExternalPathMock.mockReset()
   lstatMock.mockReset()
   openMock.mockReset()
   readdirMock.mockReset()

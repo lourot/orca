@@ -160,6 +160,14 @@ orca file open-changed --mode both --worktree active --json
 
 Paths are relative to the selected worktree. `open-changed` reads git status and opens changed files in edit, diff, or both modes.
 
+`file open` also takes an absolute path that belongs to no workspace, on a local workspace only — the
+selected workspace hosts the tab, and the file is editable and saves back to disk. When cwd is inside
+no workspace, the workspace focused in Orca hosts it and a relative path resolves against cwd:
+
+```bash
+cd ~ && orca file open .zshrc
+```
+
 ## Built-in browser
 
 Browser commands control Orca's embedded browser tab for the selected worktree. They do not control Chrome, Safari, or the Orca desktop UI.

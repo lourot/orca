@@ -57,8 +57,12 @@ export const FILE_METHODS = [
   defineMethod({
     name: 'files.open',
     params: FileOpen,
-    handler: async (params, { runtime }) =>
-      runtime.openMobileFile(params.worktree, params.relativePath)
+    // Why clientKind: a paired device sets it (`device.scope`), the local unix-socket CLI and the
+    // desktop's own in-process calls leave it unset — so this is "the caller already runs here".
+    handler: async (params, { runtime, clientKind }) =>
+      runtime.openMobileFile(params.worktree, params.relativePath, {
+        allowOutsideWorkspace: clientKind === undefined
+      })
   }),
   defineMethod({
     name: 'files.openDiff',

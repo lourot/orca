@@ -20,6 +20,12 @@ export type RuntimeFileOpenResult = {
   relativePath: string
   kind: 'markdown' | 'text' | 'binary' | 'image'
   opened: boolean
+  /**
+   * Set when the target lives outside every workspace root, in which case
+   * `relativePath` holds the absolute path — there is no relative spelling.
+   * Absent from a host that predates it, so nothing may require it.
+   */
+  outsideWorkspace?: true
 }
 
 export type RuntimeFileReadResult = {

@@ -22,9 +22,23 @@ import { isQuickOpenQueryTooLarge } from '../../shared/quick-open-path-search'
 import { searchQuickOpenFilePaths as searchHostQuickOpenFilePaths } from '../ipc/filesystem-search-file-paths'
 import { stat } from 'node:fs/promises'
 import { joinWorktreeRelativePath } from './runtime-relative-paths'
-import { resolveAuthorizedPath } from '../ipc/filesystem-auth'
+import { authorizeExternalPath, resolveAuthorizedPath } from '../ipc/filesystem-auth'
 import { isENOENT } from '../ipc/filesystem-path-containment'
 import { runtimeFileRouteForTarget, type RuntimeFileRoute } from './runtime-file-command-target'
+import { isRuntimePathAbsolute, relativePathInsideRoot } from '../../shared/cross-platform-path'
+import { validateExternalOpenPath } from '../../shared/external-file-open-path'
+import { assertExternalOpenAllowed } from './runtime-file-external-open'
+
+/** Previewable images open like text (mobile renders via files.readPreview); other binaries stay unavailable on mobile. */
+function mobileOpenFileKind(path: string): RuntimeFileOpenResult['kind'] {
+  if (isMobilePreviewableImagePath(path)) {
+    return 'image'
+  }
+  if (isMobileBinaryPath(path)) {
+    return 'binary'
+  }
+  return isMobileMarkdownPath(path) ? 'markdown' : 'text'
+}
 
 export class RuntimeFileCommandsWithConstructor extends RuntimeFileCommandsWithActiveRuntimeTextSearches {
   constructor(private readonly host: RuntimeFileCommandHost) {
@@ -155,38 +169,91 @@ export class RuntimeFileCommandsWithConstructor extends RuntimeFileCommandsWithA
 
   async openMobileFile(
     worktreeSelector: string,
-    relativePath: string
+    relativePath: string,
+    options: { allowOutsideWorkspace?: boolean } = {}
   ): Promise<RuntimeFileOpenResult> {
     const target = await this.host.resolveRuntimeFileTarget(worktreeSelector)
     const { worktree } = target
-    if (!isSafeMobileRelativePath(relativePath)) {
+    const route = runtimeFileRouteForTarget(target)
+    // An absolute path inside the root names the same file as its relative spelling, so only a
+    // genuinely outside one needs the external grant. Dots fold first, or `<root>/../etc/x` would
+    // read as inside.
+    const absolutePath = isRuntimePathAbsolute(relativePath)
+      ? validateExternalOpenPath(relativePath)
+      : null
+    const insideRoot =
+      absolutePath === null ? relativePath : relativePathInsideRoot(worktree.path, absolutePath)
+    if (insideRoot === '') {
+      throw new Error('The selected workspace root is a directory, not a file-open target.')
+    }
+    if (absolutePath !== null && insideRoot === null) {
+      assertExternalOpenAllowed({
+        allowOutsideWorkspace: options.allowOutsideWorkspace === true,
+        route,
+        worktreePath: worktree.path
+      })
+      return await this.openExternalFile(worktree.id, absolutePath, route)
+    }
+    // Why the null: only an absolute path can miss the root, and that case returned above.
+    if (insideRoot === null || !isSafeMobileRelativePath(insideRoot)) {
       throw new Error('invalid_relative_path')
     }
-    // Previewable images open like text (mobile renders via files.readPreview); other binaries stay unavailable on mobile.
-    const kind = isMobilePreviewableImagePath(relativePath)
-      ? 'image'
-      : isMobileBinaryPath(relativePath)
-        ? 'binary'
-        : isMobileMarkdownPath(relativePath)
-          ? 'markdown'
-          : 'text'
+    const kind = mobileOpenFileKind(insideRoot)
     if (kind === 'binary') {
-      return { worktree: worktree.id, relativePath, kind, opened: false }
+      return { worktree: worktree.id, relativePath: insideRoot, kind, opened: false }
     }
-    const filePath = joinWorktreeRelativePath(worktree.path, relativePath)
+    const filePath = joinWorktreeRelativePath(worktree.path, insideRoot)
     // Why: CLI/agents treat opened:true as success; stat first so missing paths fail the RPC instead of opening a ghost tab.
-    await this.assertMobileOpenTargetExists(filePath, runtimeFileRouteForTarget(target))
+    await this.assertMobileOpenTargetExists(filePath, route)
     // Why: the internal runtimeId isn't a valid env selector; pass undefined so openFile falls back to activeRuntimeEnvironmentId.
-    this.host.openFile(worktree.id, filePath, relativePath, undefined)
-    return { worktree: worktree.id, relativePath, kind, opened: true }
+    this.host.openFile(worktree.id, filePath, insideRoot, undefined)
+    return { worktree: worktree.id, relativePath: insideRoot, kind, opened: true }
+  }
+
+  /**
+   * Opens a path that belongs to no workspace, granting the renderer's later read and
+   * save the same way the desktop tab-bar's absolute-path entry does.
+   */
+  protected async openExternalFile(
+    worktreeId: string,
+    absolutePath: string,
+    route: RuntimeFileRoute
+  ): Promise<RuntimeFileOpenResult> {
+    const kind = mobileOpenFileKind(absolutePath)
+    if (kind === 'binary') {
+      return {
+        worktree: worktreeId,
+        relativePath: absolutePath,
+        kind,
+        opened: false,
+        outsideWorkspace: true
+      }
+    }
+    // Why before the stat: resolveAuthorizedPath refuses anything outside the allowed roots, and
+    // this one grant is what the editor's read and its save both ride on.
+    authorizeExternalPath(absolutePath)
+    const stats = await this.assertMobileOpenTargetExists(absolutePath, route)
+    if (stats.isDirectory()) {
+      throw new Error(`Cannot open a directory: ${absolutePath}`)
+    }
+    // Why the path twice: outside the root there is no relative spelling, which is also what the
+    // tab-bar entry stores, so the tab dedupes and labels on the absolute path.
+    this.host.openFile(worktreeId, absolutePath, absolutePath, undefined)
+    return {
+      worktree: worktreeId,
+      relativePath: absolutePath,
+      kind,
+      opened: true,
+      outsideWorkspace: true
+    }
   }
 
   protected async assertMobileOpenTargetExists(
     filePath: string,
     route: RuntimeFileRoute
-  ): Promise<void> {
+  ): Promise<{ isDirectory: () => boolean }> {
     try {
-      await (route.kind === 'ssh'
+      return await (route.kind === 'ssh'
         ? this.statRemoteTerminalPath(filePath, route.connectionId)
         : stat(await resolveAuthorizedPath(filePath, this.host.requireStore())))
     } catch (error) {

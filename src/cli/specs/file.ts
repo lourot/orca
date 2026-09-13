@@ -9,11 +9,13 @@ export const FILE_COMMAND_SPECS: CommandSpec[] = [
     allowedFlags: [...GLOBAL_FLAGS, 'path', 'worktree'],
     positionalArgs: ['path'],
     notes: [
-      'The path may be relative to the selected worktree or an absolute path inside that worktree. When --worktree is omitted, local CLI calls infer the current Orca worktree from cwd.'
+      'The path may be relative to the selected worktree or an absolute path inside that worktree. When --worktree is omitted, local CLI calls infer the current Orca worktree from cwd.',
+      'An absolute path outside every workspace also opens, on a local workspace only, and the tab is hosted by the selected workspace. When cwd is inside no workspace, the one focused in Orca hosts it and a relative path resolves against cwd.'
     ],
     examples: [
       'orca file open src/App.tsx',
-      'orca file open --path docs/readme.md --worktree active'
+      'orca file open --path docs/readme.md --worktree active',
+      'orca file open ~/.zshrc'
     ]
   },
   {

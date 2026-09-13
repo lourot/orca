@@ -51,7 +51,9 @@ describe('file RPC methods', () => {
       makeRequest('files.open', { worktree: 'id:wt-1', relativePath: 'docs/readme.md' })
     )
 
-    expect(runtime.openMobileFile).toHaveBeenCalledWith('id:wt-1', 'docs/readme.md')
+    expect(runtime.openMobileFile).toHaveBeenCalledWith('id:wt-1', 'docs/readme.md', {
+      allowOutsideWorkspace: true
+    })
     expect(response).toMatchObject({
       ok: true,
       result: { kind: 'markdown', opened: true }

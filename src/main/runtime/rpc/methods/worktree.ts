@@ -52,6 +52,15 @@ export const WORKTREE_METHODS = [
     })
   }),
   defineMethod({
+    name: 'worktree.resolveActive',
+    params: null,
+    // Why not a selector: `active` means the desktop's focus, which only this host knows, so a
+    // caller with no cwd inside a workspace has nothing to name. Null when nothing is focused.
+    handler: async (_params, { runtime }) => ({
+      worktree: (await runtime.resolveActiveWorktreeContext())?.worktreeId ?? null
+    })
+  }),
+  defineMethod({
     name: 'worktree.sleep',
     params: WorktreeSelector,
     handler: async (params, { runtime }) => runtime.sleepManagedWorktree(params.worktree)
