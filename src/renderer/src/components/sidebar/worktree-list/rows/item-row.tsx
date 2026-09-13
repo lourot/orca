@@ -188,6 +188,7 @@ export function renderWorktreeItemRow(
         // Only selected rows act on the selection; passing it to the rest would re-render every card per click.
         selectedWorktrees={isMultiSelected ? ctx.selectedWorktrees : undefined}
         nativeDragEnabled={false}
+        showWorkspaceStatusDot
         isLineageDropTarget={Boolean(isLineageDropTarget)}
         contentIndent={cardContentIndent}
         flushSurface
