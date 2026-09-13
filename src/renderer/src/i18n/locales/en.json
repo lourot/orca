@@ -6069,6 +6069,10 @@
         "WorktreeCardStatusSlot": {
           "branchIdentity": "Branch"
         },
+        "WorkspaceStatusDot": {
+          "workspaceStatus": "Workspace status: {{status}}",
+          "statusIdle": "{{status}} · No open tab"
+        },
         "NewExternalWorktreesInboxLine": {
           "9f2d4c8b17": "Hide external worktrees permanently for {{value0}}",
           "5e1b8d3f62": "Hide external worktrees permanently",

@@ -9,6 +9,7 @@ import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import type { Repo } from '../../../../shared/repo-types'
 import { resolveRepoHeaderColor } from './project-header-color'
+import { WorkspaceStatusDot } from './WorkspaceStatusDot'
 import { formatSparseDirectoryPreview, shouldBeginWorktreeRename } from './worktree-card-model'
 import type { WorktreeCardPresentation } from './worktree-card-presentation'
 import { WorktreeCardSshHostControl } from './WorktreeCardSshHostControl'
@@ -76,7 +77,8 @@ export function WorktreeCardHeader({
     titleRenaming,
     handleOpenRenameErrorDialog,
     isFolder,
-    handleWorkspaceQuickAction
+    handleWorkspaceQuickAction,
+    showWorkspaceStatusDot
   } = card
   const {
     showPinnedRepoIcon,
@@ -92,6 +94,9 @@ export function WorktreeCardHeader({
   return (
     <div className="flex min-w-0 items-center justify-between gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        {/* Why: leading position keeps the dots in one scannable column next to the activity lane. */}
+        {showWorkspaceStatusDot && <WorkspaceStatusDot worktree={worktree} />}
+
         {showPinnedRepoIcon && (
           <RepoIdentityChip repo={repo!}>
             <RepoIconGlyph

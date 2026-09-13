@@ -117,6 +117,7 @@ export function renderFolderWorkspaceVirtualRow(args: {
           contentIndent={cardContentIndent}
           flushSurface
           nativeDragEnabled={false}
+          showWorkspaceStatusDot
           onImmediateActivate={activationDisabled ? undefined : ctx.onImmediateActivate}
           activationRowKey={folderWorktree.id}
           onSelectionGesture={(event) => ctx.onSelectionGesture(event, folderWorktree)}

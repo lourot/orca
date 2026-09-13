@@ -52,6 +52,8 @@ export type WorktreeCardProps = {
   nativeDragEnabled?: boolean
   affiliateListMode?: boolean
   statusPrDisplay?: WorktreeCardPrDisplay | null
+  // Off by default so a new render site can't leak the dot onto a surface nobody reviewed.
+  showWorkspaceStatusDot?: boolean
 }
 
 type DefaultedWorktreeCardProp =
@@ -69,6 +71,7 @@ type DefaultedWorktreeCardProp =
   | 'isLineageDropTarget'
   | 'affiliateListMode'
   | 'statusPrDisplay'
+  | 'showWorkspaceStatusDot'
 
 export type ResolvedWorktreeCardProps = Omit<WorktreeCardProps, DefaultedWorktreeCardProp> & {
   isActiveSurface: boolean
@@ -85,6 +88,7 @@ export type ResolvedWorktreeCardProps = Omit<WorktreeCardProps, DefaultedWorktre
   isLineageDropTarget: boolean
   affiliateListMode: boolean
   statusPrDisplay: WorktreeCardPrDisplay | null
+  showWorkspaceStatusDot: boolean
 }
 
 export const EMPTY_WORKSPACE_PORTS = []

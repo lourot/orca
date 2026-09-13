@@ -201,6 +201,7 @@ export function renderWorktreeItemRow(
         }
         selectedWorktrees={ctx.selectedWorktrees}
         nativeDragEnabled={false}
+        showWorkspaceStatusDot
         isLineageDropTarget={Boolean(isLineageDropTarget)}
         contentIndent={cardContentIndent}
         flushSurface
