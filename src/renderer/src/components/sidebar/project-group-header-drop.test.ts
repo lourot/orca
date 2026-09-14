@@ -8,6 +8,7 @@ import {
   getSidebarOrderedProjectGroupHeaderIdsByBucket,
   mapSidebarProjectGroupDropIndexToSiblingInsertIndex
 } from './project-group-header-drop'
+import { INDICATOR_GAP_PX } from './worktree-sidebar-header-drop-preview'
 import type { Row } from './worktree-list/grouping/row-types'
 import type { ProjectGroup } from '../../../../shared/project-group-types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -135,11 +136,10 @@ describe('computeProjectGroupHeaderDropPreview', () => {
       ]
     })
 
-    expect(preview).toEqual({ dropIndex: 1, dropIndicatorY: 96 })
+    expect(preview).toEqual({ dropIndex: 1, dropIndicatorY: 100 - INDICATOR_GAP_PX })
   })
 
   it('snaps a drop inside the last expanded Project Group section to its bottom boundary', () => {
-    const INDICATOR_GAP = 4
     const sectionBottom = 380
     const preview = computeProjectGroupHeaderDropPreview({
       pointerY: 350,
@@ -159,7 +159,7 @@ describe('computeProjectGroupHeaderDropPreview', () => {
     })
 
     // Only boundary available is 'c's section bottom → drop after 'c' (slot 3).
-    expect(preview).toEqual({ dropIndex: 3, dropIndicatorY: sectionBottom + INDICATOR_GAP })
+    expect(preview).toEqual({ dropIndex: 3, dropIndicatorY: sectionBottom + INDICATOR_GAP_PX })
   })
 
   it('rejects a drop below the measured content when the estimated section overshoots', () => {
@@ -227,7 +227,7 @@ describe('computeProjectGroupHeaderDropPreview', () => {
       contentBottom: 340
     })
 
-    expect(preview).toEqual({ dropIndex: 3, dropIndicatorY: 384 })
+    expect(preview).toEqual({ dropIndex: 3, dropIndicatorY: 380 + INDICATOR_GAP_PX })
   })
 
   it('uses the whole Project Group section for the final boundary slot', () => {

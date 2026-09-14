@@ -9,7 +9,8 @@ import {
   extractWorktreeVirtualRowIndexes,
   estimateRenderRowSize,
   GROUP_HEADER_ROW_HEIGHT,
-  getActiveStickyHeaderIndexForScroll
+  getActiveStickyHeaderIndexForScroll,
+  HOST_STICKY_PINNED_HEIGHT
 } from './virtual-rows'
 import type { Repo } from '../../../../../../shared/repo-types'
 import type { Row } from '../grouping/row-types'
@@ -33,6 +34,19 @@ const makeHeaderRow = (
   tone: 'text-foreground',
   ...overrides
 })
+
+const makeHostHeaderRow = (): Extract<Row, { type: 'host-header' }> =>
+  ({
+    type: 'host-header',
+    key: 'host:local',
+    hostId: 'local',
+    kind: 'local',
+    label: 'Local',
+    detail: '',
+    health: 'healthy',
+    collapsed: false,
+    count: 1
+  }) as Extract<Row, { type: 'host-header' }>
 
 const makeImportedCardRow = (): Extract<Row, { type: 'imported-worktrees-card' }> => ({
   type: 'imported-worktrees-card',
@@ -102,7 +116,7 @@ describe('getScrollTopToRevealBounds', () => {
         },
         GROUP_HEADER_ROW_HEIGHT
       )
-    ).toBe(72)
+    ).toBe(76)
   })
 
   it('includes extra reveal clearance for the highlight ring', () => {
@@ -117,7 +131,7 @@ describe('getScrollTopToRevealBounds', () => {
         },
         WORKTREE_SIDEBAR_REVEAL_TOP_INSET
       )
-    ).toBe(66)
+    ).toBe(70)
   })
 
   it('does not scroll when the bounds are below the sticky header', () => {
@@ -184,8 +198,37 @@ describe('estimateRenderRowSize', () => {
       secondaryHeaderIndex
     )
 
-    expect(inactiveSize).toBe(32)
-    expect(activeSize).toBe(32)
+    expect(inactiveSize).toBe(24)
+    expect(activeSize).toBe(24)
+  })
+
+  it('sizes an unspaced host header to the same box the pinned host slot reserves', () => {
+    const rows = [makeHostHeaderRow()]
+
+    // Why: both numbers encode HostSectionHeader's pt-1 + h-8 box. The virtualizer sizes
+    // host rows from the estimate rather than the DOM, so if these two drift apart the
+    // first row under a host card overlaps it (or floats away from it).
+    expect(estimateRenderRowSize(rows, 0, 0, null)).toBe(HOST_STICKY_PINNED_HEIGHT)
+  })
+
+  it('gives back-to-back group headers no inter-group spacer', () => {
+    const rows = [makeHeaderRow('first'), makeHeaderRow('second')]
+
+    expect(estimateRenderRowSize(rows, 1, 0, null)).toBe(24)
+  })
+
+  it('gives a group header that opens a section after content no inter-group spacer', () => {
+    const rows = [makeHeaderRow('first'), makeImportedCardRow(), makeHeaderRow('second')]
+
+    expect(estimateRenderRowSize(rows, 2, 0, null)).toBe(24)
+  })
+
+  it('keeps the inter-group spacer on a group header directly under a host card', () => {
+    // Why: without it the header text sits against the host card's bottom border. This is the
+    // only surviving reason the spacer exists, so it is the one case worth pinning.
+    const rows = [makeHeaderRow('first'), makeHostHeaderRow(), makeHeaderRow('second')]
+
+    expect(estimateRenderRowSize(rows, 2, 0, null)).toBe(28)
   })
 
   it('estimates imported worktree line rows with a stable compact height', () => {

@@ -11,6 +11,7 @@ import {
   mapSidebarProjectHeaderDropIndexToSiblingInsertIndex,
   mapSidebarRepoDropIndexToAllRepoInsertAt
 } from './project-header-drop'
+import { INDICATOR_GAP_PX } from './worktree-sidebar-header-drop-preview'
 import type { Row } from './worktree-list/grouping/row-types'
 import type { Repo } from '../../../../shared/repo-types'
 
@@ -130,7 +131,7 @@ describe('computeProjectHeaderDropPreview', () => {
       ]
     })
 
-    expect(preview).toEqual({ dropIndex: 1, dropIndicatorY: 96 })
+    expect(preview).toEqual({ dropIndex: 1, dropIndicatorY: 100 - INDICATOR_GAP_PX })
   })
 
   it('supports boundary drops at the end of the full sidebar list', () => {
@@ -155,7 +156,6 @@ describe('computeProjectHeaderDropPreview', () => {
   })
 
   it('snaps a drop inside the last expanded project section to its bottom boundary', () => {
-    const INDICATOR_GAP = 4
     const sectionBottom = 380
     const preview = computeProjectHeaderDropPreview({
       pointerY: 350,
@@ -175,11 +175,10 @@ describe('computeProjectHeaderDropPreview', () => {
     })
 
     // Only boundary available is 'c's section bottom → drop after 'c' (slot 3).
-    expect(preview).toEqual({ dropIndex: 3, dropIndicatorY: sectionBottom + INDICATOR_GAP })
+    expect(preview).toEqual({ dropIndex: 3, dropIndicatorY: sectionBottom + INDICATOR_GAP_PX })
   })
 
   it('snaps a drop between sibling project headers to the nearer boundary', () => {
-    const INDICATOR_GAP = 4
     const nextHeaderTop = 220
     const preview = computeProjectHeaderDropPreview({
       pointerY: 150,
@@ -200,7 +199,7 @@ describe('computeProjectHeaderDropPreview', () => {
     })
 
     // pointerY 150 sits in 'a's body; nearer boundary is 'b's top (216 vs 224).
-    expect(preview).toEqual({ dropIndex: 1, dropIndicatorY: nextHeaderTop - INDICATOR_GAP })
+    expect(preview).toEqual({ dropIndex: 1, dropIndicatorY: nextHeaderTop - INDICATOR_GAP_PX })
   })
 
   describe('nearest-boundary choice across an interior gap', () => {
@@ -209,11 +208,10 @@ describe('computeProjectHeaderDropPreview', () => {
     // measured sizes) while the next header's top is actual vItem.start geometry,
     // so they diverge in tall sections. Near the real boundary the pointer snaps
     // to actual geometry (beforeNext); the estimate governs only deep-body drops.
-    const INDICATOR_GAP = 4
     const prevSectionBottom = 200
     const nextHeaderTop = 240
-    const sectionBottomSlotY = prevSectionBottom + INDICATOR_GAP // 204
-    const nextHeaderSlotY = nextHeaderTop - INDICATOR_GAP // 236
+    const sectionBottomSlotY = prevSectionBottom + INDICATOR_GAP_PX // 202
+    const nextHeaderSlotY = nextHeaderTop - INDICATOR_GAP_PX // 238
     const midpointY = (sectionBottomSlotY + nextHeaderSlotY) / 2 // 220
     const gapRects = [
       {
@@ -272,7 +270,6 @@ describe('computeProjectHeaderDropPreview', () => {
   })
 
   describe('content bound for the last section', () => {
-    const INDICATOR_GAP = 4
     const estimatedSectionBottom = 380
     const lastRects = [
       {
@@ -310,7 +307,7 @@ describe('computeProjectHeaderDropPreview', () => {
       // 335 is inside the real last section (ends at 340) → drop after 'c'.
       expect(lastPreview(335, 340)).toEqual({
         dropIndex: 3,
-        dropIndicatorY: estimatedSectionBottom + INDICATOR_GAP
+        dropIndicatorY: estimatedSectionBottom + INDICATOR_GAP_PX
       })
     })
 
@@ -319,7 +316,7 @@ describe('computeProjectHeaderDropPreview', () => {
       // inside the section → still snaps to the final slot.
       expect(lastPreview(360, 420)).toEqual({
         dropIndex: 3,
-        dropIndicatorY: estimatedSectionBottom + INDICATOR_GAP
+        dropIndicatorY: estimatedSectionBottom + INDICATOR_GAP_PX
       })
     })
   })

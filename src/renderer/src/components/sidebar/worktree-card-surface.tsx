@@ -47,7 +47,8 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
     <div
       className={cn(
         'relative flex cursor-pointer flex-col pr-1.5 transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none',
-        titleOnlyCard ? 'py-2' : 'pt-1.25 pb-1.5',
+        // A title-only card keeps a little more padding so a lone 20px line still reads as a card.
+        titleOnlyCard ? 'py-1.5' : 'py-1',
         flushSurface ? 'ml-1 w-[calc(100%-0.25rem)]' : 'ml-1',
         'rounded-lg',
         // Why: the live data attribute updates before React state during navigation,
@@ -98,7 +99,7 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
 
       {newCardStyle && lineageChildren ? (
         <div
-          className="mt-1.5 space-y-1"
+          className="mt-1 space-y-1"
           data-worktree-lineage-children=""
           style={lineageChildrenStyle}
         >

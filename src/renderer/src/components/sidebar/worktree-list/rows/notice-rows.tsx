@@ -1,7 +1,10 @@
 import React from 'react'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import type { Row } from '../grouping/row-types'
-import { getVirtualRowTransform } from '../viewport/virtual-rows'
+import {
+  getVirtualRowTransform,
+  WORKTREE_VIRTUAL_CONTENT_ROW_SPACING_CLASS
+} from '../viewport/virtual-rows'
 import { PendingWorktreeRow } from '../../PendingWorktreeRow'
 import ImportedWorktreesVisibilityLine from '../../ImportedWorktreesVisibilityLine'
 import NewExternalWorktreesInboxLine from '../../NewExternalWorktreesInboxLine'
@@ -26,7 +29,8 @@ type NoticeRowFrameProps = {
 function NoticeRowFrame({
   vItem,
   measureVirtualRowElement,
-  className = 'absolute left-0 right-0 top-0',
+  // The pending-creation row overrides this with its own pb-1.5, so it keeps its separation.
+  className = `absolute left-0 right-0 top-0 ${WORKTREE_VIRTUAL_CONTENT_ROW_SPACING_CLASS}`,
   children
 }: NoticeRowFrameProps): React.JSX.Element {
   return (

@@ -13,7 +13,10 @@ import { isConfirmedStaleFolderPathStatus } from '../../../../../../shared/folde
 import { folderWorkspaceToWorktree } from '../../../../../../shared/folder-workspace-worktree'
 import WorktreeCard from '../../WorktreeCard'
 import type { WorktreeGroupBy } from '../grouping/row-types'
-import { getVirtualRowTransform } from '../viewport/virtual-rows'
+import {
+  getVirtualRowTransform,
+  WORKTREE_VIRTUAL_CONTENT_ROW_SPACING_CLASS
+} from '../viewport/virtual-rows'
 import { getFolderWorkspaceRowGeometry } from './indentation'
 import { getFolderWorkspaceCardPrDisplay } from '../../folder-workspace-card-pr-display'
 import { FolderPathStatusIndicator } from './FolderPathStatusIndicator'
@@ -100,7 +103,7 @@ export function renderFolderWorkspaceVirtualRow(args: {
       data-worktree-virtual-row-start={vItem.start}
       data-index={vItem.index}
       ref={args.measureVirtualRowElement}
-      className="absolute left-0 right-0 top-0"
+      className={`absolute left-0 right-0 top-0 ${WORKTREE_VIRTUAL_CONTENT_ROW_SPACING_CLASS}`}
       style={{ transform: getVirtualRowTransform(vItem.start) }}
       onClickCapture={ctx.onRowClickCapture}
       onPointerDown={(event) => ctx.onRowPointerDown(event, folderWorktree, folderWorktree.id)}

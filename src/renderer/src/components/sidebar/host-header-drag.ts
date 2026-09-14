@@ -16,6 +16,7 @@ import {
   readHostHeaderRects,
   type HostHeaderRect
 } from './host-header-drag-dom'
+import { INDICATOR_GAP_PX } from './worktree-sidebar-header-drop-preview'
 import { hasPointerBeenReleased } from './header-drag-pointer-release'
 import { swallowNextClickOnDragHandle } from './header-drag-click-swallow'
 
@@ -105,7 +106,6 @@ export function useHostHeaderDrag({
           break
         }
       }
-      const INDICATOR_GAP_PX = 4
       const rawIndicatorY =
         insertBefore >= rects.length
           ? rects.at(-1)!.bottom + INDICATOR_GAP_PX
