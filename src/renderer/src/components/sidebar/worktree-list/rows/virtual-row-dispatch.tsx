@@ -10,7 +10,9 @@ import type { WorktreeGroupBy } from '../../../../../../shared/sidebar-list/row-
 import {
   getVirtualRowTransform,
   getWorktreeVirtualRowTransform,
-  shouldUseHeaderTopSpacing
+  shouldUseGroupHeaderTopSpacing,
+  shouldUseHostHeaderTopSpacing,
+  WORKTREE_VIRTUAL_CONTENT_ROW_SPACING_CLASS
 } from '../viewport/virtual-rows'
 import type { RenderRow } from '../listing/render-row'
 import type { ImportedWorktreeCardActionState } from '../../imported-worktrees-card-actions'
@@ -67,7 +69,7 @@ function renderHostHeaderVirtualRow(
 ): React.JSX.Element {
   // Incoming hosts must cover the outgoing sticky group before they pin.
   const isActiveStickyHost = ctx.activeStickyHostIndexRef.current === vItem.index
-  const hasHeaderTopSpacing = shouldUseHeaderTopSpacing({
+  const hasHeaderTopSpacing = shouldUseHostHeaderTopSpacing({
     rows: ctx.renderRows,
     index: vItem.index,
     firstHeaderIndex: ctx.firstHeaderIndex
@@ -124,6 +126,7 @@ function renderLineageGroupVirtualRow(
       ref={ctx.measureVirtualRowElement}
       className={cn(
         'absolute left-0 right-0 top-0',
+        WORKTREE_VIRTUAL_CONTENT_ROW_SPACING_CLASS,
         parent?.worktree.id === ctx.worktreeDragState.draggingWorktreeId && 'pointer-events-none',
         ctx.worktreeDragState.draggingWorktreeId !== null &&
           'transition-transform duration-150 ease-out will-change-transform'
@@ -162,7 +165,7 @@ export function renderWorktreeVirtualRow(
       vItem,
       isActiveStickyHeader: ctx.activeStickyHeaderIndexRef.current === vItem.index,
       hasStickyHost: ctx.activeStickyHostIndexRef.current !== null,
-      hasHeaderTopSpacing: shouldUseHeaderTopSpacing({
+      hasHeaderTopSpacing: shouldUseGroupHeaderTopSpacing({
         rows: ctx.renderRows,
         index: vItem.index,
         firstHeaderIndex: ctx.firstHeaderIndex
@@ -234,6 +237,7 @@ export function renderWorktreeVirtualRow(
       data-workspace-status={itemWorkspaceStatus ?? undefined}
       className={cn(
         'absolute left-0 right-0 top-0',
+        WORKTREE_VIRTUAL_CONTENT_ROW_SPACING_CLASS,
         row.worktree.id === ctx.worktreeDragState.draggingWorktreeId && 'pointer-events-none',
         ctx.worktreeDragState.draggingWorktreeId !== null &&
           'transition-transform duration-150 ease-out will-change-transform'

@@ -8,6 +8,7 @@ import {
   getSidebarOrderedProjectGroupHeaderIdsByBucket,
   mapSidebarProjectGroupDropIndexToSiblingInsertIndex
 } from './project-group-header-drop'
+import { INDICATOR_GAP_PX } from './worktree-sidebar-header-drop-preview'
 import type { Row } from '../../../../shared/sidebar-list/row-types'
 import type { ProjectGroup } from '../../../../shared/project-group-types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -142,7 +143,7 @@ describe('computeProjectGroupHeaderDropPreview', () => {
       ]
     })
 
-    expect(preview).toEqual({ dropIndex: 1, dropIndicatorY: 96 })
+    expect(preview).toEqual({ dropIndex: 1, dropIndicatorY: 100 - INDICATOR_GAP_PX })
   })
 
   it('rejects a drop below the measured content when the estimated section overshoots', () => {

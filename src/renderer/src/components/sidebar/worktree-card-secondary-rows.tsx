@@ -83,12 +83,12 @@ export function WorktreeCardSecondaryRows({
         />
       ) : null}
 
-      {/* Why: counterbalance the card stack gap (-mt-1) so agents right after the title read as one header group. */}
+      {/* Why: claw back most of the card stack gap so agents right after the title read as one header group. */}
       {showInlineAgentList && (
         <WorktreeCardAgents
           worktreeId={worktree.id}
           agents={agentActivityDisplayMode === 'compact' ? compactInlineAgentRows : undefined}
-          className={hasMetaRow || remoteBranchConflict ? 'mt-0' : '-mt-1'}
+          className={hasMetaRow || remoteBranchConflict ? 'mt-0' : '-mt-0.5'}
         />
       )}
 

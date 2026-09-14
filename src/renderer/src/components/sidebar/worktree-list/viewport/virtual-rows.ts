@@ -7,10 +7,15 @@ import {
 import { getRenderRowKey } from '../listing/render-row'
 import type { RenderRow } from '../listing/render-row'
 
-export const GROUP_HEADER_ROW_HEIGHT = 28
-// Why: HostSectionHeader wraps its h-8 (32px) card in pt-1 (4px), so the row is 36px.
+// Why: the virtualizer trusts these over the DOM for header rows (see use-virtualizer's
+// measureElement), so they must stay in sync with SectionHeader/HostSectionHeader by hand.
+export const GROUP_HEADER_ROW_HEIGHT = 24
+// Counts HostSectionHeader's own pt-1 wrapper on top of its h-8 card.
 export const HOST_HEADER_ROW_HEIGHT = 36
-export const WORKTREE_SIDEBAR_VIRTUAL_ROW_GAP = 6
+export const WORKTREE_SIDEBAR_VIRTUAL_ROW_GAP = 2
+// Why: the gap above is tuned for back-to-back project headers; card-like rows add this on top
+// so a card still reads as its own surface without costing a full row of breathing room.
+export const WORKTREE_VIRTUAL_CONTENT_ROW_SPACING_CLASS = 'pb-0.5'
 const SECONDARY_GROUP_HEADER_TOP_MARGIN = 4
 const IMPORTED_WORKTREES_LINE_ROW_HEIGHT = 36
 const PENDING_CREATION_ROW_HEIGHT = 56
@@ -39,7 +44,7 @@ export function buildLineageRowRekeyMap(rows: readonly RenderRow[]): ReadonlyMap
   return rekeyed
 }
 
-export function shouldUseHeaderTopSpacing(args: {
+export function shouldUseHostHeaderTopSpacing(args: {
   rows: readonly RenderRow[]
   index: number
   firstHeaderIndex: number
@@ -48,6 +53,20 @@ export function shouldUseHeaderTopSpacing(args: {
   const followsCollapsedPinnedHeader =
     previousRenderRow?.type === 'header' && previousRenderRow.key === PINNED_GROUP_KEY
   return args.index !== args.firstHeaderIndex && !followsCollapsedPinnedHeader
+}
+
+/**
+ * A group header only gets the inter-group spacer directly under a host card, where its text
+ * would otherwise sit against that card's border. Everywhere else it opens its section on the
+ * same 4px step every other row uses: the header's own weight already marks the break, and
+ * paying for it in whitespace costs a project per screenful.
+ */
+export function shouldUseGroupHeaderTopSpacing(args: {
+  rows: readonly RenderRow[]
+  index: number
+  firstHeaderIndex: number
+}): boolean {
+  return args.index !== args.firstHeaderIndex && args.rows[args.index - 1]?.type === 'host-header'
 }
 
 export function estimateRenderRowSize(
@@ -60,7 +79,7 @@ export function estimateRenderRowSize(
   if (row?.type === 'host-header') {
     return (
       HOST_HEADER_ROW_HEIGHT +
-      (shouldUseHeaderTopSpacing({
+      (shouldUseHostHeaderTopSpacing({
         rows,
         index,
         firstHeaderIndex
@@ -72,7 +91,7 @@ export function estimateRenderRowSize(
   if (row?.type === 'header') {
     return (
       GROUP_HEADER_ROW_HEIGHT +
-      (shouldUseHeaderTopSpacing({
+      (shouldUseGroupHeaderTopSpacing({
         rows,
         index,
         firstHeaderIndex

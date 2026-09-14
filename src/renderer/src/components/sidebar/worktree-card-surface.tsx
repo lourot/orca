@@ -2,6 +2,7 @@ import React from 'react'
 import { LoaderCircle } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { translate } from '@/i18n/i18n'
 import { AutoRenameFailedDialog } from './AutoRenameFailedDialog'
 import WorktreeContextMenu from './WorktreeContextMenu'
 import { useIsSleepingWorktree } from './use-worktree-sleep-state'
@@ -52,7 +53,8 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
     <div
       className={cn(
         'relative flex cursor-pointer flex-col pr-1.5 transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none',
-        titleOnlyCard ? 'py-2' : 'pt-1.25 pb-1.5',
+        // A title-only card keeps a little more padding so a lone 20px line still reads as a card.
+        titleOnlyCard ? 'py-1.5' : 'py-1',
         flushSurface ? 'ml-1 w-[calc(100%-0.25rem)]' : 'ml-1',
         'overflow-hidden rounded-lg',
         // Navigation updates the live attribute before React; it must own the complete active style.
@@ -90,6 +92,26 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
       aria-busy={isDeleting}
       style={cardStyle}
     >
+      {worktree.colorTag ? (
+        <>
+          <span
+            aria-hidden="true"
+            className={cn(
+              'pointer-events-none absolute inset-y-1 left-0 w-[3px] rounded-full',
+              worktree.colorTag === '#ffffff' && 'border border-border'
+            )}
+            style={{ backgroundColor: worktree.colorTag }}
+          />
+          {/* Color alone must not be the only carrier of the grouping. */}
+          <span className="sr-only">
+            {translate(
+              'auto.components.sidebar.worktree-card-surface.colorTag',
+              'Group color {{value0}}',
+              { value0: worktree.colorTag }
+            )}
+          </span>
+        </>
+      ) : null}
       {isDeleting && (
         <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/50 backdrop-blur-[1px]">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-background px-3 py-1 text-[11px] font-medium text-foreground shadow-sm border border-border/50">
@@ -109,7 +131,7 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
 
       {lineageChildren ? (
         <div
-          className={cn('space-y-1', newCardStyle ? 'mt-1.5' : 'mt-3')}
+          className={cn('space-y-1', newCardStyle ? 'mt-1' : 'mt-2.5')}
           data-worktree-lineage-children=""
           style={lineageChildrenStyle}
         >

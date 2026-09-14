@@ -17,3 +17,22 @@
   production launch policy. Background terminal panes stay hidden.
 - The browser image-focus test also permits an isolated Docker Xvfb display, with
   `ORCA_E2E_BROWSER_NATIVE_XVFB=1`; desktop runs must skip it.
+
+# Unset `ELECTRON_RENDERER_URL` Before Running Tests
+
+A shell that inherited `ELECTRON_RENDERER_URL` from a running `electron-vite dev` makes tests
+pass against code you are not editing. Both failure modes are silent:
+
+- **E2E loads the wrong renderer.** `createMainWindow.ts:42` prefers `loadURL(ELECTRON_RENDERER_URL)`
+  over `loadFile(out/renderer/index.html)` whenever it is set and `is.dev`. The helpers pass the
+  caller's env straight through and force `NODE_ENV=development`, so the app under test renders
+  whatever is on `localhost:5173`. In a worktree that dev server usually belongs to a _different
+  checkout_, so the suite greens against unmodified code and `mainPath` pointing at your own
+  `out/main` does not save you.
+- **Unit tests fail for no visible reason.** `clipboard-ipc-handlers.ts:311` authorizes IPC senders
+  by comparing origins against the same variable, so the clipboard suite reports 20 failures
+  (`Unauthorized clipboard IPC sender`) that all disappear once it is unset.
+
+Run with `env -u ELECTRON_RENDERER_URL` whenever a dev server may be up. To confirm which renderer
+an e2e run actually loaded, read `location.href` in the page: it must be a `file://` URL under the
+checkout you are testing, not `http://localhost:5173/`.

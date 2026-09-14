@@ -12,7 +12,10 @@ export type WorktreeSidebarHeaderDropPreview = {
   dropIndicatorY: number
 }
 
-const INDICATOR_GAP_PX = 4
+// Why: sits just above the incoming header. Must stay under the header stride, or the
+// indicator paints inside the header above it. Exported so tests track it instead of
+// re-declaring their own copy.
+export const INDICATOR_GAP_PX = 2
 
 export function computeWorktreeSidebarHeaderDropPreview<
   TRect extends WorktreeSidebarHeaderDragRect
