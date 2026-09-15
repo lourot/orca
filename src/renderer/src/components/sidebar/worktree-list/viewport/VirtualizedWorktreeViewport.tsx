@@ -9,6 +9,7 @@ import { useWorktreeListScrollToTop } from './use-scroll-to-top'
 import { getActiveDescendantOptionId } from '../navigation/active-descendant-option'
 import { buildRenderableRows } from '../listing/renderable-rows'
 import { useFolderWorkspacePathStatusRows } from '../listing/use-folder-path-statuses'
+import { useWorktreeSidebarRepoSignals } from '../listing/use-worktree-sidebar-repo-signals'
 import { useGroupToggleWithScrollAnchor } from './use-group-toggle'
 import { usePendingSidebarReveal } from '../navigation/use-pending-reveal'
 import { usePrimaryActiveWorktreeRow } from '../navigation/use-active-row'
@@ -169,6 +170,8 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     projectGroups,
     folderWorkspaces: props.folderWorkspaces
   })
+
+  const repoSignals = useWorktreeSidebarRepoSignals({ worktrees: props.worktrees, repoMap })
 
   const { showScrollToTop, scrollToTop } = useWorktreeListScrollToTop({
     scrollElement,
@@ -351,6 +354,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     measureVirtualRowElement,
     settings,
     projectActions,
+    ...repoSignals,
     newCardStyle,
     folderBackedProjectGroupIds,
     projectGroups,

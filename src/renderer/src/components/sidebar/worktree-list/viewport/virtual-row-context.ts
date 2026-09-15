@@ -18,6 +18,7 @@ import type { WorktreeVirtualRowContext } from '../rows/virtual-row-dispatch'
 import type { RepoHeaderProjectActions } from '../rows/repo-header-project-actions'
 
 import type { ProjectHeaderHostContext } from '../rows/project-header-host-context'
+import type { WorktreeBaseDivergence } from '../listing/use-worktree-base-divergence'
 
 type BuildArgs = {
   props: VirtualizedWorktreeViewportProps
@@ -28,6 +29,9 @@ type BuildArgs = {
   measureVirtualRowElement: (element: HTMLDivElement | null) => void
   settings: AppState['settings']
   projectActions: RepoHeaderProjectActions
+  dirtyRepoIds: ReadonlySet<string>
+  dirtyWorktreeIds: ReadonlySet<string>
+  baseDivergenceByWorktreeId: ReadonlyMap<string, WorktreeBaseDivergence>
   newCardStyle: boolean
   folderBackedProjectGroupIds: ReadonlySet<string>
   session: WorktreeDragSession
@@ -78,6 +82,7 @@ export function buildWorktreeVirtualRowContext(args: BuildArgs): WorktreeVirtual
       collapsedGroups: props.collapsedGroups,
       workspaceStatuses: props.workspaceStatuses,
       projectGroups: args.projectGroups,
+      dirtyRepoIds: args.dirtyRepoIds,
       highlightedRevealRowKey: reveal.highlightedRevealRowKey,
       dragOverStatus: runtime.dragOverStatus,
       pinDragOver: runtime.pinDragOver,
@@ -98,6 +103,8 @@ export function buildWorktreeVirtualRowContext(args: BuildArgs): WorktreeVirtual
     item: {
       settings: args.settings,
       groupBy: props.groupBy,
+      dirtyWorktreeIds: args.dirtyWorktreeIds,
+      baseDivergenceByWorktreeId: args.baseDivergenceByWorktreeId,
       folderBackedProjectGroupIds: args.folderBackedProjectGroupIds,
       groupKeyByRowKey: session.groupKeyByRowKey,
       groupIndexByRowKey: session.groupIndexByRowKey,

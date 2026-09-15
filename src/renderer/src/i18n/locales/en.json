@@ -7021,10 +7021,6 @@
           "markAsRead": "Mark as read",
           "markAsUnread": "Mark as unread"
         },
-        "WorkspaceStatusDot": {
-          "workspaceStatus": "Workspace status: {{status}}",
-          "statusIdle": "{{status}} · No open tab"
-        },
         "NewExternalWorktreesInboxLine": {
           "9f2d4c8b17": "Hide external worktrees permanently for {{value0}}",
           "c3e8a1f4b2": "Don't show again",
