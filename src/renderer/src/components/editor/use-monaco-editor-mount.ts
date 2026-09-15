@@ -65,7 +65,7 @@ export function useMonacoEditorMount(params: MonacoEditorMountParams): OnMount {
     },
     annotations: {
       commentPopoverRef,
-      shouldShowMarkdownAnnotationsRef,
+      shouldShowEditorAnnotationsRef,
       setCommentPopover,
       setSelectionAnnotationTarget
     },
@@ -171,7 +171,7 @@ export function useMonacoEditorMount(params: MonacoEditorMountParams): OnMount {
         propsRef,
         readOnlyRef,
         commentPopoverRef,
-        shouldShowMarkdownAnnotationsRef,
+        shouldShowEditorAnnotationsRef,
         setCommentPopover,
         setSelectionAnnotationTarget
       })
@@ -296,7 +296,7 @@ export function useMonacoEditorMount(params: MonacoEditorMountParams): OnMount {
       markdownDocLinkDecorationsRef,
       conflictDecorationsRef,
       commentPopoverRef,
-      shouldShowMarkdownAnnotationsRef,
+      shouldShowEditorAnnotationsRef,
       setCommentPopover,
       setSelectionAnnotationTarget,
       setGutterMenuOpen,

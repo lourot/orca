@@ -1,3 +1,4 @@
+import type { DiffComparison } from '../../../../shared/diff-comparison'
 import type { LargeDiffRenderLimit } from './large-diff-render-limit'
 
 export type DiffViewerProps = {
@@ -13,6 +14,8 @@ export type DiffViewerProps = {
   editable?: boolean
   // Hosted review dialogs may have no workspace for local comments.
   worktreeId?: string
+  /** Recorded on notes created here so the agent is told which diff they are about. */
+  reviewedComparison?: DiffComparison
   onAddLineComment?: (args: {
     lineNumber: number
     startLine?: number

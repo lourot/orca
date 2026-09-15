@@ -15,7 +15,7 @@ import { DiffSectionBody } from './DiffSectionBody'
 import { useDiffSectionLayoutMetrics } from './useDiffSectionLayoutMetrics'
 import { getLiveDiffSectionRenderLimit } from './diff-section-live-render-limit'
 import { useDiffSectionFallbackCleanup } from './useDiffSectionFallbackCleanup'
-import { submitDiffSectionComment } from './diff-section-comment-submit'
+import { submitReviewNote } from './review-note-submit'
 import type { DiffSectionItemProps } from './diff-section-item-props'
 import { useDiffSectionModelLifecycle } from './use-diff-section-model-lifecycle'
 import { hasLayoutBox } from '@/hooks/virtualized-hidden-row-measurement'
@@ -43,6 +43,7 @@ export function DiffSectionItem({
   addLineCommentPlaceholder,
   inlineComments,
   getCommentableLineNumbers,
+  getSectionComparison,
   setSectionHeights,
   setSections,
   modifiedEditorsRef,
@@ -108,16 +109,18 @@ export function DiffSectionItem({
       startLine?: number
       body: string
     }): Promise<boolean> => {
-      return submitDiffSectionComment({
+      return submitReviewNote({
         addDiffComment,
         body,
-        onAddLineComment,
+        filePath: section.path,
+        modifiedContent: section.modifiedContent,
+        onAddLineComment: onAddLineComment && ((args) => onAddLineComment(section, args)),
         target: { lineNumber, startLine },
-        section,
+        reviewedComparison: getSectionComparison?.(section),
         worktreeId
       })
     },
-    [addDiffComment, onAddLineComment, section, worktreeId]
+    [addDiffComment, getSectionComparison, onAddLineComment, section, worktreeId]
   )
 
   useDiffCommentDecorator({

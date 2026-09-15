@@ -7,11 +7,10 @@ import { computeDiffEditorFontSize, resolveEditorFontFamily } from '@/lib/editor
 import { useContextualCopySetup } from './useContextualCopySetup'
 import { selectWorktreeDiffComments } from '@/store/worktree-diff-comments-selector'
 import { useDiffCommentDecorator } from '../diff-comments/useDiffCommentDecorator'
-import { toast } from 'sonner'
-import { translate } from '@/i18n/i18n'
 import { applyDiffEditorLineNumberOptions } from './diff-editor-line-number-options'
 import type { DiffComment } from '../../../../shared/diff-comment-types'
 import { isDiffComment } from '@/lib/diff-comment-compat'
+import { submitReviewNote } from './review-note-submit'
 import { installEditorSaveShortcut, installMonacoEditorFindShortcut } from './editor-shortcuts'
 import { diffEditorScrollbarOptions } from './diff-editor-scrollbar-options'
 import { LargeDiffFallback } from './LargeDiffFallback'
@@ -48,6 +47,7 @@ export default function DiffViewer({
   sideBySide,
   editable,
   worktreeId,
+  reviewedComparison,
   onAddLineComment,
   commentableLineNumbers,
   addLineCommentLabel,
@@ -117,33 +117,25 @@ export default function DiffViewer({
       startLine?: number
       body: string
     }): Promise<boolean> => {
-      if (onAddLineComment) {
-        return onAddLineComment({
-          lineNumber,
-          startLine,
-          body
-        })
-      }
-      if (!worktreeId) {
-        return false
-      }
-      const result = await addDiffComment({
-        worktreeId,
-        filePath: relativePath,
-        source: 'diff',
-        startLine,
-        lineNumber,
+      return submitReviewNote({
+        addDiffComment,
         body,
-        side: 'modified'
+        filePath: relativePath,
+        modifiedContent,
+        onAddLineComment,
+        target: { lineNumber, startLine },
+        reviewedComparison,
+        worktreeId
       })
-      if (!result) {
-        toast.error(
-          translate('auto.components.editor.diffCommentSaveFailed', 'Failed to save comment')
-        )
-      }
-      return Boolean(result)
     },
-    [addDiffComment, onAddLineComment, relativePath, worktreeId]
+    [
+      addDiffComment,
+      modifiedContent,
+      onAddLineComment,
+      relativePath,
+      reviewedComparison,
+      worktreeId
+    ]
   )
 
   // Only local diffs can edit notes; gate the decorator on a valid comment target.

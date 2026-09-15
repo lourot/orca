@@ -3,7 +3,7 @@ import { getSelectionEndLine } from '../diff-comments/diff-comment-line-range'
 
 const FALLBACK_LINE_HEIGHT_PX = 19
 
-export type MonacoMarkdownSelectionAnnotationTarget = {
+export type MonacoSelectionAnnotationTarget = {
   lineNumber: number
   startLine?: number
   selectedText: string
@@ -11,13 +11,13 @@ export type MonacoMarkdownSelectionAnnotationTarget = {
   left?: number
 }
 
-type MonacoMarkdownSelectionModel = {
+type MonacoSelectionModel = {
   getLineCount: () => number
   getValueInRange: (range: IRange) => string
 }
 
-type MonacoMarkdownSelectionEditor = {
-  getModel: () => MonacoMarkdownSelectionModel | null
+type MonacoSelectionEditor = {
+  getModel: () => MonacoSelectionModel | null
   getScrollTop: () => number
   getTopForLineNumber: (lineNumber: number) => number
 }
@@ -29,11 +29,11 @@ function isEmptySelection(selection: IRange): boolean {
   )
 }
 
-export function getMonacoMarkdownSelectionAnnotationTarget(
-  editorInstance: MonacoMarkdownSelectionEditor,
+export function getMonacoSelectionAnnotationTarget(
+  editorInstance: MonacoSelectionEditor,
   selection: IRange | null,
   left?: number
-): MonacoMarkdownSelectionAnnotationTarget | null {
+): MonacoSelectionAnnotationTarget | null {
   if (!selection || isEmptySelection(selection)) {
     return null
   }

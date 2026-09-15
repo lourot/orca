@@ -177,7 +177,13 @@ describe('getEditorPanelRenderModel read-only raw rendering (AI Vault View Log)'
 
 describe('getEditorPanelRenderModel markdown export affordance', () => {
   it('enables export for rendered markdown edit tabs', () => {
-    expect(renderModel({}).canExportMarkdownToPdf).toBe(true)
+    expect(
+      renderModel({ markdownViewMode: { '/repo/README.md': 'rich' } }).canExportMarkdownToPdf
+    ).toBe(true)
+  })
+
+  it('disables export for markdown edit tabs left on the source default', () => {
+    expect(renderModel({}).canExportMarkdownToPdf).toBe(false)
   })
 
   it('disables export when an inline markdown tab renders Changes mode', () => {
@@ -273,6 +279,24 @@ describe('getEditorPanelRenderModel markdown export affordance', () => {
         fileContents: { [preview.id]: textContent({ isBinary: true }) }
       }).canExportMarkdownToPdf
     ).toBe(false)
+  })
+})
+
+describe('getEditorPanelRenderModel note send affordance', () => {
+  // Why: the send pill used to be diff-only, so notes left in a plain editor
+  // could only be sent one at a time from their own card.
+  it('offers the batch send pill on plain editor tabs and single diffs, not combined ones', () => {
+    const cases: [OpenFile, boolean][] = [
+      [markdownFile({ mode: 'edit' }), true],
+      [htmlFile({ mode: 'edit' }), true],
+      [markdownFile({ mode: 'diff', diffSource: 'branch' }), true],
+      [markdownFile({ mode: 'diff', diffSource: 'combined-all' }), false],
+      [markdownFile({ mode: 'markdown-preview' }), false],
+      [markdownFile({ mode: 'conflict-review' }), false]
+    ]
+    expect(cases.map(([activeFile]) => renderModel({ activeFile }).canSendFileNotes)).toEqual(
+      cases.map(([, expected]) => expected)
+    )
   })
 })
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MutableRefObject } from 'react'
 import type { Editor } from '@tiptap/react'
 import type { AppState } from '@/store'
+import { captureReviewNoteExcerpt } from '@/lib/markdown-review-notes'
 import { richMarkdownAnnotationHighlightPluginKey } from './rich-markdown-annotation-highlight'
 import { updateRichMarkdownAnnotationHighlightsAfterSubmit } from './rich-markdown-annotation-submit-highlights'
 import {
@@ -164,15 +165,21 @@ export function useRichMarkdownReviewController({
         return
       }
       const submittedEditor = editorRef.current
-      const result = await addDiffComment({
-        worktreeId,
-        filePath: sourceRelativePath,
-        source: 'markdown',
+      // Why: stored line numbers are source-space (frontmatter offset applied), and
+      // markdownReviewContent is the same space the batch formatter reads.
+      const anchor = {
         startLine:
           annotationPopover.startLine === undefined
             ? undefined
             : annotationPopover.startLine + markdownSourceLineOffset,
-        lineNumber: annotationPopover.lineNumber + markdownSourceLineOffset,
+        lineNumber: annotationPopover.lineNumber + markdownSourceLineOffset
+      }
+      const result = await addDiffComment({
+        worktreeId,
+        filePath: sourceRelativePath,
+        source: 'markdown',
+        ...anchor,
+        anchorExcerpt: captureReviewNoteExcerpt(markdownReviewContent, anchor),
         selectedText: annotationPopover.selectedText,
         body,
         side: 'modified'
@@ -206,6 +213,7 @@ export function useRichMarkdownReviewController({
       annotationPopover,
       clearAnnotationHighlight,
       editorRef,
+      markdownReviewContent,
       markdownSourceLineOffset,
       sourceRelativePath,
       worktreeId

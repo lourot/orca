@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { IRange } from 'monaco-editor'
-import { getMonacoMarkdownSelectionAnnotationTarget } from './monaco-markdown-selection-annotation'
+import { getMonacoSelectionAnnotationTarget } from './monaco-selection-annotation'
 
 function selection(overrides: Partial<IRange> = {}): IRange {
   return {
@@ -23,10 +23,10 @@ function editorForSelectedText(selectedText: string, lineCount = 8) {
   }
 }
 
-describe('getMonacoMarkdownSelectionAnnotationTarget', () => {
+describe('getMonacoSelectionAnnotationTarget', () => {
   it('maps selected source text to markdown note coordinates', () => {
     expect(
-      getMonacoMarkdownSelectionAnnotationTarget(editorForSelectedText(' chosen '), selection(), 32)
+      getMonacoSelectionAnnotationTarget(editorForSelectedText(' chosen '), selection(), 32)
     ).toEqual({
       lineNumber: 4,
       startLine: 2,
@@ -38,7 +38,7 @@ describe('getMonacoMarkdownSelectionAnnotationTarget', () => {
 
   it('anchors full-line selections to the last selected text line', () => {
     expect(
-      getMonacoMarkdownSelectionAnnotationTarget(
+      getMonacoSelectionAnnotationTarget(
         editorForSelectedText('line two\n'),
         selection({ startLineNumber: 2, startColumn: 1, endLineNumber: 3, endColumn: 1 })
       )
@@ -52,13 +52,11 @@ describe('getMonacoMarkdownSelectionAnnotationTarget', () => {
 
   it('ignores empty selections and whitespace-only selected text', () => {
     expect(
-      getMonacoMarkdownSelectionAnnotationTarget(
+      getMonacoSelectionAnnotationTarget(
         editorForSelectedText('chosen'),
         selection({ endLineNumber: 2, endColumn: 3 })
       )
     ).toBeNull()
-    expect(
-      getMonacoMarkdownSelectionAnnotationTarget(editorForSelectedText('   '), selection())
-    ).toBeNull()
+    expect(getMonacoSelectionAnnotationTarget(editorForSelectedText('   '), selection())).toBeNull()
   })
 })

@@ -232,7 +232,7 @@ export function EditorConflictReviewSurface({
             }
             onSave={readOnly ? () => {} : (content) => handleSaveForFile(contentFile, content)}
             worktreeId={recordView?.worktreeId ?? contentFile.worktreeId}
-            markdownAnnotationsEnabled={false}
+            annotationsEnabled={false}
             conflictDecorationsEnabled={contentFile.conflict?.conflictStatus === 'unresolved'}
             readOnly={readOnly}
             passiveMirror={readOnly}

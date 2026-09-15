@@ -14,6 +14,7 @@ import {
   MonacoEditor,
   MediaViewer
 } from './editor-lazy-views'
+import { canAnnotateEditorSurface } from './editor-panel-file-mode'
 import type { EditorConflictNavigation } from './useEditorConflictNavigation'
 import { EditorFileLoadErrorView } from './EditorFileLoadErrorView'
 import { RecoverableRenderErrorBoundary } from '../error-boundaries/RecoverableRenderErrorBoundary'
@@ -258,7 +259,10 @@ export function EditorEditFileSurface({
               : handleSave
         }
         worktreeId={activeFile.worktreeId}
-        markdownAnnotationsEnabled={markdownAnnotationsEnabled && isMarkdown}
+        annotationsEnabled={canAnnotateEditorSurface({
+          annotationsEnabled: markdownAnnotationsEnabled,
+          isNotebook
+        })}
         conflictDecorationsEnabled={activeFile.conflict?.conflictStatus === 'unresolved'}
         revealLine={
           matchesPendingEditorReveal(pendingEditorReveal, activeFile, viewStateScopeId)
@@ -276,6 +280,7 @@ export function EditorEditFileSurface({
             : undefined
         }
         markdownDocuments={isMarkdown ? markdownDocuments.markdownDocuments : undefined}
+        onOpenDocLink={isMarkdown ? markdownDocuments.onOpenDocLink : undefined}
       />
     </RecoverableRenderErrorBoundary>
   )

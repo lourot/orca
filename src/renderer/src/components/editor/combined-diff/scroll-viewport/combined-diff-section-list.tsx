@@ -17,6 +17,7 @@ export function CombinedDiffSectionList({
   canOpenWorkspaceFileBrowserForPath,
   diffCommentsForWorktree,
   file,
+  getSectionComparison,
   handleSectionSaveRef,
   isAllMode,
   isBranchMode,
@@ -46,6 +47,7 @@ export function CombinedDiffSectionList({
   canOpenWorkspaceFileBrowserForPath: (path: string) => boolean
   diffCommentsForWorktree: DiffComment[]
   file: OpenFile
+  getSectionComparison: DiffSectionItemProps['getSectionComparison']
   handleSectionSaveRef: DiffSectionItemProps['handleSectionSaveRef']
   isAllMode: boolean
   isBranchMode: boolean
@@ -115,6 +117,7 @@ export function CombinedDiffSectionList({
                   settings={settings}
                   sectionHeight={sectionHeights[virtualItem.index]}
                   worktreeId={file.worktreeId}
+                  getSectionComparison={getSectionComparison}
                   loadSection={loadSection}
                   loadDeferredSection={loadDeferredSection}
                   retrySection={retrySection}

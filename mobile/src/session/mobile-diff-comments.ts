@@ -1,4 +1,5 @@
 import type { DiffComment, DiffReviewScope } from '../../../src/shared/diff-comment-types'
+import { parseDiffComparison } from '../../../src/shared/diff-comparison'
 
 export type CreateMobileDiffCommentInput = {
   worktreeId: string
@@ -41,9 +42,16 @@ export function normalizeMobileDiffComments(value: unknown, worktreeId: string):
         id,
         worktreeId: typeof candidate.worktreeId === 'string' ? candidate.worktreeId : worktreeId,
         filePath,
-        source: candidate.source === 'markdown' ? 'markdown' : 'diff',
+        // Why: this rebuild is written back over the worktree's notes, so an
+        // unlisted desktop field would be stripped off every note.
+        source:
+          candidate.source === 'markdown' || candidate.source === 'file'
+            ? candidate.source
+            : 'diff',
         selectedText:
           typeof candidate.selectedText === 'string' ? candidate.selectedText : undefined,
+        anchorExcerpt:
+          typeof candidate.anchorExcerpt === 'string' ? candidate.anchorExcerpt : undefined,
         startLine: typeof candidate.startLine === 'number' ? candidate.startLine : undefined,
         lineNumber,
         body,
@@ -51,6 +59,7 @@ export function normalizeMobileDiffComments(value: unknown, worktreeId: string):
         updatedAt: typeof candidate.updatedAt === 'number' ? candidate.updatedAt : undefined,
         sentAt: typeof candidate.sentAt === 'number' ? candidate.sentAt : undefined,
         scope: normalizeScope(candidate.scope),
+        reviewedComparison: parseDiffComparison(candidate.reviewedComparison),
         oldPath: typeof candidate.oldPath === 'string' ? candidate.oldPath : undefined,
         diffIdentity:
           typeof candidate.diffIdentity === 'string' ? candidate.diffIdentity : undefined,

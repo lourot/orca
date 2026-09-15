@@ -102,6 +102,7 @@ export function EditorPanelShell({
           activeFile={activeFile}
           copiedPathVisible={copiedPathVisible}
           isSingleDiff={model.isSingleDiff}
+          canSendFileNotes={model.canSendFileNotes}
           isDiffSurface={model.isDiffSurface}
           isMarkdown={model.isMarkdown}
           isCsv={model.isCsv}

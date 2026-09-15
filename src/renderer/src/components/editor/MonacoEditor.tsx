@@ -18,11 +18,13 @@ import { monacoFindOptions } from './monaco-find-options'
 import { useMonacoRevealScheduler } from './use-monaco-reveal-scheduler'
 import type { MonacoContentSyncMode } from './monaco-content-sync'
 import { useMonacoContentSyncBridge } from './use-monaco-content-sync-bridge'
-import { useMonacoMarkdownAnnotations } from './use-monaco-markdown-annotations'
+import { useMonacoEditorAnnotations } from './use-monaco-editor-annotations'
 import { useMonacoEditorDecorations } from './use-monaco-editor-decorations'
 import { useMonacoEditorMount } from './use-monaco-editor-mount'
 import { snapshotMonacoViewState } from './monaco-view-state-persistence'
-import { MonacoMarkdownAnnotationOverlay } from './MonacoMarkdownAnnotationOverlay'
+import { MonacoEditorAnnotationOverlay } from './MonacoEditorAnnotationOverlay'
+import { buildFileEditorDisplayOptions } from './file-editor-display-options'
+import { useMonacoDocLinkFollow } from './use-monaco-doc-link-follow'
 import { usePluginSyntaxLanguage } from './use-plugin-syntax-language'
 import {
   PLUGIN_SYNTAX_EDITOR_OPTIONS,
@@ -46,8 +48,9 @@ type MonacoEditorProps = {
   revealColumn?: number
   revealMatchLength?: number
   markdownDocuments?: MarkdownDocument[]
+  onOpenDocLink?: (target: string) => void
   worktreeId?: string
-  markdownAnnotationsEnabled?: boolean
+  annotationsEnabled?: boolean
   conflictDecorationsEnabled?: boolean
   readOnly?: boolean
   // Why: shows another tab's record read-only; never moves its cursor line or takes its reveals.
@@ -70,8 +73,9 @@ export default function MonacoEditor({
   revealColumn,
   revealMatchLength,
   markdownDocuments,
+  onOpenDocLink,
   worktreeId,
-  markdownAnnotationsEnabled = false,
+  annotationsEnabled = false,
   conflictDecorationsEnabled = false,
   readOnly = false,
   passiveMirror = false,
@@ -83,6 +87,7 @@ export default function MonacoEditor({
   const [mountedEditor, setMountedEditor] = useState<editor.IStandaloneCodeEditor | null>(null)
   const [autoHeightContentHeight, setAutoHeightContentHeight] = useState<number | null>(null)
   const language = usePluginSyntaxLanguage(filePath, coreLanguage)
+  useMonacoDocLinkFollow(mountedEditor, language, markdownDocuments, onOpenDocLink)
   const languageRef = useRef(language)
   languageRef.current = language
   useEffect(
@@ -155,14 +160,14 @@ export default function MonacoEditor({
     fileId,
     onContentChange
   })
-  const annotations = useMonacoMarkdownAnnotations({
+  const annotations = useMonacoEditorAnnotations({
     mountedEditor,
     editorContainerRef,
     relativePath,
     content,
     language,
     worktreeId,
-    markdownAnnotationsEnabled
+    annotationsEnabled
   })
 
   // Layout cleanup precedes the wrapper’s editor disposal, keeping final scroll readable.
@@ -276,13 +281,13 @@ export default function MonacoEditor({
       className={autoHeight ? 'relative' : 'relative h-full'}
       style={renderedEditorHeight === null ? undefined : { height: renderedEditorHeight }}
     >
-      <MonacoMarkdownAnnotationOverlay
-        shouldShowMarkdownAnnotations={annotations.shouldShowMarkdownAnnotations}
+      <MonacoEditorAnnotationOverlay
+        shouldShowEditorAnnotations={annotations.shouldShowEditorAnnotations}
         commentPopover={annotations.commentPopover}
         setCommentPopover={annotations.setCommentPopover}
         selectionAnnotationTarget={annotations.selectionAnnotationTarget}
         setSelectionAnnotationTarget={annotations.setSelectionAnnotationTarget}
-        onSubmitMarkdownComment={annotations.handleSubmitMarkdownComment}
+        onSubmitEditorComment={annotations.handleSubmitEditorComment}
       />
       <Editor
         key={modelUri}
@@ -311,6 +316,7 @@ export default function MonacoEditor({
             invisibleCharacters: true
           },
           tabSize: 2,
+          ...buildFileEditorDisplayOptions(language),
           readOnly,
           scrollbar: autoHeight
             ? {
