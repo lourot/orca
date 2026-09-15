@@ -1,8 +1,9 @@
 import type { DiffComment } from './diff-comment-types'
+import { formatDiffComparisonRange } from './diff-comparison'
 
-function isMarkdownComment(comment: Pick<DiffComment, 'source'>): boolean {
-  return comment.source === 'markdown'
-}
+/** Emitted once per prompt, and only when some note carries a reviewed comparison. */
+export const DIFF_COMMENTS_LINE_NUMBER_NOTE =
+  'Note: line numbers refer to the post-change side of each diff.'
 
 // Why: the pasted format is the contract between review notes and whichever
 // agent consumes them. Keep it deterministic and quote-safe across clients.
@@ -18,17 +19,25 @@ export function formatDiffComment(c: DiffComment): string {
       : c.startLine !== undefined && c.startLine !== c.lineNumber
         ? `Lines: ${c.startLine}-${c.lineNumber}`
         : `Line: ${c.lineNumber}`
-  if (!isMarkdownComment(c)) {
-    return [`File: ${c.filePath}`, locationLabel, `User comment: "${escaped}"`].join('\n')
+  const lines = [`File: ${c.filePath}`]
+  if (c.source === 'markdown' || c.source === 'file') {
+    lines.push(`Source: ${c.source}`)
   }
-  return [
-    `File: ${c.filePath}`,
-    'Source: markdown',
-    locationLabel,
-    `User comment: "${escaped}"`
-  ].join('\n')
+  if (c.reviewedComparison) {
+    lines.push(`Range: ${formatDiffComparisonRange(c.reviewedComparison)}`)
+  }
+  lines.push(locationLabel)
+  if (c.anchorExcerpt) {
+    lines.push(`Excerpt:\n${c.anchorExcerpt}`)
+  }
+  lines.push(`User comment: "${escaped}"`)
+  return lines.join('\n')
 }
 
 export function formatDiffComments(comments: readonly DiffComment[]): string {
-  return comments.map(formatDiffComment).join('\n\n')
+  const body = comments.map(formatDiffComment).join('\n\n')
+  // Why: legacy and mobile notes carry no comparison; keep their prompt byte-identical.
+  return comments.some((c) => c.reviewedComparison)
+    ? `${DIFF_COMMENTS_LINE_NUMBER_NOTE}\n\n${body}`
+    : body
 }

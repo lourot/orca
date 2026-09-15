@@ -1,5 +1,6 @@
 import type { Dispatch, MutableRefObject, ReactNode, SetStateAction } from 'react'
 import type { editor as monacoEditor } from 'monaco-editor'
+import type { DiffComparison } from '../../../../shared/diff-comparison'
 import type { DecoratedDiffComment } from '../diff-comments/decorated-diff-comment'
 import type { DiffSection } from './diff-section-types'
 
@@ -33,6 +34,8 @@ export type DiffSectionItemProps = {
   addLineCommentPlaceholder?: string
   inlineComments?: readonly DecoratedDiffComment[]
   getCommentableLineNumbers?: (section: DiffSection) => readonly number[] | undefined
+  /** Per-section, not per-tab: a combined-all tab mixes uncommitted and branch sections. */
+  getSectionComparison?: (section: DiffSection) => DiffComparison | undefined
   setSectionHeights: Dispatch<SetStateAction<Record<number, number>>>
   setSections: Dispatch<SetStateAction<DiffSection[]>>
   modifiedEditorsRef: MutableRefObject<Map<number, monacoEditor.IStandaloneCodeEditor>>

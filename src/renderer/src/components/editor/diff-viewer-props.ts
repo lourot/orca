@@ -1,3 +1,4 @@
+import type { DiffComparison } from '../../../../shared/diff-comparison'
 import type { LargeDiffRenderLimit } from './large-diff-render-limit'
 
 export type DiffViewerProps = {
@@ -14,6 +15,8 @@ export type DiffViewerProps = {
   // Why: optional because DiffViewer is also used by GitHubItemDialog for PR
   // review, where there is no local worktree to attach comments to.
   worktreeId?: string
+  /** Recorded on notes created here so the agent is told which diff they are about. */
+  reviewedComparison?: DiffComparison
   onAddLineComment?: (args: {
     lineNumber: number
     startLine?: number

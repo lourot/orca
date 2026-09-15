@@ -17,11 +17,11 @@ import { monacoFindOptions } from './monaco-find-options'
 import { useMonacoRevealScheduler } from './use-monaco-reveal-scheduler'
 import type { MonacoContentSyncMode } from './monaco-content-sync'
 import { useMonacoContentSyncBridge } from './use-monaco-content-sync-bridge'
-import { useMonacoMarkdownAnnotations } from './use-monaco-markdown-annotations'
+import { useMonacoEditorAnnotations } from './use-monaco-editor-annotations'
 import { useMonacoEditorDecorations } from './use-monaco-editor-decorations'
 import { useMonacoEditorMount } from './use-monaco-editor-mount'
 import { snapshotMonacoViewState } from './monaco-view-state-persistence'
-import { MonacoMarkdownAnnotationOverlay } from './MonacoMarkdownAnnotationOverlay'
+import { MonacoEditorAnnotationOverlay } from './MonacoEditorAnnotationOverlay'
 
 type MonacoEditorProps = {
   fileId: string
@@ -39,7 +39,7 @@ type MonacoEditorProps = {
   revealMatchLength?: number
   markdownDocuments?: MarkdownDocument[]
   worktreeId?: string
-  markdownAnnotationsEnabled?: boolean
+  annotationsEnabled?: boolean
   conflictDecorationsEnabled?: boolean
   readOnly?: boolean
   liveTail?: boolean
@@ -61,7 +61,7 @@ export default function MonacoEditor({
   revealMatchLength,
   markdownDocuments,
   worktreeId,
-  markdownAnnotationsEnabled = false,
+  annotationsEnabled = false,
   conflictDecorationsEnabled = false,
   readOnly = false,
   liveTail = false,
@@ -129,14 +129,14 @@ export default function MonacoEditor({
     filePath,
     onContentChange
   })
-  const annotations = useMonacoMarkdownAnnotations({
+  const annotations = useMonacoEditorAnnotations({
     mountedEditor,
     editorContainerRef,
     relativePath,
     content,
     language,
     worktreeId,
-    markdownAnnotationsEnabled
+    annotationsEnabled
   })
 
   // Why useLayoutEffect: cleanup runs before @monaco-editor/react disposes the editor, so getScrollTop() still reads valid state on unmount.
@@ -219,13 +219,13 @@ export default function MonacoEditor({
       className={autoHeight ? 'relative' : 'relative h-full'}
       style={renderedEditorHeight === null ? undefined : { height: renderedEditorHeight }}
     >
-      <MonacoMarkdownAnnotationOverlay
-        shouldShowMarkdownAnnotations={annotations.shouldShowMarkdownAnnotations}
+      <MonacoEditorAnnotationOverlay
+        shouldShowEditorAnnotations={annotations.shouldShowEditorAnnotations}
         commentPopover={annotations.commentPopover}
         setCommentPopover={annotations.setCommentPopover}
         selectionAnnotationTarget={annotations.selectionAnnotationTarget}
         setSelectionAnnotationTarget={annotations.setSelectionAnnotationTarget}
-        onSubmitMarkdownComment={annotations.handleSubmitMarkdownComment}
+        onSubmitEditorComment={annotations.handleSubmitEditorComment}
       />
       <Editor
         height={renderedEditorHeight === null ? '100%' : `${renderedEditorHeight}px`}

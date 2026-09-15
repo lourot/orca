@@ -4,6 +4,7 @@ import {
   getDiffCommentLineLabel,
   getDiffCommentSource,
   isDiffComment,
+  isEditorComment,
   isMarkdownComment
 } from './diff-comment-compat'
 
@@ -33,6 +34,20 @@ describe('diff comment compatibility helpers', () => {
     expect(getDiffCommentSource(comment)).toBe('markdown')
     expect(isMarkdownComment(comment)).toBe(true)
     expect(isDiffComment(comment)).toBe(false)
+  })
+
+  it('keeps a plain-file note out of the diff and markdown buckets but inside the editor one', () => {
+    const comment = makeComment({ source: 'file', filePath: 'src/main.cpp' })
+    expect(getDiffCommentSource(comment)).toBe('file')
+    expect(isDiffComment(comment)).toBe(false)
+    expect(isMarkdownComment(comment)).toBe(false)
+    expect(isEditorComment(comment)).toBe(true)
+  })
+
+  it('counts markdown notes as editor notes and diff notes as not', () => {
+    expect(isEditorComment(makeComment({ source: 'markdown' }))).toBe(true)
+    expect(isEditorComment(makeComment({ source: 'diff' }))).toBe(false)
+    expect(isEditorComment(makeComment())).toBe(false)
   })
 
   it('formats compact and full range labels', () => {

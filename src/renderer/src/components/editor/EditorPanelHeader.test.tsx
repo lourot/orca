@@ -68,6 +68,7 @@ const baseProps = {
   activeFile,
   copiedPathVisible: false,
   isSingleDiff: false,
+  canSendFileNotes: false,
   isDiffSurface: true,
   isMarkdown: false,
   isCsv: false,

@@ -1,6 +1,6 @@
 import { useCallback, useRef, type RefObject } from 'react'
 import { detectLanguage } from '@/lib/language-detect'
-import { getDiffCommentSource } from '@/lib/diff-comment-compat'
+import { isEditorComment } from '@/lib/diff-comment-compat'
 import { joinPath } from '@/lib/path'
 import { useAppStore } from '@/store'
 import type {
@@ -66,7 +66,7 @@ export function useSourceControlNoteOpening({
       // Clear any dangling prior scroll request; only the diff branches below re-stamp it.
       cancelSourceControlEditorRevealFrames(pendingCommentEditorRevealFrameIdsRef)
       setScrollToDiffCommentId(null)
-      if (getDiffCommentSource(comment) === 'markdown') {
+      if (isEditorComment(comment)) {
         const absPath = joinPath(worktreePath, filePath)
         const language = detectLanguage(filePath)
         setEditorViewMode(absPath, 'edit')

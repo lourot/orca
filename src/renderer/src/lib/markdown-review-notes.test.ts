@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiffComment } from '../../../shared/diff-comment-types'
 import {
+  captureReviewNoteExcerpt,
   formatMarkdownReviewCardQuote,
   formatMarkdownReviewNotes,
   getMarkdownReviewCardQuote,
@@ -192,6 +193,34 @@ describe('markdown review notes', () => {
         'User comment: "replace \\"maybe\\"\\nwith specifics"'
       ].join('\n')
     )
+  })
+
+  it('caps a captured excerpt so one minified line cannot bloat the stored note', () => {
+    const long = 'x'.repeat(5000)
+    const captured = captureReviewNoteExcerpt(`one\n${long}`, note({ lineNumber: 2 }))
+
+    expect(captured?.length).toBe(2003)
+    expect(captured?.endsWith('...')).toBe(true)
+    expect(captureReviewNoteExcerpt('one\ntwo', note({ lineNumber: 2 }))).toBe('> two')
+  })
+
+  it('captures nothing when the anchored line is past the end of the content', () => {
+    expect(captureReviewNoteExcerpt('one', note({ lineNumber: 9 }))).toBeUndefined()
+  })
+
+  it('names the note source, so a non-markdown file does not claim to be markdown', () => {
+    const formatted = formatMarkdownReviewNotes(
+      [
+        {
+          ...note({ lineNumber: 1, body: 'narrow this' }),
+          filePath: 'src/main.cpp',
+          source: 'file'
+        }
+      ],
+      'int main() {}'
+    )
+
+    expect(formatted.split('\n').slice(0, 2)).toEqual(['File: src/main.cpp', 'Source: file'])
   })
 
   it('formats exact selected text when available', () => {

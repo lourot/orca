@@ -249,3 +249,21 @@ describe('getEditorPanelRenderModel markdown export affordance', () => {
     ).toBe(false)
   })
 })
+
+describe('getEditorPanelRenderModel note send affordance', () => {
+  // Why: the send pill used to be diff-only, so notes left in a plain editor
+  // could only be sent one at a time from their own card.
+  it('offers the batch send pill on plain editor tabs and single diffs, not combined ones', () => {
+    const cases: [OpenFile, boolean][] = [
+      [markdownFile({ mode: 'edit' }), true],
+      [htmlFile({ mode: 'edit' }), true],
+      [markdownFile({ mode: 'diff', diffSource: 'branch' }), true],
+      [markdownFile({ mode: 'diff', diffSource: 'combined-all' }), false],
+      [markdownFile({ mode: 'markdown-preview' }), false],
+      [markdownFile({ mode: 'conflict-review' }), false]
+    ]
+    expect(cases.map(([activeFile]) => renderModel({ activeFile }).canSendFileNotes)).toEqual(
+      cases.map(([, expected]) => expected)
+    )
+  })
+})

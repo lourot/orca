@@ -150,7 +150,15 @@ export function DiffCommentsInlineList({
                   <span className="shrink-0 rounded bg-muted/70 px-1 py-0.5 text-[10px] leading-none text-muted-foreground">
                     {getDiffCommentSource(c) === 'markdown'
                       ? translate('auto.components.right.sidebar.SourceControl.94c42b252e', 'MD')
-                      : translate('auto.components.right.sidebar.SourceControl.c56ba7fa06', 'Diff')}
+                      : getDiffCommentSource(c) === 'file'
+                        ? translate(
+                            'auto.components.right.sidebar.SourceControl.ceb08a733d',
+                            'File'
+                          )
+                        : translate(
+                            'auto.components.right.sidebar.SourceControl.c56ba7fa06',
+                            'Diff'
+                          )}
                   </span>
                   {c.sentAt ? (
                     <span className="shrink-0 rounded bg-muted/70 px-1 py-0.5 text-[10px] leading-none text-muted-foreground">

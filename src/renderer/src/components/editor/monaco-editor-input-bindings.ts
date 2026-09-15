@@ -11,11 +11,11 @@ import {
   installMonacoEditorFindShortcut
 } from './editor-shortcuts'
 import {
-  getMonacoMarkdownSelectionAnnotationTarget,
-  type MonacoMarkdownSelectionAnnotationTarget
-} from './monaco-markdown-selection-annotation'
+  getMonacoSelectionAnnotationTarget,
+  type MonacoSelectionAnnotationTarget
+} from './monaco-selection-annotation'
 import { handleMonacoLargeTextPaste } from './monaco-large-text-paste'
-import type { MarkdownCommentPopoverState } from './use-monaco-markdown-annotations'
+import type { EditorCommentPopoverState } from './use-monaco-editor-annotations'
 import type { MonacoEditorPropsRef } from './monaco-editor-mount-params'
 
 type MonacoEditorInputBindingsParams = {
@@ -26,12 +26,10 @@ type MonacoEditorInputBindingsParams = {
   readOnlyRef: MutableRefObject<boolean>
   lastSyncedContentRef: MutableRefObject<string>
   isApplyingLargePasteRef: MutableRefObject<boolean>
-  commentPopoverRef: MutableRefObject<MarkdownCommentPopoverState | null>
-  shouldShowMarkdownAnnotationsRef: MutableRefObject<boolean>
-  setCommentPopover: Dispatch<SetStateAction<MarkdownCommentPopoverState | null>>
-  setSelectionAnnotationTarget: Dispatch<
-    SetStateAction<MonacoMarkdownSelectionAnnotationTarget | null>
-  >
+  commentPopoverRef: MutableRefObject<EditorCommentPopoverState | null>
+  shouldShowEditorAnnotationsRef: MutableRefObject<boolean>
+  setCommentPopover: Dispatch<SetStateAction<EditorCommentPopoverState | null>>
+  setSelectionAnnotationTarget: Dispatch<SetStateAction<MonacoSelectionAnnotationTarget | null>>
 }
 
 // Why: save/find/review-note chords, the context-menu action, and the large-paste capture share one teardown so onDidDispose keeps their original order.
@@ -47,7 +45,7 @@ export function installMonacoEditorInputBindings(params: MonacoEditorInputBindin
     lastSyncedContentRef,
     isApplyingLargePasteRef,
     commentPopoverRef,
-    shouldShowMarkdownAnnotationsRef,
+    shouldShowEditorAnnotationsRef,
     setCommentPopover,
     setSelectionAnnotationTarget
   } = params
@@ -64,11 +62,11 @@ export function installMonacoEditorInputBindings(params: MonacoEditorInputBindin
     if (commentPopoverRef.current) {
       return true
     }
-    if (!shouldShowMarkdownAnnotationsRef.current) {
+    if (!shouldShowEditorAnnotationsRef.current) {
       return false
     }
     // Why: the rendered target ref lags selection by a render, so read Monaco's live selection to avoid opening on a stale one.
-    const target = getMonacoMarkdownSelectionAnnotationTarget(
+    const target = getMonacoSelectionAnnotationTarget(
       editorInstance,
       editorInstance.getSelection(),
       getDiffCommentPopoverLeft(editorInstance, editorContainerRef.current) ?? undefined

@@ -174,6 +174,10 @@ export function getEditorPanelRenderModel({
         activeFile.conflict?.conflictStatus !== 'unresolved'))
   return {
     isSingleDiff,
+    // Why: the notes pill belongs on any tab that owns one file's notes - a
+    // single-file diff or a plain editor. Combined diffs have their own toolbar,
+    // and conflict/check-details tabs are not files.
+    canSendFileNotes: isSingleDiff || activeFile.mode === 'edit',
     isDiffSurface: isSingleDiff || isChangesMode,
     isCombinedDiff,
     worktreeEntries,

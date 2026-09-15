@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { Check, Copy, Plus } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 import {
+  captureReviewNoteExcerpt,
   formatMarkdownReviewCardQuote,
   getMarkdownReviewCardQuote,
   type MarkdownReviewNote
@@ -70,12 +71,16 @@ export function useMarkdownPreviewAnnotationRenderers({
       const commentsForBlock = getMarkdownCommentsForRange(range)
 
       const handleSubmit = async (body: string): Promise<boolean> => {
+        const anchor = {
+          startLine: range.startLine === range.endLine ? undefined : range.startLine,
+          lineNumber: range.endLine
+        }
         const result = await addDiffComment({
           worktreeId: sourceWorktree.id,
           filePath: sourceRelativePath,
           source: 'markdown',
-          startLine: range.startLine === range.endLine ? undefined : range.startLine,
-          lineNumber: range.endLine,
+          ...anchor,
+          anchorExcerpt: captureReviewNoteExcerpt(renderedContent, anchor),
           ...(annotationQuote ? { selectedText: annotationQuote } : {}),
           body,
           side: 'modified'

@@ -20,7 +20,7 @@ import { DiffSectionBody } from './DiffSectionBody'
 import { useDiffSectionLayoutMetrics } from './useDiffSectionLayoutMetrics'
 import { getLiveDiffSectionRenderLimit } from './diff-section-live-render-limit'
 import { useDiffSectionFallbackCleanup } from './useDiffSectionFallbackCleanup'
-import { submitDiffSectionComment } from './diff-section-comment-submit'
+import { submitReviewNote } from './review-note-submit'
 import type { DiffSectionItemProps } from './diff-section-item-props'
 import { useDiffSectionModelLifecycle } from './use-diff-section-model-lifecycle'
 
@@ -46,6 +46,7 @@ export function DiffSectionItem({
   addLineCommentPlaceholder,
   inlineComments,
   getCommentableLineNumbers,
+  getSectionComparison,
   setSectionHeights,
   setSections,
   modifiedEditorsRef,
@@ -182,12 +183,14 @@ export function DiffSectionItem({
     if (!popover) {
       return
     }
-    const submitted = await submitDiffSectionComment({
+    const submitted = await submitReviewNote({
       addDiffComment,
       body,
-      onAddLineComment,
+      filePath: section.path,
+      modifiedContent: section.modifiedContent,
+      onAddLineComment: onAddLineComment && ((args) => onAddLineComment(section, args)),
       popover,
-      section,
+      reviewedComparison: getSectionComparison?.(section),
       worktreeId
     })
     if (submitted) {

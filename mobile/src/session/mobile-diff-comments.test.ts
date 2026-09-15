@@ -38,6 +38,33 @@ describe('mobile diff comments', () => {
     ).toEqual([comment({ id: 'a' })])
   })
 
+  // Why: this normalizer is an allow-list rebuild written back over the
+  // worktree's notes, so an unlisted desktop field is stripped off every note.
+  it('preserves the desktop reviewed comparison and file source through a round trip', () => {
+    const desktopNote = comment({
+      id: 'b',
+      source: 'file',
+      reviewedComparison: {
+        kind: 'branch',
+        baseRef: 'origin/main',
+        compareRef: 'HEAD',
+        mergeBase: 'a1',
+        headOid: 'b2'
+      }
+    })
+
+    expect(normalizeMobileDiffComments([desktopNote], 'wt-1')).toEqual([desktopNote])
+  })
+
+  it('drops a reviewed comparison that is missing the oids it claims to name', () => {
+    expect(
+      normalizeMobileDiffComments(
+        [comment({ id: 'c', reviewedComparison: { kind: 'branch', baseRef: 'main' } as never })],
+        'wt-1'
+      )[0]?.reviewedComparison
+    ).toBeUndefined()
+  })
+
   it('creates trimmed modified-side comments', () => {
     const result = addMobileDiffComment([], {
       id: 'mobile-1',

@@ -2,31 +2,29 @@ import React, { type Dispatch, type SetStateAction } from 'react'
 import { Plus } from 'lucide-react'
 import { DiffCommentPopover } from '../diff-comments/DiffCommentPopover'
 import { translate } from '@/i18n/i18n'
-import type { MonacoMarkdownSelectionAnnotationTarget } from './monaco-markdown-selection-annotation'
-import type { MarkdownCommentPopoverState } from './use-monaco-markdown-annotations'
+import type { MonacoSelectionAnnotationTarget } from './monaco-selection-annotation'
+import type { EditorCommentPopoverState } from './use-monaco-editor-annotations'
 
-type MonacoMarkdownAnnotationOverlayProps = {
-  shouldShowMarkdownAnnotations: boolean
-  commentPopover: MarkdownCommentPopoverState | null
-  setCommentPopover: Dispatch<SetStateAction<MarkdownCommentPopoverState | null>>
-  selectionAnnotationTarget: MonacoMarkdownSelectionAnnotationTarget | null
-  setSelectionAnnotationTarget: Dispatch<
-    SetStateAction<MonacoMarkdownSelectionAnnotationTarget | null>
-  >
-  onSubmitMarkdownComment: (body: string) => Promise<void>
+type MonacoEditorAnnotationOverlayProps = {
+  shouldShowEditorAnnotations: boolean
+  commentPopover: EditorCommentPopoverState | null
+  setCommentPopover: Dispatch<SetStateAction<EditorCommentPopoverState | null>>
+  selectionAnnotationTarget: MonacoSelectionAnnotationTarget | null
+  setSelectionAnnotationTarget: Dispatch<SetStateAction<MonacoSelectionAnnotationTarget | null>>
+  onSubmitEditorComment: (body: string) => Promise<void>
 }
 
-export function MonacoMarkdownAnnotationOverlay({
-  shouldShowMarkdownAnnotations,
+export function MonacoEditorAnnotationOverlay({
+  shouldShowEditorAnnotations,
   commentPopover,
   setCommentPopover,
   selectionAnnotationTarget,
   setSelectionAnnotationTarget,
-  onSubmitMarkdownComment
-}: MonacoMarkdownAnnotationOverlayProps): React.JSX.Element {
+  onSubmitEditorComment
+}: MonacoEditorAnnotationOverlayProps): React.JSX.Element {
   return (
     <>
-      {commentPopover && shouldShowMarkdownAnnotations && (
+      {commentPopover && shouldShowEditorAnnotations && (
         <DiffCommentPopover
           key={commentPopover.lineNumber}
           lineNumber={commentPopover.lineNumber}
@@ -34,10 +32,10 @@ export function MonacoMarkdownAnnotationOverlay({
           top={commentPopover.top}
           left={commentPopover.left}
           onCancel={() => setCommentPopover(null)}
-          onSubmit={onSubmitMarkdownComment}
+          onSubmit={onSubmitEditorComment}
         />
       )}
-      {selectionAnnotationTarget && shouldShowMarkdownAnnotations && !commentPopover ? (
+      {selectionAnnotationTarget && shouldShowEditorAnnotations && !commentPopover ? (
         <button
           type="button"
           className="orca-diff-comment-add-btn"

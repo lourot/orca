@@ -25,6 +25,7 @@ type EditorPanelHeaderProps = {
   activeFile: OpenFile
   copiedPathVisible: boolean
   isSingleDiff: boolean
+  canSendFileNotes: boolean
   isDiffSurface: boolean
   isMarkdown: boolean
   isCsv: boolean
@@ -60,6 +61,7 @@ export function EditorPanelHeader({
   activeFile,
   copiedPathVisible,
   isSingleDiff,
+  canSendFileNotes,
   isDiffSurface,
   isMarkdown,
   isCsv,
@@ -178,7 +180,7 @@ export function EditorPanelHeader({
           </Tooltip>
         </TooltipProvider>
       )}
-      {isSingleDiff && fileDiffComments.length > 0 && (
+      {canSendFileNotes && fileDiffComments.length > 0 && (
         <DiffNotesSendMenu
           worktreeId={activeFile.worktreeId}
           groupId={activeGroupId ?? activeFile.worktreeId}

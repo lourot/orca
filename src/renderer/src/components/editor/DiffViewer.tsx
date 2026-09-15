@@ -16,6 +16,7 @@ import {
 import { applyDiffEditorLineNumberOptions } from './diff-editor-line-number-options'
 import type { DiffComment } from '../../../../shared/diff-comment-types'
 import { isDiffComment } from '@/lib/diff-comment-compat'
+import { submitReviewNote } from './review-note-submit'
 import { installEditorSaveShortcut, installMonacoEditorFindShortcut } from './editor-shortcuts'
 import { diffEditorScrollbarOptions } from './diff-editor-scrollbar-options'
 import { LargeDiffFallback } from './LargeDiffFallback'
@@ -41,6 +42,7 @@ export default function DiffViewer({
   sideBySide,
   editable,
   worktreeId,
+  reviewedComparison,
   onAddLineComment,
   commentableLineNumbers,
   addLineCommentLabel,
@@ -236,34 +238,20 @@ export default function DiffViewer({
     if (!popover) {
       return
     }
-    if (onAddLineComment) {
-      const ok = await onAddLineComment({
-        lineNumber: popover.lineNumber,
-        startLine: popover.startLine,
-        body
+    // Why: a failed save keeps the popover open for retry instead of losing the draft.
+    if (
+      await submitReviewNote({
+        addDiffComment,
+        body,
+        filePath: relativePath,
+        modifiedContent,
+        onAddLineComment,
+        popover,
+        reviewedComparison,
+        worktreeId
       })
-      if (ok) {
-        setPopover(null)
-      }
-      return
-    }
-    if (!worktreeId) {
-      return
-    }
-    // Why: await persistence — a null result (failed save) keeps the popover open for retry instead of losing the draft.
-    const result = await addDiffComment({
-      worktreeId,
-      filePath: relativePath,
-      source: 'diff',
-      startLine: popover.startLine,
-      lineNumber: popover.lineNumber,
-      body,
-      side: 'modified'
-    })
-    if (result) {
+    ) {
       setPopover(null)
-    } else {
-      console.error('Failed to add diff comment — draft preserved')
     }
   }
 

@@ -12,47 +12,46 @@ import type { editor } from 'monaco-editor'
 import type { DiffComment } from '../../../../shared/diff-comment-types'
 import { useAppStore } from '@/store'
 import { selectWorktreeDiffComments } from '@/store/worktree-diff-comments-selector'
-import { isMarkdownComment } from '@/lib/diff-comment-compat'
-import { formatMarkdownReviewNotes, type MarkdownReviewNote } from '@/lib/markdown-review-notes'
+import { isEditorComment } from '@/lib/diff-comment-compat'
+import {
+  captureReviewNoteExcerpt,
+  formatMarkdownReviewNotes,
+  type EditorReviewNote
+} from '@/lib/markdown-review-notes'
 import { useDiffCommentDecorator } from '../diff-comments/useDiffCommentDecorator'
 import {
   getDiffCommentPopoverLeft,
   getDiffCommentPopoverTop
 } from '../diff-comments/diff-comment-popover-position'
 import {
-  getMonacoMarkdownSelectionAnnotationTarget,
-  type MonacoMarkdownSelectionAnnotationTarget
-} from './monaco-markdown-selection-annotation'
+  getMonacoSelectionAnnotationTarget,
+  type MonacoSelectionAnnotationTarget
+} from './monaco-selection-annotation'
 
-export type MarkdownCommentPopoverState = Omit<
-  MonacoMarkdownSelectionAnnotationTarget,
-  'selectedText'
-> & {
+export type EditorCommentPopoverState = Omit<MonacoSelectionAnnotationTarget, 'selectedText'> & {
   selectedText?: string
 }
 
-export type MonacoMarkdownAnnotations = {
-  shouldShowMarkdownAnnotations: boolean
-  shouldShowMarkdownAnnotationsRef: MutableRefObject<boolean>
-  commentPopover: MarkdownCommentPopoverState | null
-  setCommentPopover: Dispatch<SetStateAction<MarkdownCommentPopoverState | null>>
-  commentPopoverRef: MutableRefObject<MarkdownCommentPopoverState | null>
-  selectionAnnotationTarget: MonacoMarkdownSelectionAnnotationTarget | null
-  setSelectionAnnotationTarget: Dispatch<
-    SetStateAction<MonacoMarkdownSelectionAnnotationTarget | null>
-  >
-  handleSubmitMarkdownComment: (body: string) => Promise<void>
+export type MonacoEditorAnnotations = {
+  shouldShowEditorAnnotations: boolean
+  shouldShowEditorAnnotationsRef: MutableRefObject<boolean>
+  commentPopover: EditorCommentPopoverState | null
+  setCommentPopover: Dispatch<SetStateAction<EditorCommentPopoverState | null>>
+  commentPopoverRef: MutableRefObject<EditorCommentPopoverState | null>
+  selectionAnnotationTarget: MonacoSelectionAnnotationTarget | null
+  setSelectionAnnotationTarget: Dispatch<SetStateAction<MonacoSelectionAnnotationTarget | null>>
+  handleSubmitEditorComment: (body: string) => Promise<void>
 }
 
-export function useMonacoMarkdownAnnotations(params: {
+export function useMonacoEditorAnnotations(params: {
   mountedEditor: editor.IStandaloneCodeEditor | null
   editorContainerRef: MutableRefObject<HTMLDivElement | null>
   relativePath: string
   content: string
   language: string
   worktreeId: string | undefined
-  markdownAnnotationsEnabled: boolean
-}): MonacoMarkdownAnnotations {
+  annotationsEnabled: boolean
+}): MonacoEditorAnnotations {
   const {
     mountedEditor,
     editorContainerRef,
@@ -60,7 +59,7 @@ export function useMonacoMarkdownAnnotations(params: {
     content,
     language,
     worktreeId,
-    markdownAnnotationsEnabled
+    annotationsEnabled
   } = params
 
   const addDiffComment = useAppStore((s) => s.addDiffComment)
@@ -72,47 +71,45 @@ export function useMonacoMarkdownAnnotations(params: {
     selectWorktreeDiffComments(s, worktreeId)
   )
 
-  const markdownComments = useMemo(
-    () =>
-      (allDiffComments ?? []).filter((c) => c.filePath === relativePath && isMarkdownComment(c)),
+  const editorComments = useMemo(
+    () => (allDiffComments ?? []).filter((c) => c.filePath === relativePath && isEditorComment(c)),
     [allDiffComments, relativePath]
   )
 
-  const [commentPopover, setCommentPopover] = useState<MarkdownCommentPopoverState | null>(null)
+  const [commentPopover, setCommentPopover] = useState<EditorCommentPopoverState | null>(null)
   const [selectionAnnotationTarget, setSelectionAnnotationTarget] =
-    useState<MonacoMarkdownSelectionAnnotationTarget | null>(null)
+    useState<MonacoSelectionAnnotationTarget | null>(null)
   // Why: claim drafts synchronously so a same-tick second chord can't remount the composer before React commits state.
-  const commentPopoverRef = useRef<MarkdownCommentPopoverState | null>(null)
+  const commentPopoverRef = useRef<EditorCommentPopoverState | null>(null)
   useEffect(() => {
     commentPopoverRef.current = commentPopover
   }, [commentPopover])
 
-  const shouldShowMarkdownAnnotations =
-    markdownAnnotationsEnabled && language === 'markdown' && Boolean(worktreeId)
+  // Why: notes decorate the Monaco model, not rendered markdown, so every text
+  // language works. Callers gate out surfaces with no useful text model.
+  const shouldShowEditorAnnotations = annotationsEnabled && Boolean(worktreeId)
   // Why: the mount closure installs keydown listeners once, so the shortcut reads current enablement through a ref.
-  const shouldShowMarkdownAnnotationsRef = useRef(shouldShowMarkdownAnnotations)
+  const shouldShowEditorAnnotationsRef = useRef(shouldShowEditorAnnotations)
   useEffect(() => {
-    shouldShowMarkdownAnnotationsRef.current = shouldShowMarkdownAnnotations
-  }, [shouldShowMarkdownAnnotations])
+    shouldShowEditorAnnotationsRef.current = shouldShowEditorAnnotations
+  }, [shouldShowEditorAnnotations])
 
   const pendingScrollForThisEditor = useMemo(() => {
-    if (!shouldShowMarkdownAnnotations || !scrollToDiffCommentId) {
+    if (!shouldShowEditorAnnotations || !scrollToDiffCommentId) {
       return null
     }
-    return markdownComments.some((c) => c.id === scrollToDiffCommentId)
-      ? scrollToDiffCommentId
-      : null
-  }, [markdownComments, scrollToDiffCommentId, shouldShowMarkdownAnnotations])
-  const formatMarkdownCommentPrompt = useCallback(
-    (comment: DiffComment) => formatMarkdownReviewNotes([comment as MarkdownReviewNote], content),
+    return editorComments.some((c) => c.id === scrollToDiffCommentId) ? scrollToDiffCommentId : null
+  }, [editorComments, scrollToDiffCommentId, shouldShowEditorAnnotations])
+  const formatEditorCommentPrompt = useCallback(
+    (comment: DiffComment) => formatMarkdownReviewNotes([comment as EditorReviewNote], content),
     [content]
   )
 
   useDiffCommentDecorator({
-    editor: shouldShowMarkdownAnnotations ? mountedEditor : null,
+    editor: shouldShowEditorAnnotations ? mountedEditor : null,
     filePath: relativePath,
     worktreeId: worktreeId ?? '',
-    comments: shouldShowMarkdownAnnotations ? markdownComments : [],
+    comments: shouldShowEditorAnnotations ? editorComments : [],
     onAddCommentClick: ({ lineNumber, startLine, top }) => {
       setSelectionAnnotationTarget(null)
       setCommentPopover({
@@ -130,7 +127,7 @@ export function useMonacoMarkdownAnnotations(params: {
       }
     },
     onUpdateComment: worktreeId ? (id, body) => updateDiffComment(worktreeId, id, body) : undefined,
-    formatCommentPrompt: formatMarkdownCommentPrompt,
+    formatCommentPrompt: formatEditorCommentPrompt,
     pendingScrollCommentId: pendingScrollForThisEditor,
     onPendingScrollConsumed: () => setScrollToDiffCommentId(null)
   })
@@ -158,14 +155,14 @@ export function useMonacoMarkdownAnnotations(params: {
   }, [mountedEditor, commentPopover?.lineNumber])
 
   useEffect(() => {
-    if (!mountedEditor || !shouldShowMarkdownAnnotations || commentPopover) {
+    if (!mountedEditor || !shouldShowEditorAnnotations || commentPopover) {
       setSelectionAnnotationTarget(null)
       return
     }
     const update = (): void => {
       const left = getDiffCommentPopoverLeft(mountedEditor, editorContainerRef.current)
       setSelectionAnnotationTarget(
-        getMonacoMarkdownSelectionAnnotationTarget(
+        getMonacoSelectionAnnotationTarget(
           mountedEditor,
           mountedEditor.getSelection(),
           left ?? undefined
@@ -181,37 +178,40 @@ export function useMonacoMarkdownAnnotations(params: {
       scrollSub.dispose()
       layoutSub.dispose()
     }
-  }, [commentPopover, editorContainerRef, mountedEditor, shouldShowMarkdownAnnotations])
+  }, [commentPopover, editorContainerRef, mountedEditor, shouldShowEditorAnnotations])
 
-  const handleSubmitMarkdownComment = async (body: string): Promise<void> => {
+  const handleSubmitEditorComment = async (body: string): Promise<void> => {
     if (!commentPopover || !worktreeId) {
       return
     }
     const result = await addDiffComment({
       worktreeId,
       filePath: relativePath,
-      source: 'markdown',
+      // Why: the rendered-markdown surfaces only handle 'markdown', so a .cpp
+      // note must not claim to be one.
+      source: language === 'markdown' ? 'markdown' : 'file',
       startLine: commentPopover.startLine,
       lineNumber: commentPopover.lineNumber,
       selectedText: commentPopover.selectedText,
+      anchorExcerpt: captureReviewNoteExcerpt(content, commentPopover),
       body,
       side: 'modified'
     })
     if (result) {
       setCommentPopover(null)
     } else {
-      console.error('Failed to add markdown comment — draft preserved')
+      console.error('Failed to add editor comment — draft preserved')
     }
   }
 
   return {
-    shouldShowMarkdownAnnotations,
-    shouldShowMarkdownAnnotationsRef,
+    shouldShowEditorAnnotations,
+    shouldShowEditorAnnotationsRef,
     commentPopover,
     setCommentPopover,
     commentPopoverRef,
     selectionAnnotationTarget,
     setSelectionAnnotationTarget,
-    handleSubmitMarkdownComment
+    handleSubmitEditorComment
   }
 }

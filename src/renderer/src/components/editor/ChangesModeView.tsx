@@ -4,6 +4,7 @@ import type { OpenFile } from '@/store/slices/editor'
 import type { GitDiffResult } from '../../../../shared/git-diff-compare-types'
 import type { GitStatusEntry } from '../../../../shared/git-status-types'
 import { ConflictBanner } from './ConflictComponents'
+import { CHANGES_MODE_COMPARISON } from './diff-comment-comparison'
 import { getDiffContentSignature } from './diff-content-signature'
 import { translate } from '@/i18n/i18n'
 
@@ -98,6 +99,8 @@ export function ChangesModeView({
           sideBySide={sideBySide}
           editable={true}
           worktreeId={activeFile.worktreeId}
+          // Why: only this caller knows Changes mode is active; diffSource stays unset here.
+          reviewedComparison={CHANGES_MODE_COMPARISON}
           onContentChange={onContentChange}
           onSave={onSave}
         />

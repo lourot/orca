@@ -1,6 +1,7 @@
 import { translate } from '@/i18n/i18n'
 import type { OpenFile } from '@/store/slices/editor'
 import type { GitDiffResult } from '../../../../shared/git-diff-compare-types'
+import { diffComparisonForOpenFile } from './diff-comment-comparison'
 import { getDiffContentSignature } from './diff-content-signature'
 import { DiffViewer, ImageDiffViewer, MarkdownPreview } from './editor-lazy-views'
 import { ExternalFileChangeBanner } from './ExternalFileChangeBanner'
@@ -155,6 +156,7 @@ export function EditorDiffFileSurface({
       sideBySide={sideBySide}
       editable={isEditable}
       worktreeId={activeFile.worktreeId}
+      reviewedComparison={diffComparisonForOpenFile(activeFile)}
       onContentChange={isEditable ? onContentChange : undefined}
       onSave={isEditable ? (isMarkdown ? markdownDocuments.mdSave : onSave) : undefined}
     />

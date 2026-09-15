@@ -3,8 +3,8 @@ import type { editor } from 'monaco-editor'
 import type { useContextualCopySetup } from './useContextualCopySetup'
 import type { MonacoContentSyncMode } from './monaco-content-sync'
 import type { MarkdownDocLinkDecorationController } from './monaco-markdown-doc-link-decorations'
-import type { MonacoMarkdownSelectionAnnotationTarget } from './monaco-markdown-selection-annotation'
-import type { MarkdownCommentPopoverState } from './use-monaco-markdown-annotations'
+import type { MonacoSelectionAnnotationTarget } from './monaco-selection-annotation'
+import type { EditorCommentPopoverState } from './use-monaco-editor-annotations'
 
 export type MonacoEditorPropsRef = MutableRefObject<{
   relativePath: string
@@ -52,12 +52,10 @@ export type MonacoEditorMountParams = {
     updateMarkdownCompletionDocuments: () => void
   }
   annotations: {
-    commentPopoverRef: MutableRefObject<MarkdownCommentPopoverState | null>
-    shouldShowMarkdownAnnotationsRef: MutableRefObject<boolean>
-    setCommentPopover: Dispatch<SetStateAction<MarkdownCommentPopoverState | null>>
-    setSelectionAnnotationTarget: Dispatch<
-      SetStateAction<MonacoMarkdownSelectionAnnotationTarget | null>
-    >
+    commentPopoverRef: MutableRefObject<EditorCommentPopoverState | null>
+    shouldShowEditorAnnotationsRef: MutableRefObject<boolean>
+    setCommentPopover: Dispatch<SetStateAction<EditorCommentPopoverState | null>>
+    setSelectionAnnotationTarget: Dispatch<SetStateAction<MonacoSelectionAnnotationTarget | null>>
   }
   gutterMenu: {
     setGutterMenuOpen: Dispatch<SetStateAction<boolean>>

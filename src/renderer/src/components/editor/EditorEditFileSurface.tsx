@@ -11,6 +11,7 @@ import {
   MermaidViewer,
   MonacoEditor
 } from './editor-lazy-views'
+import { canAnnotateEditorSurface } from './editor-panel-file-mode'
 import type { EditorConflictNavigation } from './useEditorConflictNavigation'
 import { EditorFileLoadErrorView } from './EditorFileLoadErrorView'
 import type { FileContent } from './editor-panel-content-types'
@@ -185,7 +186,10 @@ export function EditorEditFileSurface({
             : handleSave
       }
       worktreeId={activeFile.worktreeId}
-      markdownAnnotationsEnabled={markdownAnnotationsEnabled && isMarkdown}
+      annotationsEnabled={canAnnotateEditorSurface({
+        annotationsEnabled: markdownAnnotationsEnabled,
+        isNotebook
+      })}
       conflictDecorationsEnabled={activeFile.conflict?.conflictStatus === 'unresolved'}
       revealLine={
         matchesPendingEditorReveal(pendingEditorReveal, activeFile)

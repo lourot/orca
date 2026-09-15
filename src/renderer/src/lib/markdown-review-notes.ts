@@ -5,10 +5,12 @@ const MAX_EXCERPT_LINES = 8
 const MAX_CARD_QUOTE_LENGTH = 60
 
 export type MarkdownReviewNote = DiffComment & { source: 'markdown' }
+/** Authored in the plain Monaco editor - markdown, or any other text language. */
+export type EditorReviewNote = DiffComment & { source: 'markdown' | 'file' }
 
-export function sortMarkdownReviewNotes(
-  notes: readonly MarkdownReviewNote[]
-): MarkdownReviewNote[] {
+export function sortMarkdownReviewNotes<
+  T extends Pick<DiffComment, 'filePath' | 'startLine' | 'lineNumber' | 'createdAt'>
+>(notes: readonly T[]): T[] {
   return [...notes].sort((a, b) => {
     const pathCompare = a.filePath.localeCompare(b.filePath)
     if (pathCompare !== 0) {
@@ -105,6 +107,28 @@ function forEachMarkdownReviewLine(
   }
 }
 
+// Why: a minified or generated line can be hundreds of KB; this excerpt is
+// persisted and pasted into a prompt, so it needs a ceiling the live-content
+// path does not.
+const MAX_STORED_EXCERPT_CHARACTERS = 2000
+
+/**
+ * The quoted excerpt to store on a note at creation. Batched prompts have no
+ * file content to derive one from later.
+ */
+export function captureReviewNoteExcerpt(
+  content: string,
+  note: Pick<DiffComment, 'lineNumber' | 'startLine'>
+): string | undefined {
+  const excerpt = getMarkdownReviewExcerpt(content, note)
+  if (!excerpt) {
+    return undefined
+  }
+  return excerpt.length > MAX_STORED_EXCERPT_CHARACTERS
+    ? `${excerpt.slice(0, MAX_STORED_EXCERPT_CHARACTERS)}...`
+    : excerpt
+}
+
 export function getMarkdownReviewHighlightedText(
   content: string,
   note: Pick<DiffComment, 'lineNumber' | 'selectedText' | 'startLine'>
@@ -178,7 +202,7 @@ function escapeMarkdownReviewNoteBody(body: string): string {
     .replace(/\n/g, '\\n')
 }
 
-function formatMarkdownReviewNoteDetails(note: MarkdownReviewNote, content: string): string {
+function formatMarkdownReviewNoteDetails(note: EditorReviewNote, content: string): string {
   const excerpt = note.selectedText
     ? quoteMarkdownReviewText(getMarkdownReviewHighlightedText(content, note))
     : getMarkdownReviewExcerpt(content, note)
@@ -195,10 +219,10 @@ function quoteMarkdownReviewText(text: string): string {
 }
 
 export function formatMarkdownReviewNotes(
-  notes: readonly MarkdownReviewNote[],
+  notes: readonly EditorReviewNote[],
   content: string
 ): string {
-  const groups = new Map<string, MarkdownReviewNote[]>()
+  const groups = new Map<string, EditorReviewNote[]>()
   for (const note of sortMarkdownReviewNotes(notes)) {
     const group = groups.get(note.filePath)
     if (group) {
@@ -213,7 +237,7 @@ export function formatMarkdownReviewNotes(
       // Why: agents need the file once; repeated markdown note blocks waste prompt context.
       return [
         `File: ${filePath}`,
-        'Source: markdown',
+        `Source: ${fileNotes[0]?.source ?? 'markdown'}`,
         '',
         fileNotes.map((note) => formatMarkdownReviewNoteDetails(note, content)).join('\n\n')
       ].join('\n')

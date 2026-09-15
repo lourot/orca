@@ -26,6 +26,29 @@ When your review is done, click **Send to agent** at the top of the diff. Orca c
 
 **Send Review Notes to Agent** is unbound by default so it won't collide with other chords. Assign it under [Settings → Shortcuts](/docs/settings) to open that send menu from the keyboard (works even while the editor is focused).
 
+## Notes on a file you are only reading
+
+The same **+** works in the plain editor, on any text file — `.cpp`, `.json`, `.tsx`, whatever is open. Nothing has to be part of a diff. Those notes join the same batch and tell the agent they came from the file rather than from a diff.
+
+Each note's own card sends just that note. To send several at once, use the **AI notes** pill in the editor header — it offers **This file** and **All unsent notes** — or the **Notes** shelf in the Source Control sidebar, which covers the whole worktree.
+
+## What the agent receives
+
+Each note carries the file, the line or line range, and — for notes left on a diff — the comparison you were reviewing when you wrote it:
+
+```text
+Note: line numbers refer to the post-change side of each diff.
+
+File: src/server.ts
+Range: origin/main...HEAD (eb046c19..2d96f303)
+Line: 42
+User comment: "this should return early"
+```
+
+The range is recorded when you create the note, so it keeps naming the diff you actually reviewed even after you switch tabs or the branch moves on. Working-tree, single-commit and plain-file notes each say so in their own terms.
+
+Every note also carries an `Excerpt:` block quoting the lines it was anchored to, captured when you write it. A line number on its own means little in a generated or very large file, and a batched prompt has no file content to look it up in.
+
 ## Why batch?
 
 Sending comments one at a time causes the agent to swing back and forth. Batching keeps the feedback coherent: one round of thinking, one revision pass, and a much higher hit rate.

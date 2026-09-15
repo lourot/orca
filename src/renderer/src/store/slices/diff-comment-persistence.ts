@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
 import type { DiffComment } from '../../../../shared/diff-comment-types'
+import { parseDiffComparison } from '../../../../shared/diff-comparison'
 import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { getRepoIdFromWorktreeId } from './worktree-helpers'
@@ -16,7 +17,11 @@ import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
 
 export function normalizeDiffComment(comment: DiffComment): DiffComment {
   const rawSource = (comment as { source?: unknown }).source
-  const source = rawSource === 'markdown' || rawSource === 'diff' ? rawSource : undefined
+  const source =
+    rawSource === 'markdown' || rawSource === 'diff' || rawSource === 'file' ? rawSource : undefined
+  const reviewedComparison = parseDiffComparison(
+    (comment as { reviewedComparison?: unknown }).reviewedComparison
+  )
   const rawStartLine = (comment as { startLine?: unknown }).startLine
   const startLine =
     Number.isInteger(rawStartLine) &&
@@ -29,6 +34,11 @@ export function normalizeDiffComment(comment: DiffComment): DiffComment {
   const selectedText =
     typeof rawSelectedText === 'string' && rawSelectedText.trim().length > 0
       ? rawSelectedText.trim()
+      : undefined
+  const rawAnchorExcerpt = (comment as { anchorExcerpt?: unknown }).anchorExcerpt
+  const anchorExcerpt =
+    typeof rawAnchorExcerpt === 'string' && rawAnchorExcerpt.length > 0
+      ? rawAnchorExcerpt
       : undefined
   const rawSentAt = (comment as { sentAt?: unknown }).sentAt
   const sentAt =
@@ -44,8 +54,12 @@ export function normalizeDiffComment(comment: DiffComment): DiffComment {
     ...(selectedText === undefined ? { selectedText: undefined } : {}),
     ...(startLine !== undefined ? { startLine } : {}),
     ...(startLine === undefined ? { startLine: undefined } : {}),
+    ...(anchorExcerpt !== undefined ? { anchorExcerpt } : { anchorExcerpt: undefined }),
     ...(sentAt !== undefined ? { sentAt } : {}),
-    ...(sentAt === undefined ? { sentAt: undefined } : {})
+    ...(sentAt === undefined ? { sentAt: undefined } : {}),
+    ...(reviewedComparison !== undefined
+      ? { reviewedComparison }
+      : { reviewedComparison: undefined })
   }
 }
 
