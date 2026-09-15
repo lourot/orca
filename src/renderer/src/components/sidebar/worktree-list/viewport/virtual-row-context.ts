@@ -27,6 +27,8 @@ type BuildArgs = {
   settings: AppState['settings']
   worktreeVisibilityDefaultsByHost: AppState['worktreeVisibilityDefaultsByHost']
   sshConnectionStates: AppState['sshConnectionStates']
+  dirtyRepoIds: ReadonlySet<string>
+  dirtyWorktreeIds: ReadonlySet<string>
   newCardStyle: boolean
   folderBackedProjectGroupIds: ReadonlySet<string>
   session: WorktreeDragSession
@@ -79,6 +81,7 @@ export function buildWorktreeVirtualRowContext(args: BuildArgs): WorktreeVirtual
       workspaceStatuses: props.workspaceStatuses,
       projectGroups: args.projectGroups,
       sshConnectionStates: args.sshConnectionStates,
+      dirtyRepoIds: args.dirtyRepoIds,
       highlightedRevealRowKey: reveal.highlightedRevealRowKey,
       dragOverStatus: runtime.dragOverStatus,
       pinDragOver: runtime.pinDragOver,
@@ -112,6 +115,7 @@ export function buildWorktreeVirtualRowContext(args: BuildArgs): WorktreeVirtual
     item: {
       settings: args.settings,
       groupBy: props.groupBy,
+      dirtyWorktreeIds: args.dirtyWorktreeIds,
       folderBackedProjectGroupIds: args.folderBackedProjectGroupIds,
       groupKeyByRowKey: session.groupKeyByRowKey,
       groupIndexByRowKey: session.groupIndexByRowKey,

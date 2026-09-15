@@ -40,7 +40,8 @@ const WorktreeCard = React.memo(function WorktreeCard({
   isLineageDropTarget = false,
   affiliateListMode = false,
   statusPrDisplay = null,
-  showWorkspaceStatusDot = false
+  showWorkspaceStatusDot = false,
+  hasUncommittedChanges
 }: WorktreeCardProps): React.JSX.Element {
   const card = useWorktreeCardController({
     worktree,
@@ -75,7 +76,8 @@ const WorktreeCard = React.memo(function WorktreeCard({
     isLineageDropTarget,
     affiliateListMode,
     statusPrDisplay,
-    showWorkspaceStatusDot
+    showWorkspaceStatusDot,
+    hasUncommittedChanges
   })
 
   return <WorktreeCardSurface card={card} />

@@ -54,6 +54,9 @@ export type WorktreeCardProps = {
   statusPrDisplay?: WorktreeCardPrDisplay | null
   // Off by default so a new render site can't leak the dot onto a surface nobody reviewed.
   showWorkspaceStatusDot?: boolean
+  // Deliberately undefined-able and NOT defaulted: undefined means this render site has no
+  // sweep data, which is not the same as "probed clean" — it renders no indicator at all.
+  hasUncommittedChanges?: boolean
 }
 
 type DefaultedWorktreeCardProp =

@@ -9,6 +9,7 @@ import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import type { Repo } from '../../../../shared/repo-types'
 import { resolveRepoHeaderColor } from './project-header-color'
+import { WorktreeUncommittedChangesIndicator } from './UncommittedChangesIndicator'
 import { WorkspaceStatusDot } from './WorkspaceStatusDot'
 import { formatSparseDirectoryPreview, shouldBeginWorktreeRename } from './worktree-card-model'
 import type { WorktreeCardPresentation } from './worktree-card-presentation'
@@ -78,7 +79,8 @@ export function WorktreeCardHeader({
     handleOpenRenameErrorDialog,
     isFolder,
     handleWorkspaceQuickAction,
-    showWorkspaceStatusDot
+    showWorkspaceStatusDot,
+    hasUncommittedChanges
   } = card
   const {
     showPinnedRepoIcon,
@@ -188,6 +190,15 @@ export function WorktreeCardHeader({
           }
           onBeginEditingConsumed={affiliateListMode ? undefined : () => setRenamingWorktreeId(null)}
         />
+
+        {/* Why after the name, not in the leading dot lane: WorkspaceStatusDot's colour is
+            user-configurable, so a git dot beside it would read as another status. */}
+        {hasUncommittedChanges !== undefined && (
+          <WorktreeUncommittedChangesIndicator
+            worktreeId={worktree.id}
+            sweptDirty={hasUncommittedChanges}
+          />
+        )}
 
         {typeof worktree.firstAgentMessageRenameError === 'string' &&
         worktree.firstAgentMessageRenameError.length > 0 &&

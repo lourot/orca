@@ -5,6 +5,10 @@
       "description": "The active workspace is hidden in the sidebar. Revealing it will clear your sidebar filters.",
       "confirm": "Clear filters and reveal",
       "cancel": "Keep filters"
+    },
+    "uncommittedChanges": {
+      "projectIndicator": "Uncommitted changes in this project",
+      "workspaceIndicator": "Uncommitted changes in this workspace"
     }
   },
   "app": {

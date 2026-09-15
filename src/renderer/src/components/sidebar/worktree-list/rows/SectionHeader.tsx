@@ -26,6 +26,7 @@ import {
   WORKTREE_SECTION_HEADER_PADDING_LEFT
 } from './indentation'
 import { FolderPathStatusIndicator } from './FolderPathStatusIndicator'
+import { ProjectUncommittedChangesIndicator } from '../../UncommittedChangesIndicator'
 import { RepoScanUnavailableIndicator } from './RepoScanUnavailableIndicator'
 import {
   ProjectGroupCreateWorkspaceButton,
@@ -49,6 +50,8 @@ export type SectionHeaderRowContext = {
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   projectGroups: readonly ProjectGroup[]
   sshConnectionStates: AppState['sshConnectionStates']
+  /** Repos with at least one local worktree holding uncommitted changes. */
+  dirtyRepoIds: ReadonlySet<string>
   highlightedRevealRowKey: string | null
   dragOverStatus: WorkspaceStatus | null
   pinDragOver: boolean
@@ -339,6 +342,9 @@ export function renderWorktreeSectionHeaderRow(args: {
                 {row.label}
               </div>
               <RepoForkIndicator upstream={row.repo?.upstream} />
+              <ProjectUncommittedChangesIndicator
+                hasUncommittedChanges={isRepoHeader && ctx.dirtyRepoIds.has(row.repo!.id)}
+              />
               <FolderPathStatusIndicator status={projectGroupPathStatus} />
               {isRepoHeader ? <RepoScanUnavailableIndicator repo={row.repo!} /> : null}
             </div>

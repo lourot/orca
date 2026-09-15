@@ -28,6 +28,8 @@ import type { WorktreeRowDragState } from '../drag/row-state'
 export type WorktreeItemRowContext = {
   settings: AppState['settings']
   groupBy: WorktreeGroupBy
+  /** Worktrees with uncommitted changes, as of the last local sweep. */
+  dirtyWorktreeIds: ReadonlySet<string>
   folderBackedProjectGroupIds: ReadonlySet<string>
   groupKeyByRowKey: ReadonlyMap<string, string>
   groupIndexByRowKey: ReadonlyMap<string, number>
@@ -202,6 +204,7 @@ export function renderWorktreeItemRow(
         selectedWorktrees={ctx.selectedWorktrees}
         nativeDragEnabled={false}
         showWorkspaceStatusDot
+        hasUncommittedChanges={ctx.dirtyWorktreeIds.has(itemRow.worktree.id)}
         isLineageDropTarget={Boolean(isLineageDropTarget)}
         contentIndent={cardContentIndent}
         flushSurface
