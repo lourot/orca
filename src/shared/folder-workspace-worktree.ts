@@ -41,6 +41,7 @@ export function folderWorkspaceToWorktree(folderWorkspace: FolderWorkspace): Wor
     pendingFirstAgentMessageRename: folderWorkspace.pendingFirstAgentMessageRename,
     firstAgentMessageRenameError: folderWorkspace.firstAgentMessageRenameError,
     workspaceStatus: folderWorkspace.workspaceStatus,
+    colorTag: folderWorkspace.colorTag ?? null,
     diffComments: folderWorkspace.diffComments,
     path: folderWorkspace.folderPath,
     head: '',

@@ -49,6 +49,8 @@ export type RuntimeWorktreePsSummary = {
   childWorktreeIds: string[]
   displayName: string
   workspaceStatus: string
+  /** Optional so an older host that never publishes it stays wire-compatible. */
+  colorTag?: string | null
   sortOrder: number
   manualOrder?: number
   lastActivityAt?: number

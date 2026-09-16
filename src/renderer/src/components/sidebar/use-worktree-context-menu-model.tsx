@@ -6,7 +6,10 @@ import {
   getCyclicProjectedWorktreeLineageIds,
   getLineageRenderInfo
 } from './worktree-lineage-projection'
-import { getWorkspaceStatus } from './workspace-status'
+import {
+  getSharedContextColorTag,
+  getSharedContextWorkspaceStatus
+} from './worktree-context-menu-shared-meta'
 import { getEligibleWorktreeParents } from './worktree-parent-candidates'
 import {
   hasSleepableWorkspaceActivity,
@@ -161,16 +164,11 @@ export function useWorktreeContextMenuModel({
     (item) => getDeleteStateForWorktreeHost(item, deleteStateByWorktreeId)?.isDeleting
   )
   const contextDeletePending = isMultiContext ? deletingContext : deletingSubtree
-  const contextWorkspaceStatus = useMemo(() => {
-    const [first, ...rest] = activeContextWorktrees
-    if (!first) {
-      return ''
-    }
-    const status = getWorkspaceStatus(first, workspaceStatuses)
-    return rest.every((item) => getWorkspaceStatus(item, workspaceStatuses) === status)
-      ? status
-      : ''
-  }, [activeContextWorktrees, workspaceStatuses])
+  const contextWorkspaceStatus = getSharedContextWorkspaceStatus(
+    activeContextWorktrees,
+    workspaceStatuses
+  )
+  const contextColorTag = getSharedContextColorTag(activeContextWorktrees)
   const batchDeleteWorktrees = useMemo(
     () =>
       activeContextWorktrees.filter((item) => {
@@ -283,6 +281,7 @@ export function useWorktreeContextMenuModel({
   )
 
   const {
+    handleAssignColorTag,
     handleAssignWorkspaceStatus,
     handleCloseTerminals,
     handleCopyPath,
@@ -364,6 +363,7 @@ export function useWorktreeContextMenuModel({
     children,
     contentClassName,
     contextDeletePending,
+    contextColorTag,
     contextMenuOpenedAtRef,
     contextWorkspaceStatus,
     createGroupDialogOpen,
@@ -375,6 +375,7 @@ export function useWorktreeContextMenuModel({
     eligibleParentCount,
     effectiveSelectedWorktrees,
     folderWorkspaceId,
+    handleAssignColorTag,
     handleAssignWorkspaceStatus,
     handleCloseAutoFocus,
     handleCloseTerminals,

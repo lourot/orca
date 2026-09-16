@@ -19,7 +19,10 @@ import {
 } from '../metadata/hosted-review-link-mutation'
 import { isCurrentDetectedWorktreeRefresh } from './detected-worktree-refresh-admission'
 import { buildWorktreePurgeState } from '../teardown/worktree-purge-state'
-import { isDisplayNamePersistencePending } from '../metadata/worktree-meta-persist'
+import {
+  isColorTagPersistencePending,
+  isDisplayNamePersistencePending
+} from '../metadata/worktree-meta-persist'
 import { branchName } from '@/lib/git-utils'
 import {
   forgetAuthoritativelyRemovedWorktrees,
@@ -51,6 +54,27 @@ export function preserveConcurrentManualOrder<T extends Worktree>(
     }
     // Why: a refresh response may predate a completed drag; the renderer's optimistic rank is newer.
     return { ...worktree, manualOrder: latest.manualOrder }
+  })
+}
+
+export function preserveConcurrentColorTag<T extends Worktree>(
+  incoming: readonly T[],
+  current: readonly Worktree[] | undefined,
+  matchesRefreshHost: (worktree: Worktree) => boolean
+): T[] {
+  if (!current) {
+    return [...incoming]
+  }
+  const currentById = new Map(
+    current.filter(matchesRefreshHost).map((worktree) => [worktree.id, worktree])
+  )
+  return incoming.map((worktree) => {
+    const latest = currentById.get(worktree.id)
+    // Why: a refresh response can predate a color the user just picked; the optimistic value wins
+    // until its write lands.
+    return latest && isColorTagPersistencePending(worktree.id, latest.hostId)
+      ? { ...worktree, colorTag: latest.colorTag ?? null }
+      : worktree
   })
 }
 
@@ -152,14 +176,18 @@ export function mergeFetchedWorktrees(
     const currentWorktrees = s.worktreesByRepo[args.repoId]
     const refreshResult = {
       ...args.refresh.result,
-      worktrees: preserveConcurrentDisplayName(
-        preserveConcurrentManualOrder(
-          args.refresh.result.worktrees,
+      worktrees: preserveConcurrentColorTag(
+        preserveConcurrentDisplayName(
+          preserveConcurrentManualOrder(
+            args.refresh.result.worktrees,
+            args.requestStartedWorktrees,
+            currentWorktrees,
+            (worktree) => worktreeMatchesHost(worktree, args.hostId, matchOptions)
+          ),
           args.requestStartedWorktrees,
           currentWorktrees,
           (worktree) => worktreeMatchesHost(worktree, args.hostId, matchOptions)
         ),
-        args.requestStartedWorktrees,
         currentWorktrees,
         (worktree) => worktreeMatchesHost(worktree, args.hostId, matchOptions)
       )

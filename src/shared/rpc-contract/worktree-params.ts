@@ -142,6 +142,7 @@ export const WorktreeSet = WorktreeSelector.extend({
   sparsePresetId: OptionalString,
   baseRef: OptionalString,
   workspaceStatus: OptionalString,
+  colorTag: z.string().nullable().optional(),
   pushTarget: z
     .object({
       remoteName: z.string(),

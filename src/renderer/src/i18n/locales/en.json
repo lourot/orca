@@ -6315,6 +6315,16 @@
           "title": "Worktree scan failed for {{value0}}",
           "retry": "Retry scan",
           "retained": "Existing worktrees are kept until a scan succeeds. Click to retry."
+        },
+        "WorktreeColorTagMenuItems": {
+          "noColor": "No color",
+          "removeColor": "Remove color {{value0}}",
+          "useColor": "Use color {{value0}}",
+          "groupColorMulti": "Group color for selected workspaces",
+          "groupColor": "Group color"
+        },
+        "worktree-card-surface": {
+          "colorTag": "Group color {{value0}}"
         }
       },
       "shared": {
@@ -12419,13 +12429,13 @@
             "c7d4e2f801": "Change base ref: {{value0}}",
             "f3a1b8c204": "upstream",
             "createPrIntentGenerateDetailsFailed": "Could not generate review details. Retry Create PR.",
+            "ceb08a733d": "File",
             "entryStageFailed": "Failed to stage “{{value0}}”",
             "entryUnstageFailed": "Failed to unstage “{{value0}}”",
             "entryDiscardFailed": "Failed to discard “{{value0}}”",
             "entryDeleteFailed": "Failed to delete “{{value0}}”",
             "entryFailedInWorkspace": "{{value0}} in {{value1}}",
-            "diffCommentNotesCopyFailed": "Failed to copy notes",
-            "ceb08a733d": "File"
+            "diffCommentNotesCopyFailed": "Failed to copy notes"
           },
           "SourceControlAgentActionDialog": {
             "8e856842d1": "Could not start the selected agent.",
@@ -17681,6 +17691,11 @@
         "copySessionIdError": "Unable to copy session ID"
       }
     },
+    "editor": {
+      "editorTabDiskReload": {
+        "reloaded": "Reloaded from disk"
+      }
+    },
     "settings": {
       "TerminalInteraction": {
         "copyTrimsGutter": "Trim Gutter on Copy",
@@ -17697,11 +17712,6 @@
             "spaces": "spaces"
           }
         }
-      }
-    },
-    "editor": {
-      "editorTabDiskReload": {
-        "reloaded": "Reloaded from disk"
       }
     }
   },

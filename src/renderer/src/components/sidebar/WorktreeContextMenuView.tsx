@@ -35,6 +35,7 @@ import { translate } from '@/i18n/i18n'
 import { useOptionalShortcutLabel } from '@/hooks/useShortcutLabel'
 import type { WorktreeContextMenuModel } from './use-worktree-context-menu-model'
 import { WorktreeStatusMenuItems } from './WorktreeStatusMenuItems'
+import { WorktreeColorTagMenuItems } from './WorktreeColorTagMenuItems'
 import { WorktreeContextMenuOverlays } from './WorktreeContextMenuOverlays'
 import {
   CLOSE_ALL_CONTEXT_MENUS_EVENT,
@@ -51,6 +52,7 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
     batchDeleteWorktrees,
     children,
     contentClassName,
+    contextColorTag,
     contextDeletePending,
     contextMenuOpenedAtRef,
     contextWorkspaceStatus,
@@ -61,6 +63,7 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
     eligibleParentCount,
     effectiveSelectedWorktrees,
     folderWorkspaceId,
+    handleAssignColorTag,
     handleAssignWorkspaceStatus,
     handleCloseAutoFocus,
     handleCloseTerminals,
@@ -153,6 +156,14 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
           onClickCapture={suppressOpeningPointerEvent}
           onCloseAutoFocus={handleCloseAutoFocus}
         >
+          <WorktreeColorTagMenuItems
+            colorTag={contextColorTag.colorTag}
+            mixed={contextColorTag.mixed}
+            disabled={deletingContext}
+            isMultiContext={isMultiContext}
+            onAssignColorTag={handleAssignColorTag}
+          />
+          <DropdownMenuSeparator />
           <DropdownMenuLabel className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
             {translate('auto.components.sidebar.WorktreeContextMenu.workspaceSection', 'Workspace')}
           </DropdownMenuLabel>

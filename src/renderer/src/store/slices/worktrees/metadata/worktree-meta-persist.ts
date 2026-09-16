@@ -16,15 +16,18 @@ import type { WorktreeMeta } from '../../../../../../shared/worktree/meta-types'
 import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import { encodePushTargetClearForRuntimeRpc } from './hosted-review-link-mutation'
 
-type PendingDisplayNameWrite = {
+type PendingMetaWrite = {
   worktreeId: string
   executionHostId?: ExecutionHostId
 }
 
-const pendingDisplayNameWrites = new Set<PendingDisplayNameWrite>()
+// Why per field: the fetched-worktree merge asks per field whether a write is still in flight, so
+// a refresh that joined a listing captured before the write cannot restore the old value.
+const pendingDisplayNameWrites = new Set<PendingMetaWrite>()
+const pendingColorTagWrites = new Set<PendingMetaWrite>()
 
-function pendingDisplayNameWriteMatches(
-  write: PendingDisplayNameWrite,
+function pendingWriteMatches(
+  write: PendingMetaWrite,
   worktreeId: string,
   executionHostId?: ExecutionHostId
 ): boolean {
@@ -36,16 +39,51 @@ function pendingDisplayNameWriteMatches(
   )
 }
 
-export function isDisplayNamePersistencePending(
+function hasPendingWrite(
+  writes: ReadonlySet<PendingMetaWrite>,
   worktreeId: string,
   executionHostId?: ExecutionHostId
 ): boolean {
-  for (const write of pendingDisplayNameWrites) {
-    if (pendingDisplayNameWriteMatches(write, worktreeId, executionHostId)) {
+  for (const write of writes) {
+    if (pendingWriteMatches(write, worktreeId, executionHostId)) {
       return true
     }
   }
   return false
+}
+
+export function isDisplayNamePersistencePending(
+  worktreeId: string,
+  executionHostId?: ExecutionHostId
+): boolean {
+  return hasPendingWrite(pendingDisplayNameWrites, worktreeId, executionHostId)
+}
+
+export function isColorTagPersistencePending(
+  worktreeId: string,
+  executionHostId?: ExecutionHostId
+): boolean {
+  return hasPendingWrite(pendingColorTagWrites, worktreeId, executionHostId)
+}
+
+/** Test-only: both trackers are module-level and would otherwise leak from one test into the next. */
+export function resetWorktreeMetaWriteTrackingForTests(): void {
+  pendingDisplayNameWrites.clear()
+  pendingColorTagWrites.clear()
+}
+
+function trackPendingWrite(
+  writes: Set<PendingMetaWrite>,
+  operation: Promise<void>,
+  worktreeId: string,
+  executionHostId?: ExecutionHostId
+): void {
+  const write: PendingMetaWrite = { worktreeId, executionHostId }
+  writes.add(write)
+  void operation.then(
+    () => writes.delete(write),
+    () => writes.delete(write)
+  )
 }
 
 export function persistWorktreeMeta(
@@ -62,18 +100,12 @@ export function persistWorktreeMeta(
     executionHostId,
     identityKey
   )
-  if (!('displayName' in updates)) {
-    return operation
+  if ('displayName' in updates) {
+    trackPendingWrite(pendingDisplayNameWrites, operation, worktreeId, executionHostId)
   }
-  const write: PendingDisplayNameWrite = {
-    worktreeId,
-    executionHostId
+  if ('colorTag' in updates) {
+    trackPendingWrite(pendingColorTagWrites, operation, worktreeId, executionHostId)
   }
-  pendingDisplayNameWrites.add(write)
-  void operation.then(
-    () => pendingDisplayNameWrites.delete(write),
-    () => pendingDisplayNameWrites.delete(write)
-  )
   return operation
 }
 
