@@ -19,6 +19,7 @@
  */
 
 import { rm } from 'node:fs/promises'
+import path from 'node:path'
 import type { Page } from '@stablyai/playwright-test'
 import { test, expect } from './helpers/orca-app'
 import {
@@ -176,12 +177,15 @@ test.describe('Tabs', () => {
     const createdFile = (await createdFileHandle.jsonValue())!
     createdFilePath = createdFile.filePath
 
-    const editor = orcaPage.locator('.rich-markdown-editor')
+    // Why: markdown edit tabs open in source, so the surface that must take
+    // focus is Monaco, not the rich editor.
+    const editor = orcaPage.locator('.monaco-editor').first()
     await expect(editor).toBeVisible({ timeout: 25_000 })
     await expect(newMarkdownMenuItem).toBeHidden({ timeout: 3_000 })
 
+    const editorInput = editor.locator('textarea.inputarea')
     await expect
-      .poll(() => editor.evaluate((element) => document.activeElement === element), {
+      .poll(() => editorInput.evaluate((element) => document.activeElement === element), {
         timeout: 5_000,
         message: 'Menu-created Markdown editor did not receive keyboard focus'
       })
@@ -195,7 +199,11 @@ test.describe('Tabs', () => {
     await orcaPage.evaluate((fileId) => {
       window.__store?.getState().closeFile(fileId)
     }, createdFile.id)
-    await expect(editor).toBeHidden()
+    await expect(
+      orcaPage
+        .locator('.editor-header-path')
+        .filter({ hasText: path.basename(createdFile.filePath) })
+    ).toHaveCount(0, { timeout: 10_000 })
   })
 
   /**

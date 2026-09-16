@@ -130,6 +130,16 @@ test.describe('File Open & Markdown Preview', () => {
     // Wait for the editor tab to become active
     await expect.poll(async () => getActiveTabType(orcaPage), { timeout: 5_000 }).toBe('editor')
 
+    // Markdown opens in Source, so the view toggle must land on Source and the
+    // user has to ask for the rich editor before any rendered heading exists.
+    const richEditorToggle = orcaPage.getByRole('radio', { name: 'Rich Editor' })
+    await expect(orcaPage.getByRole('radio', { name: 'Source' })).toHaveAttribute(
+      'data-state',
+      'on',
+      { timeout: 20_000 }
+    )
+    await richEditorToggle.click()
+
     // The seeded README.md starts with `# Orca E2E Test Repo`, so the rich
     // markdown editor should render a real <h1> with that text. Asserting on
     // the rendered heading (not `markdownViewMode` in the store) is the whole

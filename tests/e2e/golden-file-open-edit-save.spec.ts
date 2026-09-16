@@ -7,6 +7,7 @@ import {
   createGoldenWorktree
 } from './helpers/golden-source-control'
 import { waitForSessionReady } from './helpers/store'
+import { switchActiveTabToRichMarkdown } from './helpers/markdown-editor-fixture'
 
 const README_PATH = 'README.md'
 
@@ -40,6 +41,9 @@ test('@golden opens, edits, saves, and reopens a tracked file', async ({
   await expect(orcaPage.locator('.editor-header-path').first()).toContainText(README_PATH, {
     timeout: 20_000
   })
+  // Markdown opens in source; this golden path covers editing and saving from
+  // the rich editor, so switch the way the view toggle does.
+  await switchActiveTabToRichMarkdown(orcaPage)
   const editor = orcaPage.locator('.rich-markdown-editor')
   await expect(editor).toBeVisible({ timeout: 25_000 })
   await expect(editor).toContainText('Orca E2E Test Repo')
@@ -57,6 +61,11 @@ test('@golden opens, edits, saves, and reopens a tracked file', async ({
   ).toHaveCount(0)
 
   await readmeRow.click()
+  // Closing the tab drops its view mode, so the reopened file is back in source.
+  await expect(orcaPage.locator('.editor-header-path').first()).toContainText(README_PATH, {
+    timeout: 25_000
+  })
+  await switchActiveTabToRichMarkdown(orcaPage)
   await expect(orcaPage.locator('.rich-markdown-editor')).toContainText(sentinel, {
     timeout: 25_000
   })

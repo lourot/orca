@@ -119,7 +119,29 @@ export async function openMarkdownFixture(
     throw new Error(`Active editor file was not available after opening ${filePath}`)
   }
 
+  await switchActiveTabToRichMarkdown(page)
+
   return activeFile
+}
+
+/**
+ * Switches the active markdown tab into rich mode, the way the Source/Rich
+ * Editor view toggle does. Markdown edit tabs default to source, so any spec
+ * that asserts on the rich surface has to ask for it first.
+ */
+export async function switchActiveTabToRichMarkdown(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const store = window.__store
+    if (!store) {
+      throw new Error('window.__store is not available')
+    }
+
+    const state = store.getState()
+    if (!state.activeFileId) {
+      throw new Error('No active editor file to switch into rich markdown mode')
+    }
+    state.setMarkdownViewMode(state.activeFileId, 'rich')
+  })
 }
 
 export async function waitForRichMarkdownEditor(page: Page): Promise<Locator> {

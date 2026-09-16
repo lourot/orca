@@ -69,7 +69,10 @@ export function getMarkdownViewModes(target: MarkdownPreviewTarget): readonly Ma
 }
 
 export function getDefaultMarkdownViewMode(target: MarkdownPreviewTarget): MarkdownViewMode {
-  if (target.language === 'markdown' && target.mode === 'diff') {
+  // Why: markdown always opens as its own text, in edit tabs as well as diffs.
+  // Rich is opt-in per tab. Mermaid/CSV/notebook keep their rendered default
+  // because their source is a transport format, not the thing being read.
+  if (target.language === 'markdown') {
     return 'source'
   }
   const modes = getMarkdownViewModes(target)
