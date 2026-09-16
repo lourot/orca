@@ -3,6 +3,7 @@ import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { AgentHibernationGate } from '../components/AgentHibernationGate'
 import { AiVaultTabTitleSyncGate } from '../components/AiVaultTabTitleSyncGate'
 import RetainedAgentsSyncGate from '../components/dashboard/RetainedAgentsSyncGate'
+import { RollingAgentTitleSyncGate } from '../components/RollingAgentTitleSyncGate'
 import { WorkspacePortScanner } from '../components/ports/WorkspacePortScanner'
 import { MacosTccPromptNoticeHost } from '../hooks/MacosTccPromptNoticeHost'
 import { useAppStore } from '../store'
@@ -28,6 +29,7 @@ export function AppBackgroundServices(): React.JSX.Element {
       {/* Why: leaf-mounted retention sync keeps agent-status subscriptions out of the App render tree. */}
       <RetainedAgentsSyncGate />
       <AiVaultTabTitleSyncGate />
+      <RollingAgentTitleSyncGate />
       {dashboardPopoutEnabled ? (
         <Suspense fallback={null}>
           <DashboardPopoutBridge />

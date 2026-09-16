@@ -16,6 +16,7 @@ import type { AgentStartedTelemetry } from '../../lib/worktree-startup-payload'
 import type { AiVaultSessionTitle } from '../../../../shared/ai-vault-session-title'
 import type {
   GeneratedTabTitleUpdate,
+  RollingAgentTitleUpdate,
   TerminalTabTitleUpdate
 } from '../slices/terminal-tab-title-batch'
 import type {
@@ -115,6 +116,8 @@ export type TerminalActions = {
     }
   ) => void
   setGeneratedTabTitlesFromAgentPrompts: (updates: readonly GeneratedTabTitleUpdate[]) => void
+  /** Write (or clear, with `title: null`) the rolling agent title tier. */
+  setRollingAgentTitles: (updates: readonly RollingAgentTitleUpdate[]) => void
   clearTabLaunchAgent: (tabId: string) => void
   setRuntimePaneTitle: (tabId: string, paneId: number, title: string) => void
   clearRuntimePaneTitle: (tabId: string, paneId: number) => void

@@ -1,8 +1,8 @@
 // Resolves the stable "conversation name" an agent row can show instead of the
 // live last-message preview. Sources, in the same precedence the tab bar uses
 // (tab-title-resolution.ts): manual rename → quick-command label → OpenCode's
-// semantic session title → provider session title → Orca's generated title →
-// the agent-set live title.
+// semantic session title → rolling agent title → provider session title →
+// Orca's generated title → the agent-set live title.
 // Live titles are accepted only when they carry a real name — pure status,
 // identity-echo, and spinner/cwd titles yield null so callers keep the
 // last-message label.
@@ -16,7 +16,13 @@ import type { TerminalTab } from './terminal-tab-types'
 
 export type ConversationNameTab = Pick<
   TerminalTab,
-  'customTitle' | 'quickCommandLabel' | 'aiVaultTitle' | 'generatedTitle' | 'title' | 'defaultTitle'
+  | 'customTitle'
+  | 'quickCommandLabel'
+  | 'aiVaultTitle'
+  | 'rollingTitle'
+  | 'generatedTitle'
+  | 'title'
+  | 'defaultTitle'
 >
 
 // Why: synthetic status titles ("Codex ready", "Cursor - action required") are
@@ -135,6 +141,12 @@ export function getAgentRowConversationName(
     paneLiveTitle === undefined ? (tab.title?.trim() ?? '') : (paneLiveTitle?.trim() ?? '')
   if (isMeaningfulOpenCodeTerminalTitle(liveTitle)) {
     return liveTitle
+  }
+  // Above the provider title on purpose: Claude mints its session name once from
+  // the opening prompt, so below it the rolling title would never surface.
+  const rollingTitle = tab.rollingTitle?.trim()
+  if (rollingTitle) {
+    return rollingTitle
   }
   // Provider titles belong to their session, not every pane in the tab.
   const aiVaultTitle = tab.aiVaultTitle

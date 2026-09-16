@@ -5,7 +5,12 @@ import { isMeaningfulOpenCodeTerminalTitle } from './opencode-terminal-title'
 export function resolveTerminalTabTitle(
   tab: Pick<
     TerminalTab,
-    'customTitle' | 'quickCommandLabel' | 'aiVaultTitle' | 'generatedTitle' | 'title'
+    | 'customTitle'
+    | 'quickCommandLabel'
+    | 'aiVaultTitle'
+    | 'rollingTitle'
+    | 'generatedTitle'
+    | 'title'
   >,
   generatedTitlesEnabled: boolean,
   fallback = ''
@@ -15,6 +20,9 @@ export function resolveTerminalTabTitle(
     tab.customTitle?.trim() ||
     tab.quickCommandLabel?.trim() ||
     (isMeaningfulOpenCodeTerminalTitle(liveTitle) ? liveTitle : '') ||
+    // Above aiVaultTitle on purpose: Claude mints its session name once from the
+    // opening prompt, so below it the rolling title would never surface.
+    tab.rollingTitle?.trim() ||
     tab.aiVaultTitle?.title.trim() ||
     (generatedTitlesEnabled ? tab.generatedTitle?.trim() : '') ||
     liveTitle ||
@@ -24,7 +32,15 @@ export function resolveTerminalTabTitle(
 
 export function resolveUnifiedTabLabel(
   tab:
-    | Pick<Tab, 'customLabel' | 'quickCommandLabel' | 'aiVaultTitle' | 'generatedLabel' | 'label'>
+    | Pick<
+        Tab,
+        | 'customLabel'
+        | 'quickCommandLabel'
+        | 'aiVaultTitle'
+        | 'rollingLabel'
+        | 'generatedLabel'
+        | 'label'
+      >
     | undefined,
   generatedTitlesEnabled: boolean,
   fallback = ''
@@ -34,6 +50,7 @@ export function resolveUnifiedTabLabel(
     tab?.customLabel?.trim() ||
     tab?.quickCommandLabel?.trim() ||
     (isMeaningfulOpenCodeTerminalTitle(liveLabel) ? liveLabel : '') ||
+    tab?.rollingLabel?.trim() ||
     tab?.aiVaultTitle?.title.trim() ||
     (generatedTitlesEnabled ? tab?.generatedLabel?.trim() : '') ||
     liveLabel ||

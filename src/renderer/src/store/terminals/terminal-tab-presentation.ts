@@ -3,6 +3,7 @@ import { scheduleRuntimeGraphSync } from '@/runtime/sync-runtime-graph'
 import { classifyTitleActivity } from '@/lib/pane-agent-evidence'
 import {
   applyGeneratedTabTitleUpdates,
+  applyRollingAgentTitleUpdates,
   applyTerminalTabTitleUpdates
 } from '../slices/terminal-tab-title-batch'
 import {
@@ -22,6 +23,7 @@ export function createTerminalTabPresentationActions(
   | 'setAiVaultTabTitle'
   | 'setGeneratedTabTitleFromAgentPrompt'
   | 'setGeneratedTabTitlesFromAgentPrompts'
+  | 'setRollingAgentTitles'
   | 'clearTabLaunchAgent'
   | 'setRuntimePaneTitle'
   | 'clearRuntimePaneTitle'
@@ -116,6 +118,18 @@ export function createTerminalTabPresentationActions(
       }
       set((state) => {
         const result = applyGeneratedTabTitleUpdates(state, updates)
+        if (result.runtimeGraphChanged) {
+          scheduleRuntimeGraphSync()
+        }
+        return result.patch ?? state
+      })
+    },
+    setRollingAgentTitles: (updates) => {
+      if (updates.length === 0) {
+        return
+      }
+      set((state) => {
+        const result = applyRollingAgentTitleUpdates(state, updates)
         if (result.runtimeGraphChanged) {
           scheduleRuntimeGraphSync()
         }

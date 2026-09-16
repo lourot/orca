@@ -59,6 +59,8 @@ export type Tab = {
   contentType: TabContentType
   label: string // display title (auto-derived from PTY or filename)
   generatedLabel?: string | null
+  /** Rolling agent label mirroring TerminalTab.rollingTitle. */
+  rollingLabel?: string | null
   /** Stable AI Vault conversation name, bound to its provider session identity. */
   aiVaultTitle?: AiVaultSessionTitle | null
   quickCommandLabel?: string | null

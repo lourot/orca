@@ -184,6 +184,48 @@ describe('getAgentRowConversationName', () => {
     expect(getAgentRowConversationName(makeTab({ title: 'Agent' }), 'claude', false)).toBeNull()
   })
 
+  it('ranks the rolling agent title above the provider and generated titles', () => {
+    const base = makeTab({
+      aiVaultTitle: { agent: 'claude', sessionId: 's1', title: 'Provider title' },
+      rollingTitle: 'Rolling now',
+      generatedTitle: 'Generated once',
+      title: '✳ Investigate replay bug'
+    })
+    const resolve = (tab: ConversationNameTab): string | null =>
+      getAgentRowConversationName(tab, 'claude', true, undefined, 's1')
+    expect({
+      outranksProviderAndGenerated: resolve(base),
+      losesToManualRename: resolve({ ...base, customTitle: 'Manual' }),
+      losesToQuickCommand: resolve({ ...base, quickCommandLabel: 'Run tests' }),
+      losesToOpenCodeLiveTitle: resolve({ ...base, title: 'OC | Native Stable Session' }),
+      skippedWhenBlank: resolve({ ...base, rollingTitle: '   ' }),
+      // Has its own setting, so the generated-title switch must not gate it.
+      ignoresGeneratedTitlesDisabled: getAgentRowConversationName(
+        base,
+        'claude',
+        false,
+        undefined,
+        's1'
+      )
+    }).toEqual({
+      outranksProviderAndGenerated: 'Rolling now',
+      losesToManualRename: 'Manual',
+      losesToQuickCommand: 'Run tests',
+      losesToOpenCodeLiveTitle: 'OC | Native Stable Session',
+      skippedWhenBlank: 'Provider title',
+      ignoresGeneratedTitlesDisabled: 'Rolling now'
+    })
+  })
+
+  it('keeps the rolling title when the provider session does not match the row', () => {
+    const tab = makeTab({
+      aiVaultTitle: { agent: 'claude', sessionId: 'other-session', title: 'Provider title' },
+      rollingTitle: 'Rolling now',
+      title: '✳ Investigate replay bug'
+    })
+    expect(getAgentRowConversationName(tab, 'claude', true, undefined, 's1')).toBe('Rolling now')
+  })
+
   it('rejects empty, glyph-only, and default terminal titles', () => {
     expect(getAgentRowConversationName(makeTab(), 'claude', false)).toBeNull()
     expect(getAgentRowConversationName(makeTab({ title: '✳' }), 'claude', false)).toBeNull()

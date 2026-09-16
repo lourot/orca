@@ -65,6 +65,10 @@ export type TerminalTab = {
   defaultTitle?: string
   /** Stable opt-in label derived from the first known agent prompt. */
   generatedTitle?: string | null
+  /** Opt-in label regenerated from the latest finished turn. Persisted like
+   *  `generatedTitle` (buildSanitizedTabsByWorktree strips by denylist), so it
+   *  survives a restart and still beats the first-prompt tiers below. */
+  rollingTitle?: string | null
   /** Stable AI Vault conversation name, bound to its provider session identity. */
   aiVaultTitle?: AiVaultSessionTitle | null
   /** Stable label from the tab-bar Quick Command that created this terminal. */

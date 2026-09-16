@@ -11901,6 +11901,10 @@
           "targetDescription": "Higher values increase contrast where possible. Background colors stay unchanged.",
           "subtle": "Subtle",
           "strong": "Strong"
+        },
+        "rolling-agent-title-copy": {
+          "title": "Keep agent titles up to date",
+          "description": "Rename agent tabs and sidebar rows from the latest finished turn, using the Branch name model. Costs one model call per turn, at most one every two minutes. Manual renames always win."
         }
       },
       "right": {

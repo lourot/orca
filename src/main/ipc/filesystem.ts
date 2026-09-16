@@ -13,6 +13,7 @@ import { registerFilesystemSearchHandlers } from './filesystem/filesystem-search
 import { registerFilesystemGitStatusHandlers } from './filesystem/filesystem-git-status-handlers'
 import { registerFilesystemGitCommitHandlers } from './filesystem/filesystem-git-commit-handlers'
 import { registerFilesystemGitCommitGenerationHandlers } from './filesystem/filesystem-git-commit-generation-handlers'
+import { registerFilesystemAgentRollingTitleHandlers } from './filesystem/filesystem-agent-rolling-title-handlers'
 import { registerFilesystemGitModelDiscoveryHandlers } from './filesystem/filesystem-git-model-discovery-handlers'
 import { registerFilesystemGitPullRequestGenerationHandlers } from './filesystem/filesystem-git-pull-request-generation-handlers'
 import { registerFilesystemGitRemoteHandlers } from './filesystem/filesystem-git-remote-handlers'
@@ -38,6 +39,7 @@ export function registerFilesystemHandlers(
   registerFilesystemGitStatusHandlers(context)
   registerFilesystemGitCommitHandlers(context)
   registerFilesystemGitCommitGenerationHandlers(context)
+  registerFilesystemAgentRollingTitleHandlers(context)
   registerFilesystemGitModelDiscoveryHandlers(context)
   registerFilesystemGitPullRequestGenerationHandlers(context)
   registerFilesystemGitRemoteHandlers(context)

@@ -145,6 +145,71 @@ describe('tab title resolution', () => {
     ).toBe('Orca generated')
   })
 
+  it('ranks the rolling agent title above provider and generated titles', () => {
+    const base = {
+      customTitle: null,
+      quickCommandLabel: null,
+      aiVaultTitle: { agent: 'claude' as const, sessionId: 's1', title: 'Provider title' },
+      rollingTitle: 'Rolling now',
+      generatedTitle: 'Generated once',
+      title: 'claude working'
+    }
+    expect({
+      outranksProviderAndGenerated: resolveTerminalTabTitle(base, true),
+      losesToManualRename: resolveTerminalTabTitle({ ...base, customTitle: 'Manual' }, true),
+      losesToQuickCommand: resolveTerminalTabTitle(
+        { ...base, quickCommandLabel: 'Run tests' },
+        true
+      ),
+      losesToOpenCodeLiveTitle: resolveTerminalTabTitle(
+        { ...base, title: 'OC | Native Stable Session' },
+        true
+      ),
+      skippedWhenBlank: resolveTerminalTabTitle({ ...base, rollingTitle: '   ' }, true),
+      // Has its own setting, so the generated-title switch must not gate it.
+      ignoresGeneratedTitlesDisabled: resolveTerminalTabTitle(base, false)
+    }).toEqual({
+      outranksProviderAndGenerated: 'Rolling now',
+      losesToManualRename: 'Manual',
+      losesToQuickCommand: 'Run tests',
+      losesToOpenCodeLiveTitle: 'OC | Native Stable Session',
+      skippedWhenBlank: 'Provider title',
+      ignoresGeneratedTitlesDisabled: 'Rolling now'
+    })
+  })
+
+  it('ranks the rolling agent label the same way for unified tab labels', () => {
+    const base = {
+      customLabel: null,
+      quickCommandLabel: null,
+      aiVaultTitle: { agent: 'claude' as const, sessionId: 's1', title: 'Provider title' },
+      rollingLabel: 'Rolling now',
+      generatedLabel: 'Generated once',
+      label: 'claude working'
+    }
+    expect({
+      outranksProviderAndGenerated: resolveUnifiedTabLabel(base, true),
+      losesToManualRename: resolveUnifiedTabLabel({ ...base, customLabel: 'Manual' }, true),
+      losesToQuickCommand: resolveUnifiedTabLabel(
+        { ...base, quickCommandLabel: 'Run build' },
+        true
+      ),
+      losesToOpenCodeLiveLabel: resolveUnifiedTabLabel(
+        { ...base, label: 'OC | Native Stable Session' },
+        true
+      ),
+      skippedWhenBlank: resolveUnifiedTabLabel({ ...base, rollingLabel: '   ' }, true),
+      ignoresGeneratedTitlesDisabled: resolveUnifiedTabLabel(base, false)
+    }).toEqual({
+      outranksProviderAndGenerated: 'Rolling now',
+      losesToManualRename: 'Manual',
+      losesToQuickCommand: 'Run build',
+      losesToOpenCodeLiveLabel: 'OC | Native Stable Session',
+      skippedWhenBlank: 'Provider title',
+      ignoresGeneratedTitlesDisabled: 'Rolling now'
+    })
+  })
+
   it('uses the same priority for unified tab labels', () => {
     expect(
       resolveUnifiedTabLabel(

@@ -1,4 +1,5 @@
 import type { PreloadApi } from '../../../../preload/api-types'
+import { translate } from '@/i18n/i18n'
 import { noopUnsubscribe } from './web-storage'
 
 export function createWebAgentStatusApi(): Partial<PreloadApi> {
@@ -20,7 +21,12 @@ export function createWebAgentStatusApi(): Partial<PreloadApi> {
       dropByTabPrefix: () => {},
       retirePaneAuthority: () => {},
       restorePaneAuthority: () => {},
-      transferPaneAuthority: () => {}
+      transferPaneAuthority: () => {},
+      generateRollingTitle: () =>
+        Promise.resolve({
+          success: false,
+          error: translate('auto.web.web.preload.api.fb290366b2', 'Unavailable on web.')
+        })
     }
   }
 }

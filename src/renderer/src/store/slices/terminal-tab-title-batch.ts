@@ -17,6 +17,9 @@ export type GeneratedTabTitleUpdate = {
   options?: { replaceExistingGeneratedTitle?: boolean }
 }
 
+/** `title: null` clears the tier - used when the setting is turned off. */
+export type RollingAgentTitleUpdate = { tabId: string; title: string | null }
+
 type TitleState = Pick<
   AppState,
   'activeWorktreeId' | 'settings' | 'sortEpoch' | 'tabsByWorktree' | 'unifiedTabsByWorktree'
@@ -109,8 +112,8 @@ function updateStageTabs(
 function updateStageUnifiedLabel(
   stage: OwnerStage,
   tabId: string,
-  key: 'generatedLabel' | 'label',
-  value: string
+  key: 'generatedLabel' | 'label' | 'rollingLabel',
+  value: string | null
 ): void {
   const index = stage.unifiedIndexByTabId.get(tabId)
   if (index === undefined || stage.unifiedTabs[index]?.[key] === value) {
@@ -239,6 +242,41 @@ export function applyGeneratedTabTitleUpdates(
     }
     updateStageTabs(stage, tabIndexes, (tab) => ({ ...tab, generatedTitle }))
     updateStageUnifiedLabel(stage, tabId, 'generatedLabel', generatedTitle)
+  }
+  return finishTitleStages(state, stages)
+}
+
+export function applyRollingAgentTitleUpdates(
+  state: TitleState,
+  updates: readonly RollingAgentTitleUpdate[]
+): TitleUpdateResult {
+  const ownerByTabId = getTerminalTabOwners(state.tabsByWorktree)
+  const stages = new Map<string, OwnerStage>()
+  for (const { tabId, title } of updates) {
+    const ownerWorktreeId = ownerByTabId.get(tabId)
+    if (!ownerWorktreeId) {
+      continue
+    }
+    const stage = getOwnerStage(state, stages, ownerWorktreeId)
+    const tabIndexes = stage.tabIndexesById.get(tabId)
+    const currentTab = tabIndexes ? stage.tabs[tabIndexes[0]] : undefined
+    if (!currentTab || !tabIndexes) {
+      continue
+    }
+    const nextTitle = title?.trim() || null
+    // Clearing always applies; only writes are gated, so turning the setting
+    // off can retire titles it previously wrote.
+    if (nextTitle && state.settings?.tabRollingAgentTitle !== true) {
+      continue
+    }
+    if (nextTitle && (currentTab.customTitle?.trim() || currentTab.quickCommandLabel?.trim())) {
+      continue
+    }
+    if ((currentTab.rollingTitle ?? null) === nextTitle) {
+      continue
+    }
+    updateStageTabs(stage, tabIndexes, (tab) => ({ ...tab, rollingTitle: nextTitle }))
+    updateStageUnifiedLabel(stage, tabId, 'rollingLabel', nextTitle)
   }
   return finishTitleStages(state, stages)
 }

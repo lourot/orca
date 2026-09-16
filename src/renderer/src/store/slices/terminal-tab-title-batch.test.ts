@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
+import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }))
 vi.mock('@/runtime/sync-runtime-graph', () => ({ scheduleRuntimeGraphSync: vi.fn() }))
@@ -279,6 +280,47 @@ describe('terminal tab title batches', () => {
       sequentialStore.getState().unifiedTabsByWorktree
     )
     expect(batchStore.getState().sortEpoch).toBe(sequentialStore.getState().sortEpoch)
+  })
+
+  it('mirrors rolling agent titles onto the unified label and gates writes but not clears', () => {
+    const seedRollingStore = (tabRollingAgentTitle: boolean, tab?: Partial<TerminalTab>) => {
+      const store = createTestStore()
+      seedStore(store, {
+        settings: { ...getDefaultSettings('/tmp'), tabRollingAgentTitle },
+        tabsByWorktree: {
+          owner: [makeTab({ id: 'tab-1', worktreeId: 'owner', title: 'Terminal 1', ...tab })]
+        },
+        unifiedTabsByWorktree: {
+          owner: [makeUnifiedTab({ id: 'tab-1', worktreeId: 'owner', groupId: 'group-1' })]
+        }
+      })
+      return store
+    }
+    const readRolling = (store: ReturnType<typeof createTestStore>) => ({
+      tab: store.getState().tabsByWorktree.owner?.[0]?.rollingTitle ?? null,
+      unified: store.getState().unifiedTabsByWorktree.owner?.[0]?.rollingLabel ?? null
+    })
+
+    const enabled = seedRollingStore(true)
+    enabled.getState().setRollingAgentTitles([{ tabId: 'tab-1', title: 'Wiring the resolver' }])
+    const written = readRolling(enabled)
+    enabled.getState().setRollingAgentTitles([{ tabId: 'tab-1', title: null }])
+    const cleared = readRolling(enabled)
+
+    const disabled = seedRollingStore(false)
+    disabled.getState().setRollingAgentTitles([{ tabId: 'tab-1', title: 'Should not land' }])
+    const whileDisabled = readRolling(disabled)
+
+    const renamed = seedRollingStore(true, { customTitle: 'Payments' })
+    renamed.getState().setRollingAgentTitles([{ tabId: 'tab-1', title: 'Should not land' }])
+    const whileRenamed = readRolling(renamed)
+
+    expect({ written, cleared, whileDisabled, whileRenamed }).toEqual({
+      written: { tab: 'Wiring the resolver', unified: 'Wiring the resolver' },
+      cleared: { tab: null, unified: null },
+      whileDisabled: { tab: null, unified: null },
+      whileRenamed: { tab: null, unified: null }
+    })
   })
 
   it('coalesces generated titles while preserving first-write and replacement semantics', () => {

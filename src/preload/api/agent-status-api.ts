@@ -7,6 +7,10 @@ import type {
 import type { AgentInterruptInferenceRequest } from '../../shared/agent-interrupt-intent'
 import type { AgentQuestionAnsweredInferenceRequest } from '../../shared/agent-question-answered-intent'
 import type { ComputerAwakeStatus } from '../../shared/computer-awake-mode'
+import type {
+  RollingAgentTitleArgs,
+  RollingAgentTitleResult
+} from '../../shared/rolling-agent-title'
 
 export type AgentStatusApi = {
   /** Listen for agent status updates forwarded from native hook receivers. */
@@ -46,6 +50,8 @@ export type AgentStatusApi = {
   restorePaneAuthority: (paneKey: string) => void
   /** Move hook authority when a live pane is detached into another tab. */
   transferPaneAuthority: (args: { fromPaneKey: string; toPaneKey: string; ptyId?: string }) => void
+  /** Summarize a finished turn into a short tab title. Spawns the user's own CLI. */
+  generateRollingTitle: (args: RollingAgentTitleArgs) => Promise<RollingAgentTitleResult>
 }
 
 export type AgentTrustApi = {

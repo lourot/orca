@@ -7,6 +7,10 @@ import type {
 } from '../../shared/agent-status-types'
 import type { AgentInterruptInferenceRequest } from '../../shared/agent-interrupt-intent'
 import type { AgentQuestionAnsweredInferenceRequest } from '../../shared/agent-question-answered-intent'
+import type {
+  RollingAgentTitleArgs,
+  RollingAgentTitleResult
+} from '../../shared/rolling-agent-title'
 import type { PreloadApi } from '../api-types'
 
 export const agentStatusApi = {
@@ -92,5 +96,7 @@ export const agentStatusApi = {
     ptyId?: string
   }): void => {
     ipcRenderer.send('agentStatus:transferPaneAuthority', args)
-  }
+  },
+  generateRollingTitle: (args: RollingAgentTitleArgs): Promise<RollingAgentTitleResult> =>
+    ipcRenderer.invoke('agentStatus:generateRollingTitle', args)
 } satisfies PreloadApi['agentStatus']
