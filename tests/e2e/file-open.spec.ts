@@ -93,6 +93,16 @@ test.describe('File Open & Markdown Preview', () => {
 
     await expect.poll(async () => getActiveTabType(orcaPage), { timeout: 5_000 }).toBe('editor')
 
+    // Markdown opens in Source, so the view toggle must land on Source and the
+    // user has to ask for the rich editor before any rendered heading exists.
+    const richEditorToggle = orcaPage.getByRole('radio', { name: 'Rich Editor' })
+    await expect(orcaPage.getByRole('radio', { name: 'Source' })).toHaveAttribute(
+      'data-state',
+      'on',
+      { timeout: 20_000 }
+    )
+    await richEditorToggle.click()
+
     // Assert the file’s real heading so a blank editor cannot pass via store state.
     const expectedHeading = clickedFile?.endsWith('README.md')
       ? /Orca E2E Test Repo/i

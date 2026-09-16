@@ -47,13 +47,19 @@ describe('getMarkdownViewModes', () => {
 })
 
 describe('markdown preview helpers', () => {
-  it('defaults markdown edit tabs to rich mode', () => {
+  it('defaults markdown edit tabs to source mode', () => {
     expect(
       getDefaultMarkdownViewMode({
         language: 'markdown',
         mode: 'edit'
       })
-    ).toBe('rich')
+    ).toBe('source')
+  })
+
+  it('keeps non-markdown rendered languages on their rich default', () => {
+    expect(getDefaultMarkdownViewMode({ language: 'mermaid', mode: 'edit' })).toBe('rich')
+    expect(getDefaultMarkdownViewMode({ language: 'csv', mode: 'edit' })).toBe('rich')
+    expect(getDefaultMarkdownViewMode({ language: 'notebook', mode: 'edit' })).toBe('rich')
   })
 
   it('defaults markdown diffs to source mode', () => {
