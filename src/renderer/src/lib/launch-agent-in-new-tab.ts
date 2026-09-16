@@ -212,17 +212,23 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
     }
   }
 
-  const plan =
-    agentSessionLaunchPlan ??
-    planAgentSessionLaunch(store, {
-      agent,
-      workspace: { kind: workspaceKindForWorktreeId(worktreeId), worktreeId },
-      prompt: trimmedPrompt,
-      promptDelivery: viewModePromptDelivery,
-      tuiCustomization: { cwd: initialCwd },
-      initialSessionOptions: startupPlan.sessionOptions,
-      onPromptDelivered
-    })
+  // Why: the structured route launches through the provider's session API and never
+  // applies argv, so caller-supplied CLI arguments would be dropped in silence — a
+  // conversation fork's `--resume --fork-session` among them. Only the caller's own
+  // `agentArgs` gates this; the settings-derived defaults in `effectiveAgentArgs`
+  // must not disable native chat.
+  const plan = agentArgs?.trim()
+    ? null
+    : (agentSessionLaunchPlan ??
+      planAgentSessionLaunch(store, {
+        agent,
+        workspace: { kind: workspaceKindForWorktreeId(worktreeId), worktreeId },
+        prompt: trimmedPrompt,
+        promptDelivery: viewModePromptDelivery,
+        tuiCustomization: { cwd: initialCwd },
+        initialSessionOptions: startupPlan.sessionOptions,
+        onPromptDelivered
+      }))
   if (plan?.route === 'structured-native-chat') {
     const structured = launchAgentInStructuredNewTab({
       plan,
