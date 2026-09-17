@@ -23,6 +23,7 @@ import {
 } from '../../../shared/agent-status-observation'
 import type { AgentHookEventPayload } from '../../../shared/agent-hook-listener/listener-event'
 import type { AgentHookSource } from '../../../shared/agent-hook-relay'
+import type { AgentPaneScreenReader } from '../agent-pane-screen-reader'
 import type { AgentStatusClearIpcPayload } from '../../../shared/agent-status-types'
 import type { LegacyPaneKeyAliasEntry } from '../../../shared/persisted-state-types'
 import type { SpoolRecord } from '../../../shared/agent-hook-spool'
@@ -137,6 +138,9 @@ export abstract class AgentHookServerState {
   )
   // Hydrated work is UI continuity, not current-runtime liveness evidence.
   protected runtimeObservedStatusPaneKeys = new Set<string>()
+  // Why: Claude emits no hook on a user interrupt, so its pane's own screen is the only evidence.
+  protected paneScreenReader: AgentPaneScreenReader | null = null
+  protected screenConfirmedInterruptPaneKeys = new Set<string>()
   protected hydratedAuthorityCommitments: readonly AgentHookAuthorityEvidence[] = Object.freeze([])
   // Authority revisions bypass throttling to preserve replay fencing after a crash.
   protected hydratedLaunchTokenHashByPaneKey = new RevisionedMap<string, string>()
