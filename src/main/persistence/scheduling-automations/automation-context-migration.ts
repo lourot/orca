@@ -91,7 +91,15 @@ export function normalizeAutomationPrecheckResult(
   }
 }
 
-export function normalizeAutomationSessionReuse(automation: Automation): Automation {
+/**
+ * Gives every stored record the shape the rest of the app may assume.
+ *
+ * The run guards are defaulted here rather than by a migration pass: records
+ * written before the fields existed must read as "overlap guard on, cooldown off",
+ * and a single read path is what makes `0` the only representation of "no cooldown"
+ * (absent, negative and non-numeric all collapse to it).
+ */
+export function normalizeStoredAutomation(automation: Automation): Automation {
   const setupDecision = normalizeAutomationSetupDecisionForWorkspaceMode(
     automation.workspaceMode,
     automation.setupDecision
@@ -100,7 +108,14 @@ export function normalizeAutomationSessionReuse(automation: Automation): Automat
     ...automation,
     precheck: normalizeAutomationPrecheck(automation.precheck),
     setupDecision,
-    reuseSession: automation.workspaceMode === 'existing' && automation.reuseSession === true
+    reuseSession: automation.workspaceMode === 'existing' && automation.reuseSession === true,
+    skipWhileRunActive: automation.skipWhileRunActive !== false,
+    minMinutesSinceLastRun:
+      typeof automation.minMinutesSinceLastRun === 'number' &&
+      Number.isFinite(automation.minMinutesSinceLastRun) &&
+      automation.minMinutesSinceLastRun > 0
+        ? automation.minMinutesSinceLastRun
+        : 0
   }
 }
 

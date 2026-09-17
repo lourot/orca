@@ -15786,7 +15786,9 @@
           "51a470b966": "ssh",
           "b09b2384fd": "Paused",
           "eaa02014f8": "Enabled",
-          "29baf8f4c2": "Source"
+          "29baf8f4c2": "Source",
+          "aa31524e63": "Cooldown",
+          "e3ccecdf50": "Overlap"
         },
         "AutomationEditorDialog": {
           "fb1896a5e7": "Cancel",
@@ -16279,6 +16281,26 @@
         "AutomationsPageBreadcrumb": {
           "ariaLabel": "Automations breadcrumb",
           "runDetails": "Run details"
+        },
+        "AutomationCooldownField": {
+          "64d2d43b2e": "Cooldown",
+          "ec15594db0": "Run cooldown help",
+          "b63f9c88b2": "Skips a scheduled run when this automation already started one within the window. Manual runs ignore it.",
+          "fefec60705": "No cooldown",
+          "f35ec1df75": "30 minutes",
+          "17efb5d92c": "1 hour",
+          "bdb5654071": "3 hours",
+          "d0f5ada630": "12 hours",
+          "247d06bf28": "24 hours",
+          "74d5a976fa": "16 hours",
+          "c160789c45": "20 hours"
+        },
+        "AutomationRunOverlapField": {
+          "ec134960b6": "Overlap",
+          "58167e9b76": "Overlapping runs help",
+          "6161c86175": "Skips a scheduled run while a previous run of this automation is still going, so two agents never share one workspace. Manual runs are blocked too.",
+          "9b9fa9e30f": "Skip",
+          "3c0ba07648": "Allow"
         }
       },
       "agent": {

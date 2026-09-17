@@ -56,9 +56,9 @@ function DetailMetric({
   )
 }
 
-function formatGrace(minutes: number): string {
+function formatMinutesWindow(minutes: number, zeroLabel: string): string {
   if (minutes <= 0) {
-    return 'No grace'
+    return zeroLabel
   }
   if (minutes < 60) {
     return `${minutes} minutes`
@@ -274,7 +274,19 @@ export function AutomationDetail({
         ) : null}
         <DetailMetric
           label={translate('auto.components.automations.AutomationDetail.620b22145e', 'Grace')}
-          value={formatGrace(automation.missedRunGraceMinutes)}
+          value={formatMinutesWindow(automation.missedRunGraceMinutes, 'No grace')}
+        />
+        <DetailMetric
+          label={translate('auto.components.automations.AutomationDetail.aa31524e63', 'Cooldown')}
+          value={formatMinutesWindow(automation.minMinutesSinceLastRun ?? 0, 'No cooldown')}
+        />
+        <DetailMetric
+          label={translate('auto.components.automations.AutomationDetail.e3ccecdf50', 'Overlap')}
+          value={
+            automation.skipWhileRunActive === false
+              ? 'Allow overlapping runs'
+              : 'Skip while a run is active'
+          }
         />
         <DetailMetric
           label={translate('auto.components.automations.AutomationDetail.e353ab9516', 'Precheck')}

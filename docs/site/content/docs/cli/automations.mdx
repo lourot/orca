@@ -85,6 +85,29 @@ When you create an automation in the desktop UI, **Create on** chooses its host 
 orca automations edit <automationId> --missed-run-grace-minutes 30 --json
 ```
 
+## Skip a run that came too soon
+
+A scheduled occurrence is skipped when the automation last started an agent less than the cooldown ago. Skipped occurrences do not restart the clock, and `0` disables it:
+
+```bash
+orca automations edit <automationId> --min-minutes-since-last-run 720 --json
+```
+
+The cooldown applies to scheduled occurrences only — `orca automations run <automationId>` still starts immediately.
+
+## Skip a run while the previous one is still going
+
+On by default, so two agents never end up in the same workspace. This one also blocks a manual run:
+
+```bash
+orca automations edit <automationId> --allow-overlapping-runs --json   # opt out
+orca automations edit <automationId> --skip-while-run-active --json    # opt back in
+```
+
+A run that never reports back stops blocking after 24 hours, so a stalled dispatch cannot wedge the schedule.
+
+`orca automations show <automationId>` prints both settings and `lastDispatchedAt`, which is what the cooldown compares against.
+
 ## Reuse an existing automation session
 
 For automations that target an existing worktree, add `--reuse-session` when later runs should continue in the previous live automation terminal instead of starting from a blank terminal each time:

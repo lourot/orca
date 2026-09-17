@@ -50,6 +50,49 @@ Avoid type assertions except `as const`. Unavoidable casts need a line-specific 
 - **New user-facing strings**: add the English text to `src/renderer/src/i18n/locales/en.json`, then regenerate the derived catalogs with `pnpm run sync:localization-catalog` and `pnpm run sync:localization-runtime-catalog` — the `verify:localization-*` gates inside `pnpm lint` fail otherwise. Leave the other locales alone; they fall back to the inline English default.
 - `pnpm format` runs `oxfmt` over the whole repo, markdown included, and it mangles nested lists and fenced blocks. Format the files you changed instead: `npx oxfmt --write <paths>`.
 
+# Activating a Change in a Running `pnpm dev`
+
+Merging or fast-forwarding the checkout is **not** enough, and how you stop the dev server decides whether live agents survive. Only the renderer is hot.
+
+| What you changed                                 | What picks it up                                |
+| ------------------------------------------------ | ----------------------------------------------- |
+| `src/renderer/**`                                | vite HMR — already live, nothing to do          |
+| `src/main/**`, `src/preload/**`, `src/shared/**` | **restart `pnpm dev`**                          |
+| `src/cli/**`, `src/shared/**`                    | **`pnpm run build:cli`** — never watched, ~1.5s |
+
+`electron.vite.config.ts` sets no `build.watch`, so electron-vite's "rebuild main → restart electron app" hook never arms: `out/main/index.js` is built once at `pnpm dev` startup and never again. ⌘R reloads the renderer only. A stale main bundle reads as a _half-applied_ feature — new UI appears, new IPC channel rejects — so confirm with a known-positive control before believing a grep:
+
+```sh
+grep -c '<a symbol you know is there>' out/main/index.js   # proves the grep works
+grep -c '<your new symbol>' out/main/index.js              # 0 => main predates your change
+find src/cli src/shared -name '*.ts' -newer out/cli/index.js -print -quit   # any output => CLI stale
+```
+
+## Quit with ⌘Q, not Ctrl+C
+
+`installDevParentSignalQuit` (`src/main/startup/configure-process.ts`) traps `SIGINT`/`SIGTERM` and takes the `shutdownDaemon()` path, which synthesizes `pty:exit` for every active session — **Ctrl+C in the dev terminal reaps every live agent.** ⌘Q takes `disconnectDaemon()` and leaves the PTYs alive for warm reattach. So: ⌘Q the dev window first, then restart. Same reason `pnpm dev` wants `nohup … & disown` rather than a shell that can die.
+
+Do **not** kill the terminal daemon to pick up a change. It is versioned by `package.json`'s version string, so an unchanged version means it is adopted and every agent survives the restart; killing it buys nothing and costs every session.
+
+## Verify teardown before relaunching
+
+⌘Q quits the **focused instance only** — an unfocused or windowless one keeps running old code, and its panes keep executing its stale main bundle.
+
+```sh
+pgrep -f "Orca from source"              # must be empty
+lsof -i :5173 -sTCP:LISTEN -P -n         # must be empty, or the next `pnpm dev` attaches to a stale server
+```
+
+Use plain `kill <pid>` on a survivor, never `kill -9` — the latter skips the flush that preserves the pane→session mapping. And kill stale instances **before** exercising a change that adds a persisted field: all dev instances share `orca-dev/profiles/local-default/orca-data.json` last-writer-wins, and an instance that predates your field writes it back out at its default.
+
+## Dev runs a different profile than the installed app
+
+`pnpm dev` uses `orca-dev` userData, the packaged app uses `orca`, which is what lets both run at once. Your real workspaces, automations and settings are not in the dev profile. To exercise a change against real records, quit the packaged app first (one profile, one single-instance lock) and run:
+
+```sh
+ORCA_DEV_USER_DATA_PATH="$HOME/Library/Application Support/orca" pnpm dev
+```
+
 # Considerations
 
 ## Worktree Safety
@@ -63,7 +106,7 @@ Orca targets macOS, Linux, and Windows. Keep all platform-dependent behavior beh
 - **Keyboard shortcuts**: Never hardcode `e.metaKey`. Use a platform check (`navigator.userAgent.includes('Mac')`) to pick `metaKey` on Mac and `ctrlKey` on Linux/Windows. Electron menu accelerators should use `CmdOrCtrl`.
 - **Shortcut labels in UI**: Display `⌘` / `⇧` on Mac and `Ctrl+` / `Shift+` on other platforms.
 - **File paths**: Use `path.join` or Electron/Node path utilities — never assume `/` or `\`.
-- **Windows terminal shells**: `--shell` picks the shell a terminal *is*; `--command` is typed into whatever shell the host spawned, so a shell choice routed through `command` silently becomes a child process. See [`docs/reference/windows-terminal-shell-selection.md`](./docs/reference/windows-terminal-shell-selection.md).
+- **Windows terminal shells**: `--shell` picks the shell a terminal _is_; `--command` is typed into whatever shell the host spawned, so a shell choice routed through `command` silently becomes a child process. See [`docs/reference/windows-terminal-shell-selection.md`](./docs/reference/windows-terminal-shell-selection.md).
 - **Windows setup scripts**: the setup/issue-command runner is a `.cmd` batch file unless the script starts with a `#!` line — never derive that from the user's terminal-shell preference, and never launch a `.cmd` runner with a bare `cmd.exe /c` from a Git Bash pane (MSYS rewrites the `/c`). See [`docs/reference/windows-setup-shell.md`](./docs/reference/windows-setup-shell.md).
 - **Windows child processes**: start them through `runProcess`/`spawnProcess` in `src/shared/child-process/` — never `child_process` directly. It pins `windowsHide`, refuses `shell: true`, and encodes `.cmd`/`.bat` arguments so neither `CommandLineToArgvW` nor `cmd.exe` mangles them. A ratchet test fails on any new direct import. Recognised npm/pnpm `.cmd` shims are resolved to their real target so the spawn skips `cmd.exe` entirely; see [`docs/reference/windows-cmd-shim-resolution.md`](./docs/reference/windows-cmd-shim-resolution.md) before adding a shim shape or debugging one.
 - **Windows process enumeration**: read the table through `src/main/windows/windows-process-table.ts`, never by forking `powershell.exe`. See [`docs/reference/windows-process-enumeration.md`](./docs/reference/windows-process-enumeration.md).

@@ -7,15 +7,25 @@
  */
 import type { WebContents } from 'electron'
 import type { Store } from '../persistence'
+import { isFinalAutomationRunStatus } from '../../shared/automation-run-status'
 import type {
   Automation,
   AutomationDispatchRequest,
-  AutomationRun
+  AutomationRun,
+  AutomationRunStatus
 } from '../../shared/automations-types'
 import { resolveAutomationRunTarget, type AutomationRunTargetResult } from './run-target-resolution'
 import type { AutomationRunWriter } from './automation-run-writer'
 
 export const NO_DISPATCH_HOST = 'No Orca window was available to launch the automation.'
+
+/** The automation dispatched an agent too recently for this occurrence to be wanted. */
+export const SKIPPED_FOR_COOLDOWN =
+  'This automation ran recently, so the scheduled run was skipped.'
+
+/** A previous run of the same automation has not finished. */
+export const SKIPPED_RUN_ACTIVE =
+  'A previous run was still active, so the scheduled run was skipped.'
 
 /** A record the tick could not evaluate at all — its schedule no longer resolves (#16303). */
 export const UNEVALUABLE_SCHEDULE =
@@ -24,16 +34,142 @@ export const UNEVALUABLE_SCHEDULE =
 /** A record the authority refuses to execute at all, with no target diagnosis of its own. */
 export const NO_RUNNABLE_HOST = 'This automation has no host to run on.'
 
-/** Every reason this occurrence cannot start, decided before a run row exists so
- *  the scheduler can fold repeats instead of writing one row each. */
+export type ScheduledRefusal = { status: AutomationRunStatus; error: string }
+
+/**
+ * Nothing legitimately sits at `pending`: the row exists but was never handed to an
+ * executor, so anything older than the dispatch handoff is debris.
+ */
+const PENDING_STALE_MS = 2 * 60 * 1000
+
+/**
+ * Longer than any agent session Orca has reason to believe in. A run that never
+ * reports back (stalled dispatch, an agent that never launched) must stop blocking
+ * the schedule eventually, or the overlap guard — which defaults on — turns one stuck
+ * run into a permanently dead automation.
+ *
+ * Erring long is deliberate: too short launches a second agent into the same worktree
+ * of a run that is still alive (worse under `reuseSession`, where both type into one
+ * terminal), while too long only delays recovery from a run that will never finish.
+ * It also means existing stores full of crashed-session rows are already over the
+ * bound, so turning the guard on cannot brick anyone on day one.
+ */
+const DISPATCHED_STALE_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Whether a previous run is still plausibly executing.
+ *
+ * A pure read: it never finalizes the stale run it steps over. Closing out a run from
+ * a predicate would rewrite history the completion watcher owns, and asking the
+ * terminal observer whether the run's terminal still resolves is barred outright —
+ * loss of contact is never evidence of process death (see the SSH execution boundary).
+ * An age bound makes no claim about the process at all.
+ */
+export function hasActiveAutomationRun(
+  automation: Automation,
+  runs: readonly AutomationRun[],
+  now: number
+): boolean {
+  if (automation.skipWhileRunActive === false) {
+    return false
+  }
+  return runs.some((run) => {
+    if (run.automationId !== automation.id || isFinalAutomationRunStatus(run.status)) {
+      return false
+    }
+    const age = Math.max(0, now - (run.dispatchedAt ?? run.startedAt ?? run.createdAt))
+    return age < (run.status === 'pending' ? PENDING_STALE_MS : DISPATCHED_STALE_MS)
+  })
+}
+
+/** Reads `lastDispatchedAt`, never `lastRunAt`: the latter is stamped by skips too, so a
+ *  cooldown on it would extend itself every time it fired and never run again. */
+export function isWithinRunCooldown(automation: Automation, now: number): boolean {
+  const minutes = automation.minMinutesSinceLastRun ?? 0
+  const lastDispatchedAt = automation.lastDispatchedAt
+  if (minutes <= 0 || typeof lastDispatchedAt !== 'number') {
+    return false
+  }
+  return now - lastDispatchedAt < minutes * 60 * 1000
+}
+
+/**
+ * Every reason this occurrence cannot start, decided before a run row exists so
+ * the scheduler can fold repeats instead of writing one row each.
+ *
+ * Order matters: host refusals first, so a genuinely broken automation is still
+ * reported on its first suppressed occurrence rather than hidden behind a long
+ * cooldown. Overlap before cooldown because it is the more actionable truth, and
+ * because a fixed precedence keeps the fold from thrashing between two statuses.
+ */
 export function describeScheduledRefusal(input: {
+  automation: Automation
   target: AutomationRunTargetResult
   canDispatch: boolean
-}): string | null {
+  runs: readonly AutomationRun[]
+  now: number
+}): ScheduledRefusal | null {
   if (!input.target.ok) {
-    return input.target.error
+    return { status: 'skipped_unavailable', error: input.target.error }
   }
-  return input.canDispatch ? null : NO_DISPATCH_HOST
+  if (!input.canDispatch) {
+    return { status: 'skipped_unavailable', error: NO_DISPATCH_HOST }
+  }
+  if (hasActiveAutomationRun(input.automation, input.runs, input.now)) {
+    return { status: 'skipped_run_active', error: SKIPPED_RUN_ACTIVE }
+  }
+  if (isWithinRunCooldown(input.automation, input.now)) {
+    return { status: 'skipped_cooldown', error: SKIPPED_FOR_COOLDOWN }
+  }
+  return null
+}
+
+/** Folds the refusal into the newest matching skip row, or writes a fresh one.
+ *  Returns whether it folded, which is what lets callers log only the first time. */
+export function recordScheduledSkip(input: {
+  runs: AutomationRunWriter
+  automation: Automation
+  scheduledFor: number
+  refusal: ScheduledRefusal
+}): boolean {
+  const { runs, automation, scheduledFor, refusal } = input
+  if (runs.repeatSkip(automation.id, refusal.error, scheduledFor, refusal.status)) {
+    return true
+  }
+  const run = runs.createRun(automation, scheduledFor)
+  runs.updateRun({
+    runId: run.id,
+    status: refusal.status,
+    workspaceId: automation.workspaceId,
+    error: refusal.error
+  })
+  return false
+}
+
+/**
+ * Records and returns the refusal row when an active run blocks a manual start, else null.
+ *
+ * Read before the row exists, or the row itself would read as the active run. The
+ * cooldown is deliberately not consulted here: overlap is a hazard whoever asked —
+ * two agents in one worktree — while a cooldown is a preference, and "Run now" has to
+ * stay a way out of a misconfigured guard.
+ */
+export function recordManualRunBlockedByActiveRun(input: {
+  runs: AutomationRunWriter
+  automation: Automation
+  activeRuns: readonly AutomationRun[]
+  now: number
+}): AutomationRun | null {
+  if (!hasActiveAutomationRun(input.automation, input.activeRuns, input.now)) {
+    return null
+  }
+  const run = input.runs.createRun(input.automation, input.now, 'manual')
+  return input.runs.updateRun({
+    runId: run.id,
+    status: 'skipped_run_active',
+    workspaceId: input.automation.workspaceId,
+    error: SKIPPED_RUN_ACTIVE
+  })
 }
 
 /**
@@ -75,17 +211,15 @@ export function recordUnevaluableAutomation(input: {
   try {
     // nextRunAt deliberately stays put: the record is retried so a repaired schedule resumes
     // on its own. The fold is what keeps that from writing a row — and logging — every tick.
-    if (input.runs.repeatSkip(automation.id, UNEVALUABLE_SCHEDULE, automation.nextRunAt)) {
-      return
-    }
-    console.error('[automations] failed to evaluate automation:', automation.id, input.error)
-    const run = input.runs.createRun(automation, automation.nextRunAt)
-    input.runs.updateRun({
-      runId: run.id,
-      status: 'skipped_unavailable',
-      workspaceId: automation.workspaceId,
-      error: UNEVALUABLE_SCHEDULE
+    const folded = recordScheduledSkip({
+      runs: input.runs,
+      automation,
+      scheduledFor: automation.nextRunAt,
+      refusal: { status: 'skipped_unavailable', error: UNEVALUABLE_SCHEDULE }
     })
+    if (!folded) {
+      console.error('[automations] failed to evaluate automation:', automation.id, input.error)
+    }
   } catch (writeError) {
     // The original failure has not been reported yet on this path, so carry it too.
     console.error(

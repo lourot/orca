@@ -165,56 +165,46 @@ export function getScheduleFlag(
   return { rrule, dtstart: Date.now() }
 }
 
-export function getEnabledFlag(flags: Map<string, string | boolean>): boolean | undefined {
-  const enabledFlag = flags.get('enabled')
-  const disabledFlag = flags.get('disabled')
-  if (typeof enabledFlag === 'string') {
-    throw new RuntimeClientError('invalid_argument', '--enabled does not take a value')
+/** A flag pair where one name turns a setting on and the other off; neither takes a value. */
+function getExclusiveBooleanPairFlag(
+  flags: Map<string, string | boolean>,
+  onName: string,
+  offName: string
+): boolean | undefined {
+  for (const name of [onName, offName]) {
+    if (typeof flags.get(name) === 'string') {
+      throw new RuntimeClientError('invalid_argument', `--${name} does not take a value`)
+    }
   }
-  if (typeof disabledFlag === 'string') {
-    throw new RuntimeClientError('invalid_argument', '--disabled does not take a value')
-  }
-  const enabled = enabledFlag === true
-  const disabled = disabledFlag === true
-  if (enabled && disabled) {
+  const on = flags.get(onName) === true
+  const off = flags.get(offName) === true
+  if (on && off) {
     throw new RuntimeClientError(
       'invalid_argument',
-      'Use either --enabled or --disabled, not both.'
+      `Use either --${onName} or --${offName}, not both.`
     )
   }
-  if (enabled) {
+  if (on) {
     return true
   }
-  if (disabled) {
+  if (off) {
     return false
   }
   return undefined
 }
 
+export function getEnabledFlag(flags: Map<string, string | boolean>): boolean | undefined {
+  return getExclusiveBooleanPairFlag(flags, 'enabled', 'disabled')
+}
+
 export function getReuseSessionFlag(flags: Map<string, string | boolean>): boolean | undefined {
-  const reuseFlag = flags.get('reuse-session')
-  const freshFlag = flags.get('fresh-session')
-  if (typeof reuseFlag === 'string') {
-    throw new RuntimeClientError('invalid_argument', '--reuse-session does not take a value')
-  }
-  if (typeof freshFlag === 'string') {
-    throw new RuntimeClientError('invalid_argument', '--fresh-session does not take a value')
-  }
-  const reuse = reuseFlag === true
-  const fresh = freshFlag === true
-  if (reuse && fresh) {
-    throw new RuntimeClientError(
-      'invalid_argument',
-      'Use either --reuse-session or --fresh-session, not both.'
-    )
-  }
-  if (reuse) {
-    return true
-  }
-  if (fresh) {
-    return false
-  }
-  return undefined
+  return getExclusiveBooleanPairFlag(flags, 'reuse-session', 'fresh-session')
+}
+
+export function getSkipWhileRunActiveFlag(
+  flags: Map<string, string | boolean>
+): boolean | undefined {
+  return getExclusiveBooleanPairFlag(flags, 'skip-while-run-active', 'allow-overlapping-runs')
 }
 
 export function getPrecheckFlag(

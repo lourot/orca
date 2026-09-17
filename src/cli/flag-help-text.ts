@@ -87,6 +87,12 @@ export const FLAG_HELP_TEXT: Record<string, string> = {
   'fresh-session': '--fresh-session        Disable session reuse for future runs',
   'workspace-mode': '--workspace-mode <mode> existing or new-per-run',
   'missed-run-grace-minutes': '--missed-run-grace-minutes <n> Missed-run grace window',
+  'min-minutes-since-last-run':
+    '--min-minutes-since-last-run <n> Skip a scheduled run this soon after the last one, 0 to disable',
+  'skip-while-run-active':
+    '--skip-while-run-active Skip a scheduled run while a previous run is still active',
+  'allow-overlapping-runs':
+    '--allow-overlapping-runs Start a scheduled run even if a previous run is still active',
   'value-stdin': '--value-stdin         Read set-value payload from stdin',
   'window-id': '--window-id <id>      Target a window id from list-windows',
   'window-index': '--window-index <n>   Target a window index from list-windows',

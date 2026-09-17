@@ -15,6 +15,7 @@ export type AutomationTemplate = {
   dayOfWeek?: string
   agentId?: TuiAgent
   missedRunGraceMinutes?: string
+  minMinutesSinceLastRun?: string
 }
 
 export const getAutomationTemplates = createLocalizedCatalog((): AutomationTemplate[] => [

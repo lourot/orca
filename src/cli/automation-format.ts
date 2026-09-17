@@ -87,6 +87,13 @@ export function formatAutomationShow(result: AutomationShowPayload): string {
         : 'none'
     }`,
     `nextRunAt: ${new Date(automation.nextRunAt).toISOString()}`,
+    // Printed because a silent skip is only diagnosable against these three:
+    // the window, the clock it reads, and whether overlap is what is holding it.
+    `minMinutesSinceLastRun: ${automation.minMinutesSinceLastRun ?? 0}`,
+    `skipWhileRunActive: ${automation.skipWhileRunActive !== false}`,
+    `lastDispatchedAt: ${
+      automation.lastDispatchedAt ? new Date(automation.lastDispatchedAt).toISOString() : 'never'
+    }`,
     ...projectLines,
     `workspaceMode: ${automation.workspaceMode}`,
     `workspaceId: ${automation.workspaceId ?? 'null'}`,

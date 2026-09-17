@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto'
-import { isFinalAutomationRunStatus } from '../../../shared/automations-types'
+import { isFinalAutomationRunStatus } from '../../../shared/automation-run-status'
 import { invalidateLocalWorktreeMetadataPruneInputs } from '../../local-worktree-metadata-prune-gate'
 import type {
   Automation,
   AutomationDispatchResult,
   AutomationRun,
   AutomationRunsPage,
+  AutomationRunStatus,
   AutomationRunTrigger
 } from '../../../shared/automations-types'
 import type { PersistedState } from '../../../shared/persisted-state-types'
@@ -32,12 +33,26 @@ export type AutomationRunOperations = {
   getWorkspaceDisplayName: (workspaceId: string | null | undefined) => string | null
 }
 
-function touchAutomation(state: PersistedState, automationId: string, now: number): void {
+/** `dispatched` moves `lastDispatchedAt` too; every other write only touches
+ *  `lastRunAt`, which is what keeps a skip from resetting the cooldown clock. */
+function touchAutomation(
+  state: PersistedState,
+  automationId: string,
+  now: number,
+  dispatched: boolean
+): void {
   if (!state.automations.some((entry) => entry.id === automationId)) {
     return
   }
   state.automations = state.automations.map((entry) =>
-    entry.id === automationId ? { ...entry, lastRunAt: now, updatedAt: now } : entry
+    entry.id === automationId
+      ? {
+          ...entry,
+          lastRunAt: now,
+          ...(dispatched ? { lastDispatchedAt: now } : {}),
+          updatedAt: now
+        }
+      : entry
   )
 }
 
@@ -121,7 +136,8 @@ export function recordRepeatedAutomationSkip(
   operations: AutomationRunOperations,
   automationId: string,
   error: string,
-  scheduledFor: number
+  scheduledFor: number,
+  status: AutomationRunStatus = 'skipped_unavailable'
 ): AutomationRun | null {
   const runs = operations.state.automationRuns ?? []
   const latest = runs
@@ -132,7 +148,7 @@ export function recordRepeatedAutomationSkip(
     )
   if (
     !latest ||
-    latest.status !== 'skipped_unavailable' ||
+    latest.status !== status ||
     latest.trigger !== 'scheduled' ||
     latest.error !== error
   ) {
@@ -149,7 +165,7 @@ export function recordRepeatedAutomationSkip(
   }
   // Replaced, not patched in place: the list projection caches on array identity.
   operations.state.automationRuns = runs.map((run) => (run.id === latest.id ? updated : run))
-  touchAutomation(operations.state, automationId, now)
+  touchAutomation(operations.state, automationId, now, false)
   operations.flush()
   return updated
 }
@@ -206,7 +222,7 @@ export function updateAutomationRun(
     // Why: only a non-final run pins its workspace, so finishing releases the claim (#17775).
     invalidateLocalWorktreeMetadataPruneInputs()
   }
-  touchAutomation(operations.state, updated.automationId, now)
+  touchAutomation(operations.state, updated.automationId, now, result.status === 'dispatched')
   operations.flush()
   return updated
 }

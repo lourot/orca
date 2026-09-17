@@ -12,7 +12,9 @@ import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import type { AgentCatalogEntry } from '@/lib/agent-catalog'
 import { AUTOMATION_EDITOR_SECTION_LABEL_CLASS, Field } from './automation-page-parts'
+import { AutomationCooldownField } from './AutomationCooldownField'
 import { AutomationMissedRunGraceField } from './AutomationMissedRunGraceField'
+import { AutomationRunOverlapField } from './AutomationRunOverlapField'
 import { AutomationPrecheckFields } from './AutomationPrecheckFields'
 import AutomationProjectCombobox from './AutomationProjectCombobox'
 import { AutomationSchedulePicker } from './AutomationSchedulePicker'
@@ -194,11 +196,23 @@ export function AutomationEditorSettingsSidebar({
           aria-hidden={isHermesTarget}
           inert={isHermesTarget}
         >
-          <div className="min-h-0">
+          <div className="flex min-h-0 flex-col gap-5">
             <AutomationMissedRunGraceField
               draft={draft}
               disabled={isHermesTarget}
               pickerTriggerClassName={pickerTriggerClassName}
+              onDraftChange={onDraftChange}
+            />
+            <AutomationCooldownField
+              draft={draft}
+              disabled={isHermesTarget}
+              pickerTriggerClassName={pickerTriggerClassName}
+              onDraftChange={onDraftChange}
+            />
+            <AutomationRunOverlapField
+              draft={draft}
+              toggleGroupClassName={segmentedGroupClassName}
+              toggleItemClassName={segmentedItemClassName}
               onDraftChange={onDraftChange}
             />
           </div>

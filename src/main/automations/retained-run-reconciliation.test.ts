@@ -3,11 +3,8 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type { Repo } from '../../shared/repo-types'
-import {
-  isFinalAutomationRunStatus,
-  type Automation,
-  type AutomationRun
-} from '../../shared/automations-types'
+import { isFinalAutomationRunStatus } from '../../shared/automation-run-status'
+import type { Automation, AutomationRun } from '../../shared/automations-types'
 import { AutomationService } from './service'
 import type {
   AutomationRunCompletionObservation,

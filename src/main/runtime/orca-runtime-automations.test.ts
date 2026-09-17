@@ -182,6 +182,21 @@ describe('OrcaRuntimeService automation methods', () => {
     expect(store.updateAutomation).not.toHaveBeenCalled()
   })
 
+  // A settings key missing from the controller's patch allowlist is dropped with a
+  // successful-looking response, which is the same silent shape as the incident the run
+  // guards replace. Zero matters on its own: it is how an armed cooldown is disarmed.
+  it.each([
+    [{ minMinutesSinceLastRun: 720, skipWhileRunActive: false }],
+    [{ minMinutesSinceLastRun: 0 }]
+  ])('carries run-guard settings through to the store: %o', async (updates) => {
+    const store = makeStore([existingAutomation])
+    const runtime = new OrcaRuntimeService(store as never)
+
+    await runtime.updateAutomation('auto-1', updates)
+
+    expect(store.updateAutomation).toHaveBeenCalledWith('auto-1', updates, undefined)
+  })
+
   it('updates and deletes existing automations through the shared store', async () => {
     const store = makeStore([existingAutomation])
     const runtime = new OrcaRuntimeService(store as never)

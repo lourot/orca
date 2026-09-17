@@ -76,6 +76,8 @@ export function useAutomationEditorActions({
       dayOfWeek: '1',
       customSchedule: '',
       missedRunGraceMinutes: '720',
+      minMinutesSinceLastRun: '0',
+      skipWhileRunActive: true,
       savedSchedule: null,
       scheduleWarning: null
     }
@@ -88,7 +90,9 @@ export function useAutomationEditorActions({
           time: template.time ?? baseDraft.time,
           dayOfWeek: template.dayOfWeek ?? baseDraft.dayOfWeek,
           agentId: template.agentId ?? baseDraft.agentId,
-          missedRunGraceMinutes: template.missedRunGraceMinutes ?? baseDraft.missedRunGraceMinutes
+          missedRunGraceMinutes: template.missedRunGraceMinutes ?? baseDraft.missedRunGraceMinutes,
+          minMinutesSinceLastRun:
+            template.minMinutesSinceLastRun ?? baseDraft.minMinutesSinceLastRun
         }
       : baseDraft
     setDraft(nextDraft)

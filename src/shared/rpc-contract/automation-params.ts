@@ -8,6 +8,7 @@ import {
   requiredNumber,
   requiredString
 } from './rpc-param-primitives'
+import { OptionalNonNegativeInt } from './computer-schemas-params'
 import { normalizeExecutionHostId } from '../execution-host'
 import { isValidAutomationSchedule } from '../automation-schedule-parsing'
 import {
@@ -202,6 +203,12 @@ export const AutomationCreate = z.object({
   dtstart: requiredNumber('Missing trigger start time'),
   enabled: OptionalBoolean,
   missedRunGraceMinutes: OptionalPositiveInt,
+  // Why not OptionalPositiveInt like its neighbour: that primitive transforms every
+  // invalid value to undefined, which on update reads as "field omitted" and reports
+  // success while changing nothing. A guard you cannot tell apart from a typo is the
+  // failure this feature exists to remove.
+  minMinutesSinceLastRun: OptionalNonNegativeInt,
+  skipWhileRunActive: OptionalBoolean,
   destination: Destination
 })
 
@@ -223,7 +230,9 @@ export const AutomationUpdateFields = z.object({
   rrule: AutomationSchedule.optional(),
   dtstart: requiredNumber('Missing trigger start time').optional(),
   enabled: OptionalBoolean,
-  missedRunGraceMinutes: OptionalPositiveInt
+  missedRunGraceMinutes: OptionalPositiveInt,
+  minMinutesSinceLastRun: OptionalNonNegativeInt,
+  skipWhileRunActive: OptionalBoolean
 })
 
 export const AutomationUpdate = z.object({

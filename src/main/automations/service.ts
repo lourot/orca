@@ -4,17 +4,17 @@ import type { WebContents } from 'electron'
  *  than WebContents so a test can supply the real shape instead of casting one. */
 export type AutomationRendererChannel = Pick<WebContents, 'isDestroyed' | 'send'>
 import type { Store } from '../persistence'
-import {
-  isFinalAutomationRunStatus,
-  type Automation,
-  type AutomationDispatchRequest,
-  type AutomationDispatchResult,
-  type AutomationPrecheckResult,
-  type AutomationRun
+import type {
+  Automation,
+  AutomationDispatchRequest,
+  AutomationDispatchResult,
+  AutomationPrecheckResult,
+  AutomationRun
 } from '../../shared/automations-types'
 import type { ClaudeUsageStore } from '../claude-usage/store'
 import type { CodexUsageStore } from '../codex-usage/store'
-import { runAutomationPrecheck } from './precheck-runner'
+import { isFinalAutomationRunStatus } from '../../shared/automation-run-status'
+import { runAutomationRunPrecheck } from './run-precheck-resolution'
 import { resolveAutomationRunTarget, type AutomationRunTargetResult } from './run-target-resolution'
 import { writeAutomationRunUsage } from './run-usage-collection'
 import type { HeadlessAutomationDispatcher } from './headless-dispatch'
@@ -29,8 +29,10 @@ import { reportAutomationScheduleDrift } from './schedule-drift-report'
 import {
   describeScheduledRefusal,
   missedBeyondGrace,
+  recordManualRunBlockedByActiveRun,
   recordMissedRun,
   recordRefusedAutomationRun,
+  recordScheduledSkip,
   recordUnevaluableAutomation,
   sendRendererDispatch,
   NO_DISPATCH_HOST
@@ -143,7 +145,17 @@ export class AutomationService {
     if (!automation) {
       throw new Error('Automation not found.')
     }
-    const run = this.runs.createRun(automation, Date.now(), 'manual')
+    const now = Date.now()
+    const blocked = recordManualRunBlockedByActiveRun({
+      runs: this.runs,
+      automation,
+      activeRuns: this.store.listAutomationRuns(automationId),
+      now
+    })
+    if (blocked) {
+      return blocked
+    }
+    const run = this.runs.createRun(automation, now, 'manual')
     return await this.requestDispatch(automation, run, this.resolveTarget(automation))
   }
 
@@ -169,31 +181,10 @@ export class AutomationService {
     if (!run) {
       throw new Error('Automation run not found.')
     }
-    if (run.trigger !== 'scheduled' || !automation.precheck) {
-      return null
-    }
-    const target = this.resolveTarget(automation)
-    if (!target.ok) {
-      return {
-        command: automation.precheck.command,
-        exitCode: null,
-        timedOut: false,
-        durationMs: 0,
-        stdout: '',
-        stderr: '',
-        stdoutTruncated: false,
-        stderrTruncated: false,
-        error: target.error,
-        startedAt: Date.now(),
-        completedAt: Date.now()
-      }
-    }
-    return await runAutomationPrecheck({
-      precheck: automation.precheck,
-      target:
-        automation.executionTargetType === 'ssh'
-          ? { type: 'ssh', cwd: target.cwd, connectionId: automation.executionTargetId }
-          : { type: 'local', cwd: target.cwd }
+    return await runAutomationRunPrecheck({
+      automation,
+      run,
+      target: this.resolveTarget(automation)
     })
   }
 
@@ -263,8 +254,15 @@ export class AutomationService {
     // */5 automation would otherwise write ~288 identical rows a day — past
     // retention, which would evict the automation's real history.
     const target = this.resolveTarget(automation)
-    const refusal = describeScheduledRefusal({ target, canDispatch: this.canDispatch() })
-    if (refusal && this.runs.repeatSkip(automation.id, refusal, scheduledFor)) {
+    const refusal = describeScheduledRefusal({
+      automation,
+      target,
+      canDispatch: this.canDispatch(),
+      runs: this.store.listAutomationRuns(automation.id),
+      now
+    })
+    if (refusal) {
+      recordScheduledSkip({ runs: this.runs, automation, scheduledFor, refusal })
       this.store.advanceAutomationNextRun(automation.id, now)
       return
     }

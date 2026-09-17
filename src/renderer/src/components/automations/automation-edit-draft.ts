@@ -41,6 +41,8 @@ export function buildAutomationEditDraft(automation: Automation): AutomationDraf
     customSchedule: hasCustomSchedule ? automation.rrule : '',
     savedSchedule: automation.rrule,
     missedRunGraceMinutes: String(automation.missedRunGraceMinutes),
+    minMinutesSinceLastRun: String(automation.minMinutesSinceLastRun ?? 0),
+    skipWhileRunActive: automation.skipWhileRunActive !== false,
     scheduleWarning:
       schedule || hasCustomSchedule
         ? null
@@ -72,6 +74,8 @@ export function buildExternalAutomationEditDraft(
     customSchedule: hasCustomSchedule ? rawSchedule : '',
     savedSchedule: rawSchedule || null,
     missedRunGraceMinutes: '720',
+    minMinutesSinceLastRun: '0',
+    skipWhileRunActive: true,
     scheduleWarning: hasCustomSchedule
       ? null
       : 'This Hermes automation has an unsupported saved schedule. Pick a supported schedule before saving changes.'

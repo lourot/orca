@@ -17,6 +17,9 @@ const AUTOMATION_STATE_FLAGS = [
   'enabled',
   'disabled',
   'missed-run-grace-minutes',
+  'min-minutes-since-last-run',
+  'skip-while-run-active',
+  'allow-overlapping-runs',
   'reuse-session',
   'fresh-session'
 ]

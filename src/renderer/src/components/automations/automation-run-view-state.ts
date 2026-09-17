@@ -44,7 +44,11 @@ export function canRerunAutomationRun({
   return (
     run.status === 'dispatch_failed' ||
     run.status === 'skipped_unavailable' ||
-    run.status === 'skipped_needs_interactive_auth'
+    run.status === 'skipped_needs_interactive_auth' ||
+    // A manual rerun bypasses the cooldown, and once the blocking run finishes a rerun
+    // is the natural recovery — so both guard skips stay rerunnable.
+    run.status === 'skipped_cooldown' ||
+    run.status === 'skipped_run_active'
   )
 }
 

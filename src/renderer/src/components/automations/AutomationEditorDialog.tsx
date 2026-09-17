@@ -54,6 +54,8 @@ export type AutomationDraft = {
   // judges new input; a saved cadence that still runs is not re-judged against it.
   savedSchedule: string | null
   missedRunGraceMinutes: string
+  minMinutesSinceLastRun: string
+  skipWhileRunActive: boolean
   scheduleWarning: string | null
 }
 

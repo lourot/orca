@@ -1,34 +1,17 @@
 import type { TuiAgent } from './tui-agent'
 import type { SetupDecision } from './worktree/create-types'
 import type { TaskSourceContext, WorkspaceRunContext } from './task-source-context'
+import type { AutomationRunStatus } from './automation-run-status'
 
 export type AutomationWorkspaceMode = 'existing' | 'new_per_run'
 export type AutomationExecutionTargetType = 'local' | 'ssh'
 export type AutomationSchedulerOwner = 'local_host_service' | 'ssh_bridge' | 'remote_host_service'
 export type AutomationMissedRunPolicy = 'run_once_within_grace'
-export type AutomationRunStatus =
-  | 'pending'
-  | 'dispatching'
-  | 'dispatched'
-  | 'completed'
-  | 'skipped_precheck'
-  | 'skipped_missed'
-  | 'skipped_unavailable'
-  | 'skipped_needs_interactive_auth'
-  | 'dispatch_failed'
 export type AutomationRunTrigger = 'scheduled' | 'manual'
 
-/** Statuses a run can never leave; only these are safe to evict from history. */
-export function isFinalAutomationRunStatus(status: AutomationRunStatus): boolean {
-  return (
-    status === 'completed' ||
-    status === 'dispatch_failed' ||
-    status === 'skipped_precheck' ||
-    status === 'skipped_missed' ||
-    status === 'skipped_unavailable' ||
-    status === 'skipped_needs_interactive_auth'
-  )
-}
+// Re-exported so the many type-only importers of the automation surface keep one entry point;
+// the finality rule itself lives with the union it must stay exhaustive over.
+export type { AutomationRunStatus }
 
 export type AutomationSchedulePreset = 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom'
 export type AutomationRunUsageProvider = 'claude' | 'codex'
@@ -126,6 +109,16 @@ export type Automation = {
   enabled: boolean
   nextRunAt: number
   lastRunAt?: number
+  /** Why: `lastRunAt` is stamped by every run-status write including skips, so a
+   *  cooldown built on it resets its own clock. This one moves only on dispatch.
+   *  Host-written — never part of a create/update input. */
+  lastDispatchedAt?: number
+  /** Skip a scheduled occurrence when the last dispatch is newer than this. 0 = off.
+   *  Optional on the record; `normalizeStoredAutomation` gives every read a value. */
+  minMinutesSinceLastRun?: number
+  /** Skip a scheduled occurrence while a previous run of this automation is still
+   *  active. Absent means on — see `normalizeStoredAutomation`. */
+  skipWhileRunActive?: boolean
   missedRunPolicy: AutomationMissedRunPolicy
   missedRunGraceMinutes: number
   createdAt: number
@@ -198,6 +191,8 @@ export type AutomationCreateInput = {
   dtstart: number
   enabled?: boolean
   missedRunGraceMinutes?: number
+  minMinutesSinceLastRun?: number
+  skipWhileRunActive?: boolean
 }
 
 export type AutomationUpdateInput = Partial<
@@ -220,6 +215,8 @@ export type AutomationUpdateInput = Partial<
     | 'dtstart'
     | 'enabled'
     | 'missedRunGraceMinutes'
+    | 'minMinutesSinceLastRun'
+    | 'skipWhileRunActive'
   >
 >
 

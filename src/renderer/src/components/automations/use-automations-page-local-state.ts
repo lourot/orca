@@ -147,6 +147,8 @@ export function useAutomationsPageLocalState(store: AutomationsPageStoreState) {
     dayOfWeek: '1',
     customSchedule: '',
     missedRunGraceMinutes: '720',
+    minMinutesSinceLastRun: '0',
+    skipWhileRunActive: true,
     savedSchedule: null,
     scheduleWarning: null
   })

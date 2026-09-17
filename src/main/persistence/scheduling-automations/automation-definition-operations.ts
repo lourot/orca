@@ -23,8 +23,8 @@ import {
 import {
   getAutomationContextsForRepo,
   getAutomationSchedulerOwner,
-  normalizeAutomationSessionReuse,
-  normalizeAutomationSetupDecisionForWorkspaceMode
+  normalizeAutomationSetupDecisionForWorkspaceMode,
+  normalizeStoredAutomation
 } from './automation-context-migration'
 import {
   automationProjectionContext,
@@ -42,7 +42,7 @@ export type AutomationDefinitionOperations = {
 
 export function listAutomations(state: PersistedState): Automation[] {
   return (state.automations ?? [])
-    .map((automation) => normalizeAutomationSessionReuse(automation))
+    .map((automation) => normalizeStoredAutomation(automation))
     .sort((left, right) => left.name.localeCompare(right.name))
 }
 
@@ -109,6 +109,8 @@ export function createAutomation(
     nextRunAt: nextAutomationOccurrenceAfter(input.rrule, input.dtstart, now),
     missedRunPolicy: 'run_once_within_grace',
     missedRunGraceMinutes: input.missedRunGraceMinutes ?? 720,
+    minMinutesSinceLastRun: input.minMinutesSinceLastRun ?? 0,
+    skipWhileRunActive: input.skipWhileRunActive ?? true,
     createdAt: now,
     updatedAt: now
   }

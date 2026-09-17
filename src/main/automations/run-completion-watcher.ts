@@ -1,9 +1,9 @@
-import {
-  isFinalAutomationRunStatus,
-  type AutomationDispatchResult,
-  type AutomationRun,
-  type AutomationRunOutputSnapshot
+import type {
+  AutomationDispatchResult,
+  AutomationRun,
+  AutomationRunOutputSnapshot
 } from '../../shared/automations-types'
+import { isFinalAutomationRunStatus } from '../../shared/automation-run-status'
 import { RetainedRunReconciler } from './retained-run-reconciliation'
 
 export type AutomationRunCompletionObservation = {

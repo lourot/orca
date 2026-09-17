@@ -134,6 +134,7 @@ export function useAutomationDraftEffects({
         customSchedule: '',
         agentId: template.agentId ?? current.agentId,
         missedRunGraceMinutes: template.missedRunGraceMinutes ?? current.missedRunGraceMinutes,
+        minMinutesSinceLastRun: template.minMinutesSinceLastRun ?? current.minMinutesSinceLastRun,
         scheduleWarning: null
       }))
     },
