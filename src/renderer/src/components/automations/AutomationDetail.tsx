@@ -61,9 +61,9 @@ function DetailMetric({
   )
 }
 
-function formatGrace(minutes: number): string {
+function formatMinutesWindow(minutes: number, zeroLabel: string): string {
   if (minutes <= 0) {
-    return translate('auto.components.automations.AutomationDetail.noGrace', 'No grace')
+    return zeroLabel
   }
   if (minutes < 60) {
     return translate(
@@ -304,10 +304,20 @@ export function AutomationDetail({
                   'auto.components.automations.AutomationDetail.reuseLiveSession',
                   'Reuse live session'
                 )
-              : translate(
-                  'auto.components.automations.AutomationDetail.freshEachRun',
-                  'Fresh each run'
-                )
+              : automation.skipWhileSessionOpen
+                ? translate(
+                    'auto.components.automations.AutomationDetail.skipWhileSessionOpen',
+                    'Skip while a session is open'
+                  )
+                : automation.keepSessionOpen
+                  ? translate(
+                      'auto.components.automations.AutomationDetail.freshEachRunKeptOpen',
+                      'Fresh each run, left open'
+                    )
+                  : translate(
+                      'auto.components.automations.AutomationDetail.freshEachRun',
+                      'Fresh each run'
+                    )
           }
         />
         {sourceDisplay ? (
@@ -319,7 +329,25 @@ export function AutomationDetail({
         ) : null}
         <DetailMetric
           label={translate('auto.components.automations.AutomationDetail.620b22145e', 'Grace')}
-          value={formatGrace(automation.missedRunGraceMinutes)}
+          value={formatMinutesWindow(
+            automation.missedRunGraceMinutes,
+            translate('auto.components.automations.AutomationDetail.noGrace', 'No grace')
+          )}
+        />
+        <DetailMetric
+          label={translate('auto.components.automations.AutomationDetail.aa31524e63', 'Cooldown')}
+          value={formatMinutesWindow(
+            automation.minMinutesSinceLastRun ?? 0,
+            translate('auto.components.automations.AutomationDetail.noCooldown', 'No cooldown')
+          )}
+        />
+        <DetailMetric
+          label={translate('auto.components.automations.AutomationDetail.e3ccecdf50', 'Overlap')}
+          value={
+            automation.skipWhileRunActive === false
+              ? 'Allow overlapping runs'
+              : 'Skip while a run is active'
+          }
         />
         <DetailMetric
           label={translate('auto.components.automations.AutomationDetail.e353ab9516', 'Precheck')}

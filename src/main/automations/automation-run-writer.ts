@@ -52,8 +52,13 @@ export function createAutomationRunWriter(
       announce(run.automationId, result.usage ? 'usage' : 'run')
       return run
     },
-    repeatSkip: async (automationId, error, scheduledFor): Promise<AutomationRun | null> => {
-      const run = store.recordRepeatedAutomationSkip(automationId, error, scheduledFor)
+    repeatSkip: async (
+      automationId,
+      error,
+      scheduledFor,
+      status
+    ): Promise<AutomationRun | null> => {
+      const run = store.recordRepeatedAutomationSkip(automationId, error, scheduledFor, status)
       if (run) {
         await store.flushPendingOrThrowAsync({ drainToStableGeneration: false })
         announce(automationId, 'run')

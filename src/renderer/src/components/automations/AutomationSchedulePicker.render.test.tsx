@@ -49,6 +49,8 @@ const BASE_DRAFT: AutomationDraft = {
   dayOfWeek: '5',
   customSchedule: '',
   missedRunGraceMinutes: '720',
+  minMinutesSinceLastRun: '0',
+  skipWhileRunActive: true,
   savedSchedule: null,
   scheduleWarning: null
 }

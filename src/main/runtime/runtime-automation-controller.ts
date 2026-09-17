@@ -139,7 +139,9 @@ export class RuntimeAutomationController {
         rrule: input.rrule,
         dtstart: input.dtstart,
         enabled: input.enabled,
-        missedRunGraceMinutes: input.missedRunGraceMinutes
+        missedRunGraceMinutes: input.missedRunGraceMinutes,
+        minMinutesSinceLastRun: input.minMinutesSinceLastRun,
+        skipWhileRunActive: input.skipWhileRunActive
       },
       (destination ?? input.destination)
         ? { destination: destination ?? input.destination }
@@ -250,7 +252,9 @@ export class RuntimeAutomationController {
       'rrule',
       'dtstart',
       'enabled',
-      'missedRunGraceMinutes'
+      'missedRunGraceMinutes',
+      'minMinutesSinceLastRun',
+      'skipWhileRunActive'
     ] as const
     for (const key of keys) {
       if (hasRuntimeAutomationUpdateValue(updates, key)) {

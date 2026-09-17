@@ -78,6 +78,8 @@ export async function saveOrcaAutomation(
         })
   const rawGrace = Number(draft.missedRunGraceMinutes)
   const missedRunGraceMinutes = Number.isFinite(rawGrace) ? Math.max(0, rawGrace) : 720
+  const rawCooldown = Number(draft.minMinutesSinceLastRun)
+  const minMinutesSinceLastRun = Number.isFinite(rawCooldown) ? Math.max(0, rawCooldown) : 0
   const precheck = buildDraftPrecheck(draft)
   const reposForDraft = editingAutomationId !== null ? dialogRepos : repos
   const setupResolution =
@@ -169,7 +171,9 @@ export async function saveOrcaAutomation(
     setupDecision,
     reuseSession: draft.workspaceMode === 'existing' && draft.reuseSession,
     timezone,
-    missedRunGraceMinutes
+    missedRunGraceMinutes,
+    minMinutesSinceLastRun,
+    skipWhileRunActive: draft.skipWhileRunActive
   }
   if (!currentAutomation || currentAutomation.rrule !== rrule) {
     updates.rrule = rrule
@@ -191,7 +195,9 @@ export async function saveOrcaAutomation(
     timezone,
     rrule,
     dtstart: updates.dtstart ?? time.now,
-    missedRunGraceMinutes
+    missedRunGraceMinutes,
+    minMinutesSinceLastRun,
+    skipWhileRunActive: draft.skipWhileRunActive
   }
 
   const destinationResult = resolveAutomationEditDestination({

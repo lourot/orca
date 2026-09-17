@@ -5,16 +5,16 @@ import {
 } from './automation-dispatch-request'
 export type { AutomationRendererChannel } from './automation-dispatch-request'
 import type { Store } from '../persistence'
-import {
-  isFinalAutomationRunStatus,
-  type Automation,
-  type AutomationDispatchResult,
-  type AutomationPrecheckResult,
-  type AutomationRun
+import type {
+  Automation,
+  AutomationDispatchResult,
+  AutomationPrecheckResult,
+  AutomationRun
 } from '../../shared/automations-types'
 import type { ClaudeUsageStore } from '../claude-usage/store'
 import type { CodexUsageStore } from '../codex-usage/store'
-import { failedPrecheckResult, runAutomationPrecheck } from './precheck-runner'
+import { isFinalAutomationRunStatus } from '../../shared/automation-run-status'
+import { runStoredAutomationRunPrecheck } from './run-precheck-resolution'
 import {
   captureLegacyRunTarget,
   resolveAutomationRunTarget,
@@ -31,12 +31,16 @@ import {
 import { createAutomationRunWriter, type AutomationRunWriter } from './automation-run-writer'
 import { reportAutomationScheduleDrift } from './schedule-drift-report'
 import {
-  describeScheduledTickRefusal,
   missedBeyondGrace,
   recordMissedRun,
   recordRefusedAutomationRun,
   recordUnevaluableAutomation
 } from './dispatch-refusal'
+import {
+  recordManualRunRefusal,
+  recordScheduledOccurrenceRefusal,
+  type RunSessionOpenProbe
+} from './automation-run-guards'
 import type {
   AutomationsChangedPayload,
   PublishAutomationsChanged
@@ -63,6 +67,7 @@ export class AutomationService {
   private readonly publish: PublishAutomationsChanged | null
   private readonly runs: AutomationRunWriter
   private readonly completionWatcher: AutomationRunCompletionWatcher | null
+  private readonly isRunSessionOpen: RunSessionOpenProbe | undefined
   /** Desktop automation traffic holds this lease to defer queued external probes. */
   externalProbePriority: (<T>(run: () => T) => T) | null = null
 
@@ -76,6 +81,8 @@ export class AutomationService {
       headlessDispatcher?: HeadlessAutomationDispatcher
       terminalObserver?: AutomationRunTerminalObserver
       onAutomationsChanged?: PublishAutomationsChanged
+      /** Lets `skipWhileSessionOpen` see panes; without it that setting never skips. */
+      isRunSessionOpen?: RunSessionOpenProbe
     } = {}
   ) {
     this.store = store
@@ -85,6 +92,7 @@ export class AutomationService {
     this.allowRemoteHostScheduling = opts.allowRemoteHostScheduling ?? false
     this.headlessDispatcher = opts.headlessDispatcher ?? null
     this.publish = opts.onAutomationsChanged ?? null
+    this.isRunSessionOpen = opts.isRunSessionOpen
     this.runs = createAutomationRunWriter(store, this.publish)
     this.completionWatcher = opts.terminalObserver
       ? new AutomationRunCompletionWatcher({
@@ -148,8 +156,19 @@ export class AutomationService {
       throw new Error('Automation not found.')
     }
     const automation = captureLegacyRunTarget(this.store, listed, this.allowRemoteHostScheduling)
+    const now = Date.now()
+    const blocked = await recordManualRunRefusal(
+      this.runs,
+      this.store,
+      automation,
+      now,
+      this.isRunSessionOpen
+    )
+    if (blocked) {
+      return blocked
+    }
     const target = this.resolveTarget(automation)
-    const run = await this.runs.createRun(automation, Date.now(), 'manual')
+    const run = await this.runs.createRun(automation, now, 'manual')
     return await this.requestDispatch(automation, run, target, generation)
   }
 
@@ -166,28 +185,9 @@ export class AutomationService {
   }
 
   async runPrecheck(automationId: string, runId: string): Promise<AutomationPrecheckResult | null> {
-    const automation = this.store.listAutomations().find((entry) => entry.id === automationId)
-    if (!automation) {
-      throw new Error('Automation not found.')
-    }
-    const run = this.store.listAutomationRuns(automationId).find((entry) => entry.id === runId)
-    if (!run) {
-      throw new Error('Automation run not found.')
-    }
-    if (run.trigger !== 'scheduled' || !automation.precheck) {
-      return null
-    }
-    const target = this.resolveTarget(automation)
-    if (!target.ok) {
-      return failedPrecheckResult(automation.precheck, Date.now(), target.error)
-    }
-    return await runAutomationPrecheck({
-      precheck: automation.precheck,
-      target:
-        automation.executionTargetType === 'ssh'
-          ? { type: 'ssh', cwd: target.cwd, connectionId: automation.executionTargetId }
-          : { type: 'local', cwd: target.cwd }
-    })
+    return await runStoredAutomationRunPrecheck(this.store, { automationId, runId }, (automation) =>
+      this.resolveTarget(automation)
+    )
   }
 
   async markDispatchResult(result: AutomationDispatchResult): Promise<AutomationRun> {
@@ -264,13 +264,15 @@ export class AutomationService {
     // Fold recurring refusals before creating rows so they do not evict real run history.
     const target = this.resolveTarget(automation)
     const canDispatch = this.canDispatchToRenderer() || Boolean(this.headlessDispatcher)
-    const refusal = await describeScheduledTickRefusal(this.store, { target, canDispatch })
-    // Once WSL owns the schedule, avoid churning skips on the retained local copy.
-    if (refusal?.errorCode === 'wslMoveOwnedByHost') {
-      await this.runs.advanceNextRun(automation.id, now)
-      return
+    const refusalInput = {
+      store: this.store,
+      runs: this.runs,
+      automation,
+      target,
+      canDispatch,
+      isRunSessionOpen: this.isRunSessionOpen
     }
-    if (refusal && (await this.runs.repeatSkip(automation.id, refusal.error, scheduledFor))) {
+    if (await recordScheduledOccurrenceRefusal({ ...refusalInput, scheduledFor, now })) {
       await this.runs.advanceNextRun(automation.id, now)
       return
     }

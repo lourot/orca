@@ -8,7 +8,9 @@ import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import type { AgentCatalogEntry } from '@/lib/agent-catalog'
 import { AUTOMATION_EDITOR_SECTION_LABEL_CLASS, Field } from './automation-page-parts'
+import { AutomationCooldownField } from './AutomationCooldownField'
 import { AutomationMissedRunGraceField } from './AutomationMissedRunGraceField'
+import { AutomationRunOverlapField } from './AutomationRunOverlapField'
 import { AutomationPrecheckFields } from './AutomationPrecheckFields'
 import AutomationProjectCombobox from './AutomationProjectCombobox'
 import { AutomationSchedulePicker } from './AutomationSchedulePicker'
@@ -147,12 +149,26 @@ export function AutomationEditorSettingsSidebar({
           />
         </Field>
         <div className="mb-4">
-          <AutomationMissedRunGraceField
-            disabled={false}
-            draft={draft}
-            pickerTriggerClassName={pickerTriggerClassName}
-            onDraftChange={onDraftChange}
-          />
+          <div className="flex flex-col gap-5">
+            <AutomationMissedRunGraceField
+              disabled={false}
+              draft={draft}
+              pickerTriggerClassName={pickerTriggerClassName}
+              onDraftChange={onDraftChange}
+            />
+            <AutomationCooldownField
+              disabled={false}
+              draft={draft}
+              pickerTriggerClassName={pickerTriggerClassName}
+              onDraftChange={onDraftChange}
+            />
+            <AutomationRunOverlapField
+              draft={draft}
+              toggleGroupClassName={segmentedGroupClassName}
+              toggleItemClassName={segmentedItemClassName}
+              onDraftChange={onDraftChange}
+            />
+          </div>
         </div>
         <div className="mb-4">
           <div className="flex flex-col gap-5">

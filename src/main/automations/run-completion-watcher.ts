@@ -1,9 +1,9 @@
-import {
-  isFinalAutomationRunStatus,
-  type AutomationDispatchResult,
-  type AutomationRun,
-  type AutomationRunOutputSnapshot
+import type {
+  AutomationDispatchResult,
+  AutomationRun,
+  AutomationRunOutputSnapshot
 } from '../../shared/automations-types'
+import { isFinalAutomationRunStatus } from '../../shared/automation-run-status'
 import type { AutomationRunFailureCodeFields } from '../../shared/automation-run-failure-copy'
 import { RetainedRunReconciler } from './retained-run-reconciliation'
 

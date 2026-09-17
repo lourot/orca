@@ -25,6 +25,7 @@ import {
   type AutomationShowPayload
 } from '../format'
 import {
+  getOptionalNonNegativeIntegerFlag,
   getOptionalPositiveIntegerFlag,
   getOptionalStringFlag,
   getRequiredStringFlag
@@ -56,6 +57,7 @@ import {
   getProviderFlag,
   getReuseSessionFlag,
   getScheduleFlag,
+  getSkipWhileRunActiveFlag,
   getSourceContextFlag,
   getWorkspaceModeFlag
 } from './automation-handler-flags'
@@ -214,6 +216,11 @@ export const AUTOMATION_HANDLERS: Record<string, CommandHandler> = {
       timezone: getOptionalStringFlag(flags, 'timezone'),
       enabled: getEnabledFlag(flags),
       missedRunGraceMinutes: getOptionalPositiveIntegerFlag(flags, 'missed-run-grace-minutes'),
+      minMinutesSinceLastRun: getOptionalNonNegativeIntegerFlag(
+        flags,
+        'min-minutes-since-last-run'
+      ),
+      skipWhileRunActive: getSkipWhileRunActiveFlag(flags),
       ...schedule
     } satisfies AutomationCreateParams
     await assertExtraAgentArgsSupported(client, create.extraAgentArgs)
@@ -246,6 +253,11 @@ export const AUTOMATION_HANDLERS: Record<string, CommandHandler> = {
       timezone: getOptionalStringFlag(flags, 'timezone'),
       enabled: getEnabledFlag(flags),
       missedRunGraceMinutes: getOptionalPositiveIntegerFlag(flags, 'missed-run-grace-minutes'),
+      minMinutesSinceLastRun: getOptionalNonNegativeIntegerFlag(
+        flags,
+        'min-minutes-since-last-run'
+      ),
+      skipWhileRunActive: getSkipWhileRunActiveFlag(flags),
       ...schedule
     } satisfies AutomationUpdateParams
     await assertExtraAgentArgsSupported(client, updates.extraAgentArgs)

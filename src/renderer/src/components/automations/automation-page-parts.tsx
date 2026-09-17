@@ -70,6 +70,14 @@ export function getAutomationRunStatusVariant(
   return 'dot'
 }
 
+/** Reached only for a status this build has never heard of — a newer host on the other
+ *  end of the wire. Typed `never` so a member missing from the switch below is still a
+ *  compile error rather than a blank badge. */
+function deriveAutomationRunStatusLabel(status: never): string {
+  const words = String(status).replaceAll('_', ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 export function getAutomationRunStatusLabel(status: AutomationRun['status']): string {
   switch (status) {
     case 'pending':
@@ -106,12 +114,23 @@ export function getAutomationRunStatusLabel(status: AutomationRun['status']): st
         'auto.components.automations.automationPageParts.runStatusSkippedNeedsInteractiveAuth',
         'Needs credentials'
       )
+    case 'skipped_cooldown':
+      return translate(
+        'auto.components.automations.automationPageParts.runStatusSkippedCooldown',
+        'Ran recently'
+      )
+    case 'skipped_run_active':
+      return translate(
+        'auto.components.automations.automationPageParts.runStatusSkippedRunActive',
+        'Run in progress'
+      )
     case 'dispatch_failed':
       return translate(
         'auto.components.automations.automationPageParts.runStatusDispatchFailed',
         'Failed'
       )
   }
+  return deriveAutomationRunStatusLabel(status)
 }
 
 export const AUTOMATION_EDITOR_SECTION_LABEL_CLASS =

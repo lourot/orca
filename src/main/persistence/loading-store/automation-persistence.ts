@@ -4,6 +4,7 @@ import type {
   AutomationCreateInput,
   AutomationDispatchResult,
   AutomationRun,
+  AutomationRunStatus,
   AutomationRunTrigger,
   AutomationUpdateInput
 } from '../../../shared/automations-types'
@@ -186,13 +187,15 @@ export class AutomationPersistence {
   recordRepeatedAutomationSkip(
     automationId: string,
     error: string,
-    scheduledFor: number
+    scheduledFor: number,
+    status: AutomationRunStatus = 'skipped_unavailable'
   ): AutomationRun | null {
     return recordRepeatedAutomationSkipOperation(
       getAutomationRunOperations(this),
       automationId,
       error,
-      scheduledFor
+      scheduledFor,
+      status
     )
   }
 

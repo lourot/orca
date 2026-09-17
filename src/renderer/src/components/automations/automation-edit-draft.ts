@@ -26,6 +26,8 @@ export function buildAutomationEditDraft(automation: Automation): AutomationDraf
       persistedSetupDecision: automation.setupDecision
     }),
     reuseSession: automation.workspaceMode === 'existing' && automation.reuseSession,
+    skipWhileSessionOpen: automation.skipWhileSessionOpen === true && !automation.reuseSession,
+    keepSessionOpen: automation.keepSessionOpen === true,
     precheckCommand: automation.precheck?.command ?? '',
     precheckTimeoutSeconds: String(automation.precheck?.timeoutSeconds ?? 60),
     preset: schedule?.preset ?? (hasCustomSchedule ? 'custom' : 'weekdays'),
@@ -34,6 +36,8 @@ export function buildAutomationEditDraft(automation: Automation): AutomationDraf
     customSchedule: hasCustomSchedule ? automation.rrule : '',
     savedSchedule: automation.rrule,
     missedRunGraceMinutes: String(automation.missedRunGraceMinutes),
+    minMinutesSinceLastRun: String(automation.minMinutesSinceLastRun ?? 0),
+    skipWhileRunActive: automation.skipWhileRunActive !== false,
     scheduleWarning:
       schedule || hasCustomSchedule
         ? null
