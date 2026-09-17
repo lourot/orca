@@ -245,6 +245,11 @@ async function startOrcadRuntime(
       isAgentStatusHooksEnabled(store.getSettings()) ? agentHookServer.buildPtyEnv() : {}
   })
 
+  // Why here too and not only on the desktop: this is what lets an escape-interrupted Claude row
+  // settle, and orcad is an execution host in its own right — unwired it would never confirm.
+  const { createAgentPaneScreenReader } = await import('../agent-hooks/agent-pane-screen-reader')
+  agentHookServer.setPaneScreenReader(createAgentPaneScreenReader(runtime))
+
   const { installOrcadSessionSearchService } = await import('./orcad-session-search')
   const sessionSearch = await installOrcadSessionSearchService({
     userDataPath: runtimeUserDataPath,

@@ -16,6 +16,9 @@ export type TranscriptPaneOptions = {
   /** Simulates a PTY controller whose foreground probe never settles. */
   foregroundProbeHangs?: boolean
   onForegroundProbe?: () => void
+  /** The capture's PTY size (`<name>.meta.json`). Replaying at another width rewraps the
+   *  screen into text no terminal ever showed, so a rule tested on it is tested on noise. */
+  size?: { cols: number; rows: number }
 }
 
 export async function createTranscriptPane(
@@ -37,6 +40,7 @@ export async function createTranscriptPane(
     spawn: vi.fn().mockResolvedValue({ id: TRANSCRIPT_PANE_PTY_ID, incarnationId: 'inc-1' }),
     write: () => true,
     kill: () => true,
+    ...(options.size ? { getSize: () => options.size ?? null } : {}),
     getForegroundProcess: (): Promise<string | null> => {
       options.onForegroundProbe?.()
       return options.foregroundProbeHangs === true

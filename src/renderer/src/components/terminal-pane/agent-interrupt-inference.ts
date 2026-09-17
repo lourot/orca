@@ -52,7 +52,11 @@ function shouldFlushInterruptImmediately(
   return (
     requiresDoubleEscapeForAgent(baseline.agentType, baseline.intent) ||
     baseline.agentType === 'gemini' ||
-    (baseline.agentType === 'codex' && baseline.intent === 'plain-escape')
+    (baseline.agentType === 'codex' && baseline.intent === 'plain-escape') ||
+    // Why: main samples the pane screen at arm time and confirms on a marker it did not start
+    // with. Waiting out the settle timer first would sample a screen Claude has already repainted
+    // with the marker, so the baseline would contain it and nothing could ever be "newly gained".
+    (baseline.agentType === 'claude' && baseline.intent === 'plain-escape')
   )
 }
 
@@ -64,13 +68,16 @@ function shouldIgnoreInterruptIntent(
 }
 
 /** Why: skip a round-trip main will refuse anyway. Scoped to 'working' so Claude's
- *  AskUserQuestion dismissal — a 'waiting' row — still reaches inferQuestionAnswered. */
+ *  AskUserQuestion dismissal — a 'waiting' row — still reaches inferQuestionAnswered.
+ *  Claude is excluded: main arms a watch on its pane screen rather than refusing outright. */
 function isIgnorableNavigationEscape(
   agentType: AgentStatusEntry['agentType'],
   intent: AgentInterruptInputIntent,
   state: AgentStatusEntry['state']
 ): boolean {
-  return state === 'working' && isNavigationEscapeIntent(agentType, intent)
+  return (
+    state === 'working' && agentType !== 'claude' && isNavigationEscapeIntent(agentType, intent)
+  )
 }
 
 function canInferInterrupt(entry: AgentStatusEntry, intent: AgentInterruptInputIntent): boolean {
@@ -252,6 +259,16 @@ export function createAgentInterruptInference({
       // Why: this keypress proves nothing, but it must not revoke a Ctrl+C already waiting to
       // settle — the user really did ask to interrupt, and Escape does not take that back.
       if (isIgnorableNavigationEscape(baseline.agentType, intent, entry.state)) {
+        return
+      }
+      // Same invariant for Claude, which no longer returns above: a pending Ctrl+C on this turn
+      // is unconditional evidence, and replacing it with an Escape would make it wait on a screen
+      // marker that Ctrl+C never needed.
+      if (
+        intent === 'plain-escape' &&
+        pendingBaseline?.intent === 'ctrl-c' &&
+        isSameTurnBaseline(pendingBaseline, baseline)
+      ) {
         return
       }
       if (requiresDoubleEscapeForAgent(baseline.agentType, intent)) {

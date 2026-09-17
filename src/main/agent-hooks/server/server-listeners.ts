@@ -2,6 +2,7 @@ import type {
   AgentStatusClearIpcPayload,
   AgentStatusIpcPayload
 } from '../../../shared/agent-status-types'
+import type { AgentPaneScreenReader } from '../agent-pane-screen-reader'
 import type { ClaudeStatusLineRateLimits } from '../../../shared/claude-statusline-rate-limits'
 import type { HookTransportInterferenceReport } from '../../../shared/agent-hook-transport-interference'
 import {
@@ -90,6 +91,16 @@ export abstract class AgentHookServerListeners extends AgentHookServerState {
         console.error('[agent-hooks] replay listener threw', err)
       }
     }
+  }
+
+  /**
+   * Supplies the pane screens that `inferInterrupt` confirms a Claude interrupt against.
+   *
+   * Unwired (tests, or a host that forgot) the escape simply never confirms and the row stays
+   * `working` — the same behaviour as before the screen rule existed.
+   */
+  setPaneScreenReader(reader: AgentPaneScreenReader | null): void {
+    this.paneScreenReader = reader
   }
 
   // Why: statusline posts carry live Claude usage windows, not agent status; they feed RateLimitService directly.

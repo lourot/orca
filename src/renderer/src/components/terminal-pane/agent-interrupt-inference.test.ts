@@ -348,11 +348,42 @@ describe('agent interrupt inference', () => {
     entry = undefined
   })
 
-  it.each([['claude'], ['omp'], ['pi'], ['prime-agent']] as const)(
+  it('asks main immediately on a single Escape while Claude is working', () => {
+    // Why not skipped like the TUIs below: main arms a watch on Claude's pane screen and settles
+    // only if the interrupt marker appears, because Claude emits no hook for a user interrupt.
+    // Why not after the settle window: main samples the screen when the request arrives, and by
+    // then Claude has already repainted, so the baseline would contain the marker it is watching
+    // for.
+    vi.useFakeTimers()
+    let entry: AgentStatusEntry | undefined = makeEntry({ agentType: 'claude', toolName: 'Bash' })
+    const inferInterrupt = vi.fn().mockReturnValue(false)
+    const tracker = createAgentInterruptInference({
+      paneKey: PANE_KEY,
+      getStatusEntry: () => entry,
+      inferInterrupt,
+      now: () => 1_100
+    })
+
+    tracker.observeInputIntent('plain-escape')
+
+    expect(inferInterrupt).toHaveBeenCalledWith({
+      paneKey: PANE_KEY,
+      baselineUpdatedAt: 1_000,
+      baselineStateStartedAt: 900,
+      baselinePrompt: 'write tests',
+      baselineAgentType: 'claude',
+      intent: 'plain-escape'
+    })
+    tracker.dispose()
+    entry = undefined
+  })
+
+  it.each([['omp'], ['pi'], ['prime-agent']] as const)(
     'never asks main to interrupt %s on a single Escape while working',
     (agentType) => {
-      // Why: Escape is ambiguous at the source for these TUIs, so the renderer does not spend a
-      // round-trip on it. main re-checks the same rule for requests that never came from here.
+      // Why: Escape is ambiguous at the source for these TUIs and none has a captured screen to
+      // confirm against, so the renderer does not spend a round-trip on it. main re-checks the
+      // same rule for requests that never came from here.
       vi.useFakeTimers()
       let entry: AgentStatusEntry | undefined = makeEntry({ agentType, toolName: 'Bash' })
       const inferInterrupt = vi.fn()

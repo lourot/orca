@@ -16,9 +16,34 @@ import { AGENT_STATUS_STALE_AFTER_MS, type AgentType } from '../../../shared/age
 import type { EnrichedAgentHookEventPayload } from './server-types'
 import { equivalentInterruptAgentType, isValidPaneKey } from './server-status-identity'
 import { AgentHookServerRowOwnership } from './server-row-ownership'
+import type { AgentPaneScreenReader } from '../agent-pane-screen-reader'
+import {
+  countClaudeInterruptMarkers,
+  CLAUDE_INTERRUPT_SCREEN_CONFIRM_MS,
+  CLAUDE_INTERRUPT_SCREEN_POLL_MS
+} from '../../runtime/claude-interrupt-screen'
+
+/** Unref'd so an armed watch never holds the process (or a test run) open. */
+function unrefDelay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms).unref?.()
+  })
+}
 
 export abstract class AgentHookServerStatusInference extends AgentHookServerRowOwnership {
   inferInterrupt(request: AgentInterruptInferenceRequest): boolean {
+    return this.inferInterruptFrom(request, false)
+  }
+
+  /**
+   * @param screenConfirmed the pane has since painted Claude's interrupt marker. Set only by the
+   * armed watch below, which re-enters here so every guard is re-checked against the row as it
+   * stands at confirmation time — a real hook may have landed during the window.
+   */
+  protected inferInterruptFrom(
+    request: AgentInterruptInferenceRequest,
+    screenConfirmed: boolean
+  ): boolean {
     if (!isValidPaneKey(request.paneKey)) {
       return false
     }
@@ -71,11 +96,6 @@ export abstract class AgentHookServerStatusInference extends AgentHookServerRowO
     ) {
       return false
     }
-    // Why: re-checked here, not only in the renderer, so a stale or direct inference request
-    // cannot route around the renderer's skip and synthesize a false stopped row.
-    if (isNavigationEscapeIntent(agentType, request.intent)) {
-      return false
-    }
     // Why: a 'working' pane can be child-driven; Ctrl+C doesn't stop background children, so inferring done would retire live child rows.
     if (payload.subagents?.some((subagent) => subagent.state !== 'idle')) {
       return false
@@ -87,6 +107,13 @@ export abstract class AgentHookServerStatusInference extends AgentHookServerRowO
         this.state.claudeActiveSessionCronPaneKeys.has(existing.paneKey))
     ) {
       return false
+    }
+    // Why: re-checked here, not only in the renderer, so a stale or direct inference request
+    // cannot route around the renderer's skip and synthesize a false stopped row. Claude alone
+    // gets a second chance: the keypress arms a watch on its pane, and only the interrupt marker
+    // appearing on screen settles the row. The other TUIs in that set have no captured screen.
+    if (!screenConfirmed && isNavigationEscapeIntent(agentType, request.intent)) {
+      return agentType === 'claude' ? this.armClaudeScreenInterrupt(request) : false
     }
     // Why: keep the Claude lead-turn record in sync, or a later child event re-emits the stale 'working' state and resurrects the cancelled pane.
     if (agentType === 'claude') {
@@ -120,6 +147,48 @@ export abstract class AgentHookServerStatusInference extends AgentHookServerRowO
       intent: request.intent
     })
     return true
+  }
+
+  /**
+   * Arms a screen watch for the interrupt Claude never reports.
+   *
+   * Returns false: nothing has been inferred yet, and the caller's boolean means "a row was
+   * written". Confirmation publishes through `applyNormalizedStatus` like any other write, so
+   * every subscriber sees it on the normal path. A watch that expires writes nothing, which is
+   * exactly today's behaviour — the failure mode is always the row staying `working`.
+   */
+  protected armClaudeScreenInterrupt(request: AgentInterruptInferenceRequest): boolean {
+    const reader = this.paneScreenReader
+    if (!reader || this.screenConfirmedInterruptPaneKeys.has(request.paneKey)) {
+      return false
+    }
+    this.screenConfirmedInterruptPaneKeys.add(request.paneKey)
+    void this.watchClaudeScreenForInterrupt(request, reader)
+      .catch((err) => console.warn('[agent-hooks] claude interrupt screen watch failed', err))
+      .finally(() => this.screenConfirmedInterruptPaneKeys.delete(request.paneKey))
+    return false
+  }
+
+  private async watchClaudeScreenForInterrupt(
+    request: AgentInterruptInferenceRequest,
+    reader: AgentPaneScreenReader
+  ): Promise<void> {
+    // Why a count and not mere presence: the marker from an earlier interrupt can still be on
+    // screen, and Escape also closes Claude's slash-command menu mid-turn without stopping it
+    // (#13547). Only a marker this keypress did not start with is evidence.
+    const baseline = countClaudeInterruptMarkers((await reader(request.paneKey)) ?? [])
+    const deadline = Date.now() + CLAUDE_INTERRUPT_SCREEN_CONFIRM_MS
+    while (Date.now() < deadline) {
+      await unrefDelay(CLAUDE_INTERRUPT_SCREEN_POLL_MS)
+      const lines = await reader(request.paneKey)
+      if (lines === null) {
+        continue
+      }
+      if (countClaudeInterruptMarkers(lines) > baseline) {
+        this.inferInterruptFrom(request, true)
+        return
+      }
+    }
   }
 
   /** Guarded fallback for the hook Claude omits after answering or dismissing AskUserQuestion. */

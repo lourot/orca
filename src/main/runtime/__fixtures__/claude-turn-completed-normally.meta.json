@@ -1,0 +1,9 @@
+{
+  "capturedAt": "2026-09-17T20:12:20.969Z",
+  "platform": "darwin",
+  "command": ["claude", "--settings", "/tmp/claude-esc-capture/settings.json"],
+  "cols": 120,
+  "rows": 40,
+  "note": "claude 2.1.236, macOS, subscription account, default model; settings allow Bash(sleep:*) only",
+  "exitCode": 129
+}

@@ -33,6 +33,17 @@ lines, or normalise anything — the file is what the terminal received.
 - `--note "<text>"` records the account type, plan, model and CLI version in the sidecar.
 - `--out <path>` writes outside the fixture directory (use it for a first dry run).
 
+**Send the prompt and its Enter as two `--send`s.** A long line and its `\r` delivered in one chunk
+reads as a paste, so the text lands in the composer and the turn never starts — and the capture
+looks like the agent ignored you. `--send "14000:<prompt>" --send "17000:\r"`.
+
+**Drive a dialog you cannot reach, rather than assuming it appears.** A permission prompt, a trust
+dialog or a menu may be auto-answered by the operator's own mode (Claude's `auto mode` silently
+allows commands that would otherwise prompt; `--permission-mode default` restores the prompt).
+Capture the state once with `--out /tmp/...` and no keystroke first, confirm the dialog is really on
+screen, and only then record the fixture that acts on it. Three of five fixtures in one session
+captured the wrong state on the first attempt, each looking plausible.
+
 Each capture also writes `<fixture-name>.meta.json` with the timestamp, platform, command,
 PTY size, note and exit code. Commit it with the transcript; the version and account type behind
 a screen are not recoverable from the bytes.
@@ -82,6 +93,23 @@ Redaction replaces each finding with a **same-length** placeholder (`u…u@examp
 Length matters: a transcript's value is its exact wrapping and column alignment, and a shorter
 replacement reflows the screen and destroys the evidence.
 
+### Hand-scrubbing: binary mode, or you destroy the transcript
+
+The scanner matches shapes, so a first name, an org or a project name has to be replaced by hand.
+**Do it in binary.** A text-mode read/write translates every bare `\r` to `\n` — and a bare `\r` is
+how a TUI repaints, so the file survives as valid UTF-8 that renders as garbage. Nothing warns you:
+the scan still says `clean`, the diff still looks like a diff, and a fixture is not in git yet, so
+there is no copy to restore.
+
+```python
+data = open(path, 'rb').read()            # NOT open(path) — text mode rewrites newlines
+assert len(old.decode()) == len(new.decode())
+open(path, 'wb').write(data.replace(old, new))
+```
+
+Check `data.count(b'\r')` before and after; it must not change. A freshly captured transcript has
+hundreds of CRs, so a count near zero means the file has already been through a text-mode rewrite.
+
 ### Verify it is gone
 
 1. `node config/scripts/capture-agent-pty-transcript.mjs --scan src/main/runtime/__fixtures__/<name>.txt`
@@ -100,6 +128,17 @@ replacement reflows the screen and destroys the evidence.
 Feed the raw bytes through the runtime rather than into a matcher directly: escape handling,
 tail retention and title tracking all live in `onPtyData`, and a rule tested on pre-normalised
 text is tested on something no pane ever sees.
+
+**Replay at the size the capture ran at.** Pass `createTranscriptPane`'s `size` from the fixture's
+own `<name>.meta.json`; without it the emulator defaults to 80x24 and a 120-column capture rewraps
+into text no terminal ever showed — words spliced mid-line (`⏺ RecRunnbula (3s …`) that read like a
+detector bug rather than a harness one.
+
+**Some agents have no usable tail at all.** A TUI that repaints in place can leave the derived tail
+(`buildPreview` over `pty.tailBuffer`) empty while the pane is visibly full — that is every captured
+Claude transcript. Read `readTerminal(handle, { screen: true })` for those, and before believing an
+empty tail is a finding, run a known-positive control through the same harness: an Antigravity
+fixture and a plain `'hello\n'` both produce a populated tail.
 
 `src/main/runtime/agent-transcript-pane-test-harness.ts` builds the pane;
 `src/main/runtime/terminal-interactive-wait-visibility.test.ts` (cursor-agent) and

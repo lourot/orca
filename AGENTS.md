@@ -137,7 +137,9 @@ The execution host owns agent status in one store, the hook server's, and every 
 
 ## Agent Terminal Screens
 
-A rule that reads what an agent CLI paints on a terminal — readiness, blocked prompts, idle — must be written against a captured transcript, not a remembered screen. Record one with [`docs/reference/agent-pty-transcript-capture.md`](./docs/reference/agent-pty-transcript-capture.md), which keeps escapes and wrapping intact and scrubs account identifiers before they reach git. Antigravity readiness has no transcript yet and five failed attempts without one; before touching it, read [`docs/reference/antigravity-readiness-evidence.md`](./docs/reference/antigravity-readiness-evidence.md).
+A rule that reads what an agent CLI paints on a terminal — readiness, blocked prompts, idle, interrupted — must be written against a captured transcript, not a remembered screen. Record one with [`docs/reference/agent-pty-transcript-capture.md`](./docs/reference/agent-pty-transcript-capture.md), which keeps escapes and wrapping intact and scrubs account identifiers before they reach git. Antigravity readiness has no transcript yet and five failed attempts without one; before touching it, read [`docs/reference/antigravity-readiness-evidence.md`](./docs/reference/antigravity-readiness-evidence.md).
+
+A Claude pane's derived tail is **empty** — it repaints in place, so every rule over `buildPreview` is blind to it. Read `readTerminal(handle, { screen: true })` instead, and replay a fixture at the PTY size its `.meta.json` records or the screen rewraps into text no terminal ever showed. Claude also emits no hook at all on a user interrupt; see [`docs/reference/claude-interrupt-screen-evidence.md`](./docs/reference/claude-interrupt-screen-evidence.md) before changing what settles an interrupted row.
 
 ## Remote Wire Compatibility
 
