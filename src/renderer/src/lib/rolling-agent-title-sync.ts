@@ -3,6 +3,7 @@ import type {
   RollingAgentTitleArgs,
   RollingAgentTitleResult
 } from '../../../shared/rolling-agent-title'
+import type { Tab } from '../../../shared/tab-types'
 import { splitWorktreeIdForFilesystem } from '../../../shared/worktree/id'
 import { getActiveRuntimeTarget } from '@/runtime/runtime-client-target'
 import { getTerminalTabOwnerWorktreeId } from '@/store/slices/terminal-tab-owner-index'
@@ -16,7 +17,11 @@ export const ROLLING_TITLE_MIN_INTERVAL_MS = 2 * 60_000
 /** Everything this module reads, so the store surface it depends on is explicit. */
 export type RollingAgentTitleSyncState = Pick<
   AppState,
-  'settings' | 'agentStatusByPaneKey' | 'tabsByWorktree' | 'setRollingAgentTitles'
+  | 'settings'
+  | 'agentStatusByPaneKey'
+  | 'tabsByWorktree'
+  | 'unifiedTabsByWorktree'
+  | 'setRollingAgentTitles'
 >
 
 type RollingAgentTitleSyncDependencies = {
@@ -58,22 +63,34 @@ function collectCompletedTurns(
   return candidates
 }
 
-function findTerminalTab(
+function findRollingTitleTab(
   state: RollingAgentTitleSyncState,
   tabId: string
 ): { worktreeId: string; hasManualTitle: boolean } | null {
   const worktreeId = getTerminalTabOwnerWorktreeId(state.tabsByWorktree, tabId)
-  if (!worktreeId) {
-    return null
+  if (worktreeId) {
+    const tab = state.tabsByWorktree[worktreeId]?.find((candidate) => candidate.id === tabId)
+    if (tab) {
+      return {
+        worktreeId,
+        hasManualTitle: Boolean(tab.customTitle?.trim() || tab.quickCommandLabel?.trim())
+      }
+    }
   }
-  const tab = state.tabsByWorktree[worktreeId]?.find((candidate) => candidate.id === tabId)
-  if (!tab) {
-    return null
+
+  for (const [unifiedWorktreeId, tabs] of Object.entries(state.unifiedTabsByWorktree)) {
+    const tab = tabs.find(
+      (candidate: Tab) => candidate.contentType === 'agent-session' && candidate.id === tabId
+    )
+    if (tab) {
+      return {
+        worktreeId: unifiedWorktreeId,
+        hasManualTitle: Boolean(tab.customLabel?.trim() || tab.quickCommandLabel?.trim())
+      }
+    }
   }
-  return {
-    worktreeId,
-    hasManualTitle: Boolean(tab.customTitle?.trim() || tab.quickCommandLabel?.trim())
-  }
+
+  return null
 }
 
 /**
@@ -91,10 +108,16 @@ export function startRollingAgentTitleSync(
 
   const clearAllTitles = (): void => {
     const state = dependencies.getState()
-    const updates = Object.values(state.tabsByWorktree)
-      .flat()
-      .filter((tab) => tab.rollingTitle)
-      .map((tab) => ({ tabId: tab.id, title: null }))
+    const updates = [
+      ...Object.values(state.tabsByWorktree)
+        .flat()
+        .filter((tab) => tab.rollingTitle)
+        .map((tab) => ({ tabId: tab.id, title: null })),
+      ...Object.values(state.unifiedTabsByWorktree)
+        .flat()
+        .filter((tab) => tab.contentType === 'agent-session' && tab.rollingLabel)
+        .map((tab) => ({ tabId: tab.id, title: null }))
+    ]
     if (updates.length > 0) {
       state.setRollingAgentTitles(updates)
     }
@@ -102,7 +125,7 @@ export function startRollingAgentTitleSync(
 
   const runCandidate = async (candidate: TurnCandidate): Promise<void> => {
     const state = dependencies.getState()
-    const tab = findTerminalTab(state, candidate.tabId)
+    const tab = findRollingTitleTab(state, candidate.tabId)
     if (!tab || tab.hasManualTitle) {
       return
     }
@@ -131,7 +154,7 @@ export function startRollingAgentTitleSync(
       }
       // Generation can outlive a rename or a tab close.
       const latest = dependencies.getState()
-      const stillWritable = findTerminalTab(latest, candidate.tabId)
+      const stillWritable = findRollingTitleTab(latest, candidate.tabId)
       if (stillWritable && !stillWritable.hasManualTitle) {
         latest.setRollingAgentTitles([{ tabId: candidate.tabId, title: result.title }])
       }

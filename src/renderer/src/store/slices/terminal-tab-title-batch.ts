@@ -39,6 +39,7 @@ type OwnerStage = {
   unifiedTabs: Tab[]
   unifiedTabsChanged: boolean
   unifiedIndexByTabId: Map<string, number>
+  unifiedIndexById: Map<string, number>
 }
 
 function getFallbackTabTitle(tab: TerminalTab): string {
@@ -77,8 +78,10 @@ function getOwnerStage(
     }
   }
   const unifiedIndexByTabId = new Map<string, number>()
+  const unifiedIndexById = new Map<string, number>()
   for (let index = 0; index < unifiedTabs.length; index += 1) {
     const tab = unifiedTabs[index]
+    unifiedIndexById.set(tab.id, index)
     if (tab.contentType === 'terminal' && !unifiedIndexByTabId.has(tab.entityId)) {
       unifiedIndexByTabId.set(tab.entityId, index)
     }
@@ -89,7 +92,8 @@ function getOwnerStage(
     tabIndexesById,
     unifiedTabs,
     unifiedTabsChanged: false,
-    unifiedIndexByTabId
+    unifiedIndexByTabId,
+    unifiedIndexById
   }
   stages.set(worktreeId, stage)
   return stage
@@ -124,6 +128,18 @@ function updateStageUnifiedLabel(
     stage.unifiedTabsChanged = true
   }
   stage.unifiedTabs[index] = { ...stage.unifiedTabs[index], [key]: value }
+}
+
+function updateStageStructuredLabel(stage: OwnerStage, tabId: string, value: string | null): void {
+  const index = stage.unifiedIndexById.get(tabId)
+  if (index === undefined || stage.unifiedTabs[index]?.rollingLabel === value) {
+    return
+  }
+  if (!stage.unifiedTabsChanged) {
+    stage.unifiedTabs = [...stage.unifiedTabs]
+    stage.unifiedTabsChanged = true
+  }
+  stage.unifiedTabs[index] = { ...stage.unifiedTabs[index], rollingLabel: value }
 }
 
 function finishTitleStages(
@@ -251,32 +267,52 @@ export function applyRollingAgentTitleUpdates(
   updates: readonly RollingAgentTitleUpdate[]
 ): TitleUpdateResult {
   const ownerByTabId = getTerminalTabOwners(state.tabsByWorktree)
+  const structuredOwnerByTabId = new Map<string, string>()
+  for (const [worktreeId, tabs] of Object.entries(state.unifiedTabsByWorktree)) {
+    for (const tab of tabs) {
+      if (tab.contentType === 'agent-session') {
+        structuredOwnerByTabId.set(tab.id, worktreeId)
+      }
+    }
+  }
   const stages = new Map<string, OwnerStage>()
   for (const { tabId, title } of updates) {
-    const ownerWorktreeId = ownerByTabId.get(tabId)
+    const ownerWorktreeId = ownerByTabId.get(tabId) ?? structuredOwnerByTabId.get(tabId)
     if (!ownerWorktreeId) {
       continue
     }
     const stage = getOwnerStage(state, stages, ownerWorktreeId)
     const tabIndexes = stage.tabIndexesById.get(tabId)
     const currentTab = tabIndexes ? stage.tabs[tabIndexes[0]] : undefined
-    if (!currentTab || !tabIndexes) {
-      continue
-    }
     const nextTitle = title?.trim() || null
     // Clearing always applies; only writes are gated, so turning the setting
     // off can retire titles it previously wrote.
     if (nextTitle && state.settings?.tabRollingAgentTitle !== true) {
       continue
     }
-    if (nextTitle && (currentTab.customTitle?.trim() || currentTab.quickCommandLabel?.trim())) {
+    if (currentTab && tabIndexes) {
+      if (nextTitle && (currentTab.customTitle?.trim() || currentTab.quickCommandLabel?.trim())) {
+        continue
+      }
+      if ((currentTab.rollingTitle ?? null) === nextTitle) {
+        continue
+      }
+      updateStageTabs(stage, tabIndexes, (tab) => ({ ...tab, rollingTitle: nextTitle }))
+      updateStageUnifiedLabel(stage, tabId, 'rollingLabel', nextTitle)
       continue
     }
-    if ((currentTab.rollingTitle ?? null) === nextTitle) {
+    const currentStructuredTab = stage.unifiedTabs[stage.unifiedIndexById.get(tabId) ?? -1]
+    if (
+      !currentStructuredTab ||
+      currentStructuredTab.contentType !== 'agent-session' ||
+      (nextTitle &&
+        (currentStructuredTab.customLabel?.trim() ||
+          currentStructuredTab.quickCommandLabel?.trim())) ||
+      (currentStructuredTab.rollingLabel ?? null) === nextTitle
+    ) {
       continue
     }
-    updateStageTabs(stage, tabIndexes, (tab) => ({ ...tab, rollingTitle: nextTitle }))
-    updateStageUnifiedLabel(stage, tabId, 'rollingLabel', nextTitle)
+    updateStageStructuredLabel(stage, tabId, nextTitle)
   }
   return finishTitleStages(state, stages)
 }

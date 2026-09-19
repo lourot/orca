@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { AgentStatusEntry } from '../../../shared/agent-status-types'
 import { getDefaultSettings } from '../../../shared/constants'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import type { RollingAgentTitleResult } from '../../../shared/rolling-agent-title'
+import type { Tab } from '../../../shared/tab-types'
 import type { TerminalTab } from '../../../shared/terminal-tab-types'
 import {
   ROLLING_TITLE_MIN_INTERVAL_MS,
@@ -35,10 +37,28 @@ function terminalTab(overrides: Partial<TerminalTab> = {}): TerminalTab {
   }
 }
 
+function structuredTab(overrides: Partial<Tab> = {}): Tab {
+  return {
+    id: 'structured-tab-1',
+    entityId: 'session-1',
+    groupId: 'group-1',
+    worktreeId: WORKTREE_ID,
+    contentType: 'agent-session',
+    label: 'Codex Chat',
+    customLabel: null,
+    color: null,
+    sortOrder: 0,
+    createdAt: 1,
+    agentSessionAgent: 'codex',
+    ...overrides
+  }
+}
+
 function makeHarness(
   args: {
     enabled?: boolean
     activeRuntimeEnvironmentId?: string
+    structured?: boolean
     tab?: Partial<TerminalTab>
     generate?: (index: number) => Promise<RollingAgentTitleResult>
   } = {}
@@ -49,15 +69,16 @@ function makeHarness(
   const writes: { tabId: string; title: string | null }[] = []
   let clock = 1_000_000
   let generateCalls = 0
+  const structuredSession = structuredTab()
 
-  const statusEntry = {
+  const statusEntry: AgentStatusEntry = {
     state: 'working' as const,
     prompt: 'Make the sidebar label follow the conversation',
     updatedAt: 1,
     stateStartedAt: 1,
-    agentType: 'claude' as const,
+    agentType: args.structured ? 'codex' : 'claude',
     paneKey: PANE_KEY,
-    tabId: 'tab-1',
+    tabId: args.structured ? structuredSession.id : 'tab-1',
     worktreeId: WORKTREE_ID,
     stateHistory: []
   }
@@ -73,7 +94,10 @@ function makeHarness(
   let state: RollingAgentTitleSyncState = {
     settings,
     agentStatusByPaneKey: { [PANE_KEY]: statusEntry },
-    tabsByWorktree: { [WORKTREE_ID]: [terminalTab(args.tab)] },
+    tabsByWorktree: { [WORKTREE_ID]: args.structured ? [] : [terminalTab(args.tab)] },
+    unifiedTabsByWorktree: {
+      [WORKTREE_ID]: args.structured ? [structuredSession] : []
+    },
     setRollingAgentTitles: (updates: readonly { tabId: string; title: string | null }[]) => {
       writes.push(...updates)
       const previous = state
@@ -83,6 +107,12 @@ function makeHarness(
           [WORKTREE_ID]: state.tabsByWorktree[WORKTREE_ID].map((tab: TerminalTab) => {
             const update = updates.find((candidate) => candidate.tabId === tab.id)
             return update ? { ...tab, rollingTitle: update.title } : tab
+          })
+        },
+        unifiedTabsByWorktree: {
+          [WORKTREE_ID]: state.unifiedTabsByWorktree[WORKTREE_ID].map((tab: Tab) => {
+            const update = updates.find((candidate) => candidate.tabId === tab.id)
+            return update ? { ...tab, rollingLabel: update.title } : tab
           })
         }
       }
@@ -125,15 +155,19 @@ function makeHarness(
       }
       notify(previous)
     },
-    patchTab: (patch: Partial<TerminalTab>) => {
+    patchTab: (patch: Partial<TerminalTab> | Partial<Tab>) => {
       const previous = state
       state = {
         ...state,
         tabsByWorktree: {
-          [WORKTREE_ID]: state.tabsByWorktree[WORKTREE_ID].map((tab: TerminalTab) => ({
-            ...tab,
-            ...patch
-          }))
+          [WORKTREE_ID]: args.structured
+            ? state.tabsByWorktree[WORKTREE_ID]
+            : state.tabsByWorktree[WORKTREE_ID].map((tab: TerminalTab) => ({ ...tab, ...patch }))
+        },
+        unifiedTabsByWorktree: {
+          [WORKTREE_ID]: args.structured
+            ? state.unifiedTabsByWorktree[WORKTREE_ID].map((tab: Tab) => ({ ...tab, ...patch }))
+            : state.unifiedTabsByWorktree[WORKTREE_ID]
         }
       }
       notify(previous)
@@ -171,6 +205,14 @@ describe('startRollingAgentTitleSync', () => {
       assistantMessage: 'Added the resolver tier.'
     })
     expect(harness.writes).toEqual([{ tabId: 'tab-1', title: 'Rolling 1' }])
+  })
+
+  it('generates a rolling label for a native Codex session tab', async () => {
+    const harness = makeHarness({ structured: true })
+    harness.start()
+    harness.completeTurn()
+    await flush()
+    expect(harness.writes).toEqual([{ tabId: 'structured-tab-1', title: 'Rolling 1' }])
   })
 
   it('throttles a second turn inside the interval and allows one after it', async () => {

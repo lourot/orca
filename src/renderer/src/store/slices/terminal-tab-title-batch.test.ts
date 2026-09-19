@@ -323,6 +323,32 @@ describe('terminal tab title batches', () => {
     })
   })
 
+  it('writes rolling agent titles directly to structured session tabs', () => {
+    const store = createTestStore()
+    seedStore(store, {
+      settings: { ...getDefaultSettings('/tmp'), tabRollingAgentTitle: true },
+      tabsByWorktree: { owner: [] },
+      unifiedTabsByWorktree: {
+        owner: [
+          makeUnifiedTab({
+            id: 'structured-tab-1',
+            entityId: 'session-1',
+            worktreeId: 'owner',
+            groupId: 'group-1',
+            contentType: 'agent-session',
+            agentSessionAgent: 'codex'
+          })
+        ]
+      }
+    })
+
+    store.getState().setRollingAgentTitles([{ tabId: 'structured-tab-1', title: 'Foxes' }])
+    expect(store.getState().unifiedTabsByWorktree.owner?.[0]?.rollingLabel).toBe('Foxes')
+
+    store.getState().setRollingAgentTitles([{ tabId: 'structured-tab-1', title: null }])
+    expect(store.getState().unifiedTabsByWorktree.owner?.[0]?.rollingLabel).toBeNull()
+  })
+
   it('coalesces generated titles while preserving first-write and replacement semantics', () => {
     const store = createTestStore()
     const fixture = makeScaleState(100)
