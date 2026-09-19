@@ -75,4 +75,10 @@ export function registerUsageProviderHandlers(stores: UsageProviderStores): void
   registerProviderHandlers('codexUsage', stores.codexUsage)
   registerProviderHandlers('openCodeUsage', stores.openCodeUsage)
   registerProviderHandlers('museUsage', stores.museUsage)
+  ipcMain.handle('openCodeUsage:setOpenCodeMonthlyCap', (_event, args: { capUsd: number }) =>
+    stores.openCodeUsage.setOpenCodeMonthlyCap(args.capUsd)
+  )
+  ipcMain.handle('codexUsage:getCurrentMonthCreditEstimate', () =>
+    stores.codexUsage.getCurrentMonthCreditEstimate()
+  )
 }

@@ -16,6 +16,7 @@ import { CLOSE_ALL_CONTEXT_MENUS_EVENT } from '@/lib/close-all-context-menus'
 import { useStatusBarDensity } from './status-bar-density'
 import { getUsageOwnerHostScope, useOwnerUsageRateLimits } from './use-owner-usage-rate-limits'
 import { isOwnerNotSetUpPlaceholder } from './owner-usage-rate-limits'
+import { useStatusBarMonthlyUsage } from './use-status-bar-monthly-usage'
 import { translate } from '@/i18n/i18n'
 
 export function useStatusBarController(floatingTerminalOpen: boolean) {
@@ -24,6 +25,8 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
   // Why: with a remote account owner the agents run there, so its usage is the one to show.
   const { rateLimits, remoteOwner, refreshRemote } = useOwnerUsageRateLimits(localRateLimits)
   const remoteOwned = remoteOwner !== null
+  const monthlyUsage = useStatusBarMonthlyUsage(remoteOwned, rateLimits)
+  const { openCodeMonthlyCost, refresh: refreshMonthlyUsage } = monthlyUsage
   const settings = useAppStore((s) => s.settings)
   const refreshRateLimits = useAppStore((s) => s.refreshRateLimits)
   const openSettingsTarget = useAppStore((s) => s.openSettingsTarget)
@@ -93,14 +96,15 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
       // Why: re-run PATH detection so a freshly-installed/removed CLI's bar appears/hides without restarting Orca.
       await Promise.all([
         (refreshRemote ?? refreshRateLimits)(),
-        refreshDetectedAgents(undefined, { wakeWslDistro: true })
+        refreshDetectedAgents(undefined, { wakeWslDistro: true }),
+        refreshMonthlyUsage()
       ])
     } finally {
       if (mountedRef.current) {
         setIsRefreshing(false)
       }
     }
-  }, [isRefreshing, refreshRemote, refreshRateLimits, refreshDetectedAgents])
+  }, [isRefreshing, refreshRemote, refreshRateLimits, refreshDetectedAgents, refreshMonthlyUsage])
 
   if (!statusBarVisible) {
     return null
@@ -126,7 +130,7 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
     zcodePlanApiKeyConfigured: rateLimits.zcodePlanApiKeyConfigured
   }
   const visibleClaude = getVisibleUsageProvider('claude', claude, usageSettings)
-  const visibleCodex = getVisibleUsageProvider('codex', codex, usageSettings)
+  const visibleCodex = getVisibleUsageProvider('codex', monthlyUsage.codex, usageSettings)
   const visibleGemini = getVisibleUsageProvider('gemini', gemini, usageSettings)
   const visibleKimi = getVisibleUsageProvider('kimi', kimi, usageSettings)
   const visibleAntigravity = getVisibleUsageProvider('antigravity', antigravity, usageSettings)
@@ -186,13 +190,16 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
     showMiniMax ||
     showGrok ||
     showCursor ||
-    showZcode
+    showZcode ||
+    openCodeMonthlyCost !== null
   const anyVisible = hasVisibleUsageMeters || showResourceUsage
   // Why: include Settings so durable managed accounts count — a configured user isn't shown the empty state while snapshots hydrate.
-  const isEmptyUsageState = isUsageEmptyState(
-    { claude, codex, gemini, opencodeGo, kimi, antigravity, minimax, grok, cursor, zcode },
-    usageSettings
-  )
+  const isEmptyUsageState =
+    openCodeMonthlyCost === null &&
+    isUsageEmptyState(
+      { claude, codex, gemini, opencodeGo, kimi, antigravity, minimax, grok, cursor, zcode },
+      usageSettings
+    )
   // Why: one-time nudge — once dismissed, stays hidden even if providers reconnect later.
   const showEmptyUsageCta = isEmptyUsageState && !usageEmptyStateDismissed
   const anyFetching =
@@ -205,7 +212,8 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
     minimax?.status === 'fetching' ||
     grok?.status === 'fetching' ||
     cursor?.status === 'fetching' ||
-    zcode?.status === 'fetching'
+    zcode?.status === 'fetching' ||
+    monthlyUsage.openCodeScanning
 
   const floatingTerminalActionLabel = floatingTerminalOpen
     ? translate(
@@ -287,6 +295,7 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
     handleUsageMenuOpenChange,
     hasVisibleUsageMeters,
     isEmptyUsageState,
+    openCodeMonthlyCost,
     isRefreshing,
     menuOpen,
     menuPoint,

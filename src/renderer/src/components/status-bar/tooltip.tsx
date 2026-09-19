@@ -18,6 +18,7 @@ import {
 } from '../../../../shared/usage-percentage-display'
 import { formatUsagePercentageLabel } from './usage-percentage-label'
 import { useResetCountdownClock } from '@/hooks/useResetCountdownClock'
+import { CodexCreditUsageSection } from './codex-credit-usage-section'
 import { barColor, ProviderExtraUsageSection } from './provider-extra-usage-section'
 
 export {
@@ -252,7 +253,10 @@ export function ProviderPanel({
   usagePercentageDisplay?: UsagePercentageDisplay
 }): React.JSX.Element {
   const windowSections = p ? getWindowSections(p) : []
-  const now = useResetCountdownClock(windowSections.map((section) => section.window?.resetsAt))
+  const now = useResetCountdownClock([
+    ...windowSections.map((section) => section.window?.resetsAt),
+    p?.creditUsage?.resetsAt ?? null
+  ])
   const textClass = inverted ? 'text-background' : 'text-foreground'
   const mutedClass = inverted ? 'text-background/60' : 'text-muted-foreground'
   const faintClass = inverted ? 'text-background/50' : 'text-muted-foreground/80'
@@ -283,7 +287,14 @@ export function ProviderPanel({
     )
   }
 
-  if (p.status === 'error' && !p.session && !p.weekly && !p.fableWeekly && !p.monthly) {
+  if (
+    p.status === 'error' &&
+    !p.session &&
+    !p.weekly &&
+    !p.fableWeekly &&
+    !p.monthly &&
+    !p.creditUsage
+  ) {
     return (
       <div className={`text-xs ${className ?? 'w-full'}`}>
         <div className={`flex items-center gap-1.5 font-medium ${textClass}`}>
@@ -362,10 +373,20 @@ export function ProviderPanel({
         />
       ) : null}
 
+      {p.creditUsage ? (
+        <CodexCreditUsageSection
+          usage={p.creditUsage}
+          textClass={textClass}
+          mutedClass={mutedClass}
+          usagePercentageDisplay={usagePercentageDisplay}
+          now={now}
+        />
+      ) : null}
+
       {p.error ? (
         <ErrorMessage
           message={p.error}
-          stale={!!(p.session || p.weekly || p.fableWeekly || p.monthly)}
+          stale={!!(p.session || p.weekly || p.fableWeekly || p.monthly || p.creditUsage)}
           inverted={inverted}
         />
       ) : null}

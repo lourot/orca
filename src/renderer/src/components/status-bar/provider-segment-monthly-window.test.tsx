@@ -44,6 +44,67 @@ function grokMonthlyLimits(status: ProviderRateLimits['status']): ProviderRateLi
 }
 
 describe('ProviderSegment monthly window', () => {
+  it('renders authoritative active-account monthly credits in both footer modes', async () => {
+    const { ProviderSegment } = await import('./StatusBar')
+    const limits: ProviderRateLimits = {
+      provider: 'codex',
+      session: null,
+      weekly: null,
+      creditUsage: {
+        usedCredits: 123.4,
+        limitCredits: 10_000,
+        remainingCredits: 9_876.6,
+        usedPercent: 1.234,
+        resetsAt: null,
+        unlimited: false,
+        source: 'provider',
+        scope: 'active-account'
+      },
+      updatedAt: Date.now(),
+      error: null,
+      status: 'ok'
+    }
+
+    const verbose = renderToStaticMarkup(
+      <ProviderSegment p={limits} compact={false} display="used" mode="verbose" />
+    )
+    const compact = renderToStaticMarkup(
+      <ProviderSegment p={limits} compact={false} display="used" mode="compact" />
+    )
+
+    expect(verbose).toContain('Active account 1% used mo')
+    expect(compact).toContain('Active account 1% used mo')
+  })
+
+  it('labels local fallback credits as an estimate instead of active-account usage', async () => {
+    const { ProviderSegment } = await import('./StatusBar')
+    const limits: ProviderRateLimits = {
+      provider: 'codex',
+      session: null,
+      weekly: null,
+      creditUsage: {
+        usedCredits: 123.4,
+        limitCredits: null,
+        remainingCredits: null,
+        usedPercent: null,
+        resetsAt: null,
+        unlimited: false,
+        source: 'local-estimate',
+        scope: 'local-accounts'
+      },
+      updatedAt: Date.now(),
+      error: null,
+      status: 'ok'
+    }
+
+    const markup = renderToStaticMarkup(
+      <ProviderSegment p={limits} compact={false} display="used" mode="compact" />
+    )
+
+    expect(markup).toContain('Local accounts · estimated ~123.4 cr')
+    expect(markup).not.toContain('Active account')
+  })
+
   it('renders a monthly-only snapshot in the chip instead of a bare icon', async () => {
     const { ProviderSegment } = await import('./StatusBar')
 

@@ -1,6 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import React from 'react'
 import type {
+  CodexCreditUsage,
   OwnerNotSetUpPlaceholder,
   ProviderRateLimits,
   RateLimitWindow
@@ -27,6 +28,11 @@ import { getTightestUsageSection, getUsageHeadlineSection } from './UsageRosterP
 import { formatBareUsagePercentage, formatUsagePercentageLabel } from './usage-percentage-label'
 import { translate } from '@/i18n/i18n'
 import { getStatusBarUsageSections } from './status-bar-usage-sections'
+import {
+  formatCodexCreditAmount,
+  formatCodexCreditScope,
+  formatCodexCreditShortLabel
+} from './codex-credit-usage'
 import { GroupedPoolUsage } from './usage-grouped-pools'
 import { formatStatusBarSectionLabel, isGroupedUsagePool } from './usage-pool-label'
 import { useResetCountdownClock } from '@/hooks/useResetCountdownClock'
@@ -78,7 +84,9 @@ function WindowLabel({
 
 // Share badge markup and data detection between the roster trigger and provider details.
 export function ProviderLetterBadge({ p }: { p: ProviderRateLimits }): React.JSX.Element {
-  const hasData = Boolean(p.session || p.weekly || p.fableWeekly || p.monthly || p.buckets?.length)
+  const hasData = Boolean(
+    p.session || p.weekly || p.fableWeekly || p.monthly || p.creditUsage || p.buckets?.length
+  )
   return (
     <span className="inline-flex items-center gap-1 text-muted-foreground">
       <span
@@ -231,6 +239,22 @@ function formatCompactExtraUsage(balance: ProviderRateLimits['extraUsage']): str
       })
 }
 
+function CodexCreditLabel({
+  usage,
+  display
+}: {
+  usage: CodexCreditUsage
+  display: UsagePercentageDisplay
+}): React.JSX.Element {
+  return (
+    <span className="tabular-nums">
+      {usage.usedPercent === null
+        ? `${formatCodexCreditScope(usage.scope)} ~${formatCodexCreditAmount(usage.usedCredits) ?? '--'} ${translate('auto.components.status.bar.codexCreditShortLabel', 'cr')}`
+        : `${formatCodexCreditScope(usage.scope)} ${formatUsagePercentageLabel(usage.usedPercent, display)} ${formatCodexCreditShortLabel(usage)}`}
+    </span>
+  )
+}
+
 export function ProviderSegment({
   p,
   compact,
@@ -264,7 +288,7 @@ export function ProviderSegment({
   )
 
   // Why static: unfocused windows never poll, so a pending chip's pulse would redraw the compositor indefinitely.
-  if (!p || p.status === 'idle' || (p.status === 'fetching' && !tightest)) {
+  if (!p || p.status === 'idle' || (p.status === 'fetching' && !tightest && !p.creditUsage)) {
     return (
       <span className="inline-flex items-center gap-1 text-muted-foreground">
         <ProviderIcon provider={provider} />
@@ -294,7 +318,7 @@ export function ProviderSegment({
     )
   }
 
-  if (p.status === 'error' && !tightest) {
+  if (p.status === 'error' && !tightest && !p.creditUsage) {
     return (
       <span className="inline-flex items-center gap-1 text-muted-foreground">
         <ProviderIcon provider={provider} />
@@ -328,16 +352,26 @@ export function ProviderSegment({
         sections.map((section, index) => (
           <React.Fragment key={section.key}>
             {index > 0 ? <span className="text-muted-foreground">·</span> : null}
-            <WindowLabel
-              w={section.window}
-              label={formatStatusBarSectionLabel(p, section, now)}
-              display={display}
-              showLabel={showLabels}
-              labelFirst={section.labelFirst}
-            />
+            {section.creditUsage ? (
+              <CodexCreditLabel usage={section.creditUsage} display={display} />
+            ) : (
+              <WindowLabel
+                w={section.window}
+                label={formatStatusBarSectionLabel(p, section, now)}
+                display={display}
+                showLabel={showLabels}
+                labelFirst={section.labelFirst}
+              />
+            )}
           </React.Fragment>
         ))
       )}
+      {p.creditUsage && (mode === 'verbose' || sections.length === 0) ? (
+        <>
+          {sections.length > 0 ? <span className="text-muted-foreground">·</span> : null}
+          <CodexCreditLabel usage={p.creditUsage} display={display} />
+        </>
+      ) : null}
       {showBalance && p.extraUsage ? (
         <>
           <span className="text-muted-foreground">·</span>

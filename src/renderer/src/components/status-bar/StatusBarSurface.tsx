@@ -34,10 +34,13 @@ import {
   getUsageUnitLabelState,
   usageChipShowsPercentage
 } from './usage-unit-label'
+import { OpenCodeMonthlyCostSegment } from './OpenCodeMonthlyCostSegment'
 import { useStatusBarController } from './use-status-bar-controller'
 import { isOwnerNotSetUpPlaceholder } from './owner-usage-rate-limits'
 import { StatusBarVisibilityMenu } from './StatusBarVisibilityMenu'
 import { isPairedWebClientWindow } from '@/lib/desktop-window-chrome'
+import { useAppStore } from '@/store'
+import { useWorkspaceChromeTintStyle } from '@/lib/workspace-chrome-tint'
 
 const PetStatusSegment = lazyWithRetry(() =>
   import('./PetStatusSegment').then((module) => ({ default: module.PetStatusSegment }))
@@ -64,6 +67,11 @@ export function StatusBarSurface({
   // Memoized labels still need to follow language changes.
   useTranslation()
   const controller = useStatusBarController(floatingTerminalOpen)
+  // Why: tint only while the workspace itself is on screen, not on Settings/Tasks/etc.
+  const tintedWorktreeId = useAppStore((s) =>
+    s.activeView === 'terminal' ? s.activeWorktreeId : null
+  )
+  const barStyle = useWorkspaceChromeTintStyle(tintedWorktreeId, '--bg-titlebar')
   if (!controller) {
     return null
   }
@@ -83,6 +91,7 @@ export function StatusBarSurface({
     handleUsageDetails,
     handleUsageMenuOpenChange,
     hasVisibleUsageMeters,
+    openCodeMonthlyCost,
     isEmptyUsageState,
     isRefreshing,
     overflowing,
@@ -115,6 +124,7 @@ export function StatusBarSurface({
       ref={barRef}
       // Why: one line at any width — density steps down first. overflow-clip (not hidden) so focus can't scroll the bar; the clip margin spares focus rings and badge dots.
       className="flex items-center h-6 min-h-[24px] px-3 gap-4 overflow-clip [overflow-clip-margin:3px] whitespace-nowrap border-t border-border bg-[var(--bg-titlebar,var(--card))] text-xs select-none shrink-0 relative"
+      style={barStyle}
       onContextMenuCapture={(event) => {
         if (!shouldOpenStatusBarContextMenu(event.target)) {
           return
@@ -132,7 +142,7 @@ export function StatusBarSurface({
         className="status-bar-usage-cluster flex min-w-0 flex-1 items-center overflow-clip [overflow-clip-margin:3px]"
         data-overflowing={overflowing}
       >
-        <div ref={usageRef} className="flex shrink-0 items-center gap-3">
+        <div ref={usageRef} className="flex shrink-0 items-center gap-6">
           {isEmptyUsageState ? (
             showEmptyUsageCta ? (
               <StatusBarUsageEmptyCta remoteOwner={remoteOwner} />
@@ -147,7 +157,7 @@ export function StatusBarSurface({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-3 rounded px-1 py-0.5 hover:bg-accent/70"
+                    className="inline-flex items-center gap-6 rounded px-1 py-0.5 hover:bg-accent/70"
                     aria-label={translate(
                       'auto.components.status.bar.UsageRosterPanel.title',
                       'Usage'
@@ -187,6 +197,10 @@ export function StatusBarSurface({
                         display={usagePercentageDisplay}
                       />
                     ) : null}
+                    {openCodeMonthlyCost?.status === 'ok' &&
+                    openCodeMonthlyCost.estimatedCostUsd !== null ? (
+                      <OpenCodeMonthlyCostSegment usage={openCodeMonthlyCost} compact={compact} />
+                    ) : null}
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -212,6 +226,7 @@ export function StatusBarSurface({
                     canSignIn={canSignInFromUsageRow}
                     onManageAccounts={handleManageAccounts}
                     onUsageDetails={handleUsageDetails}
+                    openCodeMonthlyCost={openCodeMonthlyCost}
                     renderRow={(p, rowNode) => {
                       // Why: a placeholder has nothing to drill into; its row opens the host's accounts.
                       if (isOwnerNotSetUpPlaceholder(p)) {
