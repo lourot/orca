@@ -39,6 +39,7 @@ function hasUsageData(provider: ProviderRateLimits): boolean {
     provider.weekly ||
     provider.fableWeekly ||
     provider.monthly ||
+    provider.creditUsage ||
     (provider.buckets && provider.buckets.length > 0)
   )
 }

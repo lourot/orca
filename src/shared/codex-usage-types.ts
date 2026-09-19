@@ -27,6 +27,13 @@ export type CodexUsageSummary = {
   hasAnyCodexData: boolean
 }
 
+export type CodexLocalCreditEstimate = {
+  usedCredits: number
+  hasUnpricedUsage: boolean
+  resetsAt: number | null
+  scope: 'local-accounts'
+}
+
 export type CodexUsageDailyPoint = {
   day: string
   inputTokens: number

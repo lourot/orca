@@ -5,7 +5,11 @@ import { SettingsSegmentedControl } from '@/components/settings/SettingsFormCont
 import { useResetCountdownClock } from '@/hooks/useResetCountdownClock'
 import { translate } from '@/i18n/i18n'
 import { formatRateLimitWindowChipLabel, formatWindowLabel } from '@/lib/window-label-formatter'
-import type { ProviderRateLimits, RateLimitWindow } from '../../../../shared/rate-limit-types'
+import type {
+  CodexCreditUsage,
+  ProviderRateLimits,
+  RateLimitWindow
+} from '../../../../shared/rate-limit-types'
 import {
   clampUsedPercent,
   getDisplayedUsagePercentage,
@@ -16,17 +20,35 @@ import { getProviderDisplayName } from './usage-error-copy'
 import { formatPlanLabel, usageTextColorClass } from './usage-roster-formatting'
 import { getUsageRosterRowState, type UsageRosterRowState } from './usage-roster-row-state'
 import type { StatusBarUsageMode } from '../../../../shared/status-bar-usage-mode'
+import { CodexCreditUsageMetric } from './codex-credit-usage-roster'
 
 type ProviderId = ProviderRateLimits['provider']
-export type UsageSection = { label: string; window: RateLimitWindow }
+export type UsageSection = {
+  label: string
+  window: RateLimitWindow
+  creditUsage?: CodexCreditUsage
+}
 
 // Windows/buckets that actually carry data — absent limits arrive as null, but a
 // partial/rehydrated provider can also carry an undefined window; both must be
 // dropped so downstream consumers never dereference `window.usedPercent`.
 function usedSections(p: ProviderRateLimits): UsageSection[] {
-  return getWindowSections(p).filter(
+  const sections = getWindowSections(p).filter(
     (s): s is UsageSection => s.window !== null && s.window !== undefined
   )
+  if (p.creditUsage?.usedPercent !== null && p.creditUsage?.usedPercent !== undefined) {
+    sections.push({
+      label: translate('auto.components.status.bar.codexCreditMonthlySection', 'Monthly credits'),
+      window: {
+        usedPercent: p.creditUsage.usedPercent,
+        windowMinutes: 43_200,
+        resetsAt: p.creditUsage.resetsAt,
+        resetDescription: null
+      },
+      creditUsage: p.creditUsage
+    })
+  }
+  return sections
 }
 
 function providerMaxUsed(sections: UsageSection[]): number {
@@ -48,6 +70,9 @@ function shortLabel(
   // don't both render as "wk".
   if (section.window === p.fableWeekly) {
     return 'Fable'
+  }
+  if (section.creditUsage) {
+    return 'mo'
   }
   return useRemainingDuration
     ? formatRateLimitWindowChipLabel(section.window)
@@ -126,10 +151,13 @@ export function UsageRow({
   mode?: StatusBarUsageMode
 }): React.JSX.Element {
   const sections = usedSections(p)
-  const hasUsage = sections.length > 0
+  const hasUsage = sections.length > 0 || (p.creditUsage !== null && p.creditUsage !== undefined)
   const name = getProviderDisplayName(p.provider)
   const plan = formatPlanLabel(p.planType)
-  const reset = hasUsage ? soonestResetLabel(sections, now) : null
+  const reset = hasUsage
+    ? (soonestResetLabel(sections, now) ??
+      (p.creditUsage?.resetsAt ? formatResetCountdown(p.creditUsage.resetsAt - now) : null))
+    : null
   const tightest = mode === 'compact' ? getTightestUsageSection(p) : null
 
   return (
@@ -155,12 +183,20 @@ export function UsageRow({
           </>
         ) : tightest ? (
           <span className="ml-auto">
-            <UsageMetric
-              section={tightest}
-              label={tightest.label}
-              display={display}
-              showBar={false}
-            />
+            {tightest.creditUsage ? (
+              <CodexCreditUsageMetric usage={tightest.creditUsage} display={display} />
+            ) : (
+              <UsageMetric
+                section={tightest}
+                label={tightest.label}
+                display={display}
+                showBar={false}
+              />
+            )}
+          </span>
+        ) : p.creditUsage ? (
+          <span className="ml-auto">
+            <CodexCreditUsageMetric usage={p.creditUsage} display={display} />
           </span>
         ) : reset ? (
           <span className="shrink-0 text-[11px] text-muted-foreground">{reset}</span>
@@ -168,14 +204,22 @@ export function UsageRow({
       </div>
       {hasUsage && mode === 'verbose' ? (
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 pl-[30px]">
-          {sections.map((section) => (
-            <UsageMetric
-              key={section.label}
-              section={section}
-              label={shortLabel(p, section)}
-              display={display}
-            />
-          ))}
+          {sections.map((section) =>
+            section.creditUsage ? (
+              <CodexCreditUsageMetric
+                key={section.label}
+                usage={section.creditUsage}
+                display={display}
+              />
+            ) : (
+              <UsageMetric
+                key={section.label}
+                section={section}
+                label={shortLabel(p, section)}
+                display={display}
+              />
+            )
+          )}
         </div>
       ) : null}
     </div>
@@ -220,7 +264,10 @@ export function UsageRosterPanel({
   // Why: one boundary-scheduled clock keeps every open row current without per-provider timers.
   const now = useResetCountdownClock(
     providers.flatMap((provider) =>
-      usedSections(provider).map((section) => section.window.resetsAt)
+      [
+        ...usedSections(provider).map((section) => section.window.resetsAt),
+        provider.creditUsage?.resetsAt ?? null
+      ].filter((reset): reset is number => typeof reset === 'number')
     )
   )
   // Worst-first so the agent nearest a limit sits on top.

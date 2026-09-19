@@ -12,7 +12,11 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/i18n/i18n', () => ({
-  translate: (_key: string, fallback: string) => fallback
+  translate: (_key: string, fallback: string, values?: Record<string, string>) =>
+    Object.entries(values ?? {}).reduce(
+      (result, [key, value]) => result.replace(`{{${key}}}`, value),
+      fallback
+    )
 }))
 vi.mock('@/lib/agent-catalog', () => ({
   AgentIcon: ({ agent }: { agent: string }) => <span data-agent-icon={agent} />
@@ -246,6 +250,64 @@ describe('UsageRow', () => {
     expect(markup.match(/data-usage-bar/g)).toHaveLength(2)
     expect(markup).toContain('25%')
     expect(markup).toContain('60%')
+  })
+
+  it('renders absolute active-account monthly credits in the verbose row', () => {
+    const markup = renderToStaticMarkup(
+      <UsageRow
+        p={{
+          ...signedOutCodex,
+          creditUsage: {
+            usedCredits: 123.4,
+            limitCredits: 10_000,
+            remainingCredits: 9_876.6,
+            usedPercent: 1.234,
+            resetsAt: null,
+            unlimited: false,
+            source: 'provider',
+            scope: 'active-account'
+          },
+          status: 'ok',
+          error: null
+        }}
+        display="used"
+        state={{ kind: 'usage', statusLabel: null }}
+        showSignInAction={false}
+        now={mocks.now}
+      />
+    )
+
+    expect(markup).toContain('Active account')
+    expect(markup).toContain('123.4 / 10,000 credits')
+  })
+
+  it('labels local estimated credits explicitly', () => {
+    const markup = renderToStaticMarkup(
+      <UsageRow
+        p={{
+          ...signedOutCodex,
+          creditUsage: {
+            usedCredits: 123.4,
+            limitCredits: null,
+            remainingCredits: null,
+            usedPercent: null,
+            resetsAt: null,
+            unlimited: false,
+            source: 'local-estimate',
+            scope: 'local-accounts'
+          },
+          status: 'ok',
+          error: null
+        }}
+        display="used"
+        state={{ kind: 'usage', statusLabel: null }}
+        showSignInAction={false}
+        now={mocks.now}
+      />
+    )
+
+    expect(markup).toContain('Local accounts · estimated')
+    expect(markup).toContain('~123.4 credits')
   })
 })
 

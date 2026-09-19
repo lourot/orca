@@ -36,7 +36,7 @@ When Codex exits, the restart chip relaunches the agent with the same account. I
 
 ## Usage & rate limits
 
-Orca reads local Codex usage state for the active account and surfaces it in the status bar. See [Usage & rate-limit tracking](/docs/agents/usage-tracking).
+Orca reads Codex rate limits through the active account's existing ChatGPT/SSO login and surfaces them in the status bar. When the provider reports a monthly credit limit, the Usage surface shows the used credits, limit, and reset time for the **Active account**. If Codex Usage Tracking is enabled and the provider does not report monthly credits, Orca may show a clearly labeled **Local accounts · estimated** fallback based on local rollout logs. See [Usage & rate-limit tracking](/docs/agents/usage-tracking).
 
 ## Codex on Windows (WSL)
 

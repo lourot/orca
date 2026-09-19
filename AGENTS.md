@@ -50,6 +50,19 @@ Avoid type assertions except `as const`. Unavoidable casts need a line-specific 
 - **New user-facing strings**: add the English text to `src/renderer/src/i18n/locales/en.json`, then regenerate the derived catalogs with `pnpm run sync:localization-catalog` and `pnpm run sync:localization-runtime-catalog` — the `verify:localization-*` gates inside `pnpm lint` fail otherwise. Leave the other locales alone; they fall back to the inline English default.
 - `pnpm format` runs `oxfmt` over the whole repo, markdown included, and it mangles nested lists and fenced blocks. Format the files you changed instead: `npx oxfmt --write <paths>`.
 
+# Required Runtime Activation Handoff
+
+After any product-source change, the final response must include a short **Runtime activation** section. Classify the changed paths and state exactly what the user must do next:
+
+| Changed paths                                       | Required activation handoff                                                     |
+| --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `src/renderer/**` only                              | Vite HMR picks it up; no restart.                                               |
+| `src/main/**`, `src/preload/**`, or `src/shared/**` | Restart `pnpm dev`; renderer reload alone is insufficient.                      |
+| `src/cli/**`                                        | Run `pnpm run build:cli`; the CLI is not watched.                               |
+| Documentation, tests, or config only                | No runtime activation unless the changed config is loaded by a running process. |
+
+For mixed changes, report every required step and use the strictest row. If `pnpm dev` was not started by this session, do not stop the user's process; say that the restart is pending and give the safe sequence: focus the dev window, quit it with `⌘Q`, verify `pgrep -f "Orca from source"` and `lsof -i :5173 -sTCP:LISTEN -P -n`, then relaunch `pnpm dev`. Never recommend `Ctrl+C` or killing the terminal daemon to activate a change. If the change is not packaged or deployed to a production installation, say so explicitly and distinguish that from local-dev activation.
+
 # Activating a Change in a Running `pnpm dev`
 
 Merging or fast-forwarding the checkout is **not** enough, and how you stop the dev server decides whether live agents survive. Only the renderer is hot.

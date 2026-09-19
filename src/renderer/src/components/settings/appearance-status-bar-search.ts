@@ -50,7 +50,7 @@ export const getStatusBarToggles = createLocalizedCatalog(
       title: translate('auto.components.settings.appearance.search.54b1acf24f', 'Codex Usage'),
       description: translate(
         'auto.components.settings.appearance.search.e9e4412545',
-        'Show Codex token and cost usage in the status bar.'
+        'Show Codex usage and monthly credits in the status bar.'
       ),
       keywords: [
         ...translateSearchKeyword(
@@ -68,7 +68,7 @@ export const getStatusBarToggles = createLocalizedCatalog(
       ],
       toggleDescription: translate(
         'settings.appearance.statusBar.codexToggleDescription',
-        'Show Codex token and cost usage for the active workspace.'
+        'Show Codex usage and monthly credits for the active account.'
       )
     },
     {

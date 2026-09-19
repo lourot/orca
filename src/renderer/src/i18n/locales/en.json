@@ -4022,7 +4022,26 @@
             "contact_note": "The host may still be running; only the Orca connection is unavailable.",
             "last_connected": "Last connected {{value0}}",
             "reconnect_attempt": "Attempt {{value0}}"
-          }
+          },
+          "codexCreditShortLabel": "cr",
+          "codexCreditMonthlyShortLabel": "mo",
+          "codexCreditScopeActiveFull": "Active account",
+          "codexCreditScopeLocalEstimateFull": "Local accounts · estimated",
+          "codexCreditUnlimited": "Unlimited credits",
+          "codexCreditUsedOfLimit": "{{value0}} / {{value1}} credits",
+          "codexCreditRemaining": "{{value0}} credits remaining",
+          "codexCreditEstimated": "~{{value0}} credits",
+          "codexCreditUnavailable": "Credits unavailable",
+          "codexCreditScopeActive": "active",
+          "codexCreditScopeLocalEstimate": "local est.",
+          "codexCreditUsedOfLimitWithVerb": "{{value0}} / {{value1}} credits used",
+          "codexCreditEstimatedWithVerb": "~{{value0}} credits estimated",
+          "codexCreditMonthlyLabel": "monthly credits",
+          "codexCreditEstimatedShortLabel": "est.",
+          "codexCreditBalanceShortLabel": "bal.",
+          "codexCreditEstimatedLabel": "estimated credits",
+          "codexCreditBalanceLabel": "credit balance",
+          "codexCreditMonthlySection": "Monthly credits"
         }
       },
       "stats": {

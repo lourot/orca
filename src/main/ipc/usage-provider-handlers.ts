@@ -65,4 +65,7 @@ export function registerUsageProviderHandlers(stores: UsageProviderStores): void
   registerProviderHandlers('claudeUsage', stores.claudeUsage)
   registerProviderHandlers('codexUsage', stores.codexUsage)
   registerProviderHandlers('openCodeUsage', stores.openCodeUsage)
+  ipcMain.handle('codexUsage:getCurrentMonthCreditEstimate', () =>
+    stores.codexUsage.getCurrentMonthCreditEstimate()
+  )
 }

@@ -1588,6 +1588,11 @@
             "ff8de8a2ad": "display"
           }
         },
+        "appearance": {
+          "search": {
+            "e9e4412545": "Show Codex token and cost usage in the status bar."
+          }
+        },
         "artifacts": {
           "account": "Orca account",
           "connected": "Connected",
@@ -2250,6 +2255,8 @@
             "433bb7f595": "ok",
             "d254f04097": "cancelling"
           },
+          "codexCreditScopeActive": "active",
+          "codexCreditScopeLocalEstimate": "local est.",
           "resource": {
             "manager": {
               "terminal": {
@@ -2754,6 +2761,11 @@
     }
   },
   "settings": {
+    "appearance": {
+      "statusBar": {
+        "codexToggleDescription": "Show Codex token and cost usage for the active workspace."
+      }
+    },
     "browser": {
       "clientHostedRemote": {
         "description": "Render remote workspace pages on this desktop; network traffic still goes through the remote host. Applies to new pages only.",

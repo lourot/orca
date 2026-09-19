@@ -21,13 +21,105 @@ type BackendRateLimitWindow = {
   reset_at?: number
 }
 
+type BackendCreditUsage = {
+  has_credits?: boolean
+  unlimited?: boolean
+  balance?: number | string | null
+}
+
+type BackendSpendControlLimit = {
+  used?: number | string | null
+  limit?: number | string | null
+  remaining?: number | string | null
+  used_percent?: number | string | null
+  reset_at?: number | null
+  reset_after_seconds?: number | null
+}
+
 type BackendUsageResponse = {
   plan_type?: string
   rate_limit?: {
     primary_window?: BackendRateLimitWindow | null
     secondary_window?: BackendRateLimitWindow | null
   } | null
+  credits?: BackendCreditUsage | null
+  spend_control?: {
+    individual_limit?: BackendSpendControlLimit | null
+  } | null
+  individual_limit?: BackendSpendControlLimit | null
   rate_limit_reset_credits?: Parameters<typeof mapBackendRateLimitResetCredits>[0]
+}
+
+function parseFiniteNumber(value: number | string | null | undefined): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+  if (typeof value !== 'string' || value.trim() === '') {
+    return null
+  }
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function parseNonNegativeNumber(value: number | string | null | undefined): number | null {
+  const parsed = parseFiniteNumber(value)
+  return parsed !== null && parsed >= 0 ? parsed : null
+}
+
+function parseResetAt(limit: BackendSpendControlLimit | null | undefined): number | null {
+  if (typeof limit?.reset_at === 'number' && Number.isFinite(limit.reset_at)) {
+    return limit.reset_at * 1000
+  }
+  return typeof limit?.reset_after_seconds === 'number' &&
+    Number.isFinite(limit.reset_after_seconds) &&
+    limit.reset_after_seconds >= 0
+    ? Date.now() + limit.reset_after_seconds * 1000
+    : null
+}
+
+function mapBackendCreditUsage(payload: BackendUsageResponse) {
+  const limit = payload.spend_control?.individual_limit ?? payload.individual_limit
+  const usedCredits = parseNonNegativeNumber(limit?.used)
+  const limitCredits = parseNonNegativeNumber(limit?.limit)
+  const remainingCredits = parseNonNegativeNumber(limit?.remaining)
+  const rawUsedPercent = parseFiniteNumber(limit?.used_percent)
+  const balance = parseNonNegativeNumber(payload.credits?.balance)
+  const hasProviderLimit =
+    usedCredits !== null || limitCredits !== null || remainingCredits !== null
+
+  if (hasProviderLimit) {
+    const normalizedUsedPercent =
+      rawUsedPercent ??
+      (usedCredits !== null && limitCredits !== null && limitCredits > 0
+        ? (usedCredits / limitCredits) * 100
+        : null)
+    return {
+      usedCredits,
+      limitCredits,
+      remainingCredits,
+      usedPercent:
+        normalizedUsedPercent === null ? null : Math.max(0, Math.min(100, normalizedUsedPercent)),
+      resetsAt: parseResetAt(limit),
+      unlimited: false,
+      source: 'provider' as const,
+      scope: 'active-account' as const
+    }
+  }
+
+  if (balance !== null || payload.credits?.unlimited === true) {
+    return {
+      usedCredits: null,
+      limitCredits: null,
+      remainingCredits: balance,
+      usedPercent: null,
+      resetsAt: null,
+      unlimited: payload.credits?.unlimited === true,
+      source: 'provider' as const,
+      scope: 'active-account' as const
+    }
+  }
+
+  return null
 }
 
 function backendWindowToSnapshot(
@@ -89,6 +181,7 @@ export async function fetchCodexRateLimitsViaBackend(
       snapshotWindowMinutes(classified.weekly, CODEX_WEEKLY_WINDOW_MINUTES)
     ),
     planType: payload.plan_type,
+    creditUsage: mapBackendCreditUsage(payload),
     ...(payload.rate_limit_reset_credits !== undefined
       ? {
           rateLimitResetCredits:
@@ -106,7 +199,9 @@ export async function supplementCodexSessionWindow(
   request: CodexBackendRequest,
   options?: CodexRateLimitFetchOptions
 ): Promise<ProviderRateLimits> {
-  if (options?.signal?.aborted || limits.session || !limits.weekly) {
+  const needsCreditUsage = !limits.creditUsage
+  const needsSession = !limits.session && Boolean(limits.weekly)
+  if (options?.signal?.aborted || (!needsCreditUsage && !needsSession)) {
     return limits
   }
   try {
@@ -115,16 +210,19 @@ export async function supplementCodexSessionWindow(
       return limits
     }
     const rateLimitResetCredits = backend.rateLimitResetCredits ?? limits.rateLimitResetCredits
+    const creditUsage = backend.creditUsage ?? limits.creditUsage
     if (!backend.session) {
-      return rateLimitResetCredits === limits.rateLimitResetCredits
+      return rateLimitResetCredits === limits.rateLimitResetCredits &&
+        creditUsage === limits.creditUsage
         ? limits
-        : { ...limits, rateLimitResetCredits }
+        : { ...limits, creditUsage, rateLimitResetCredits }
     }
     return {
       ...limits,
       session: backend.session,
       weekly: backend.weekly ?? limits.weekly,
       planType: backend.planType ?? limits.planType,
+      creditUsage,
       ...(rateLimitResetCredits !== undefined ? { rateLimitResetCredits } : {}),
       updatedAt: backend.updatedAt
     }

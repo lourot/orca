@@ -20,6 +20,8 @@ describe('usage provider IPC handlers', () => {
     })
     const claudeUsage = createUsage()
     const codexUsage = createUsage()
+    const getCurrentMonthCreditEstimate = vi.fn()
+    Object.assign(codexUsage, { getCurrentMonthCreditEstimate })
     const openCodeUsage = createUsage()
     registerUsageProviderHandlers({
       claudeUsage: claudeUsage as never,
@@ -29,9 +31,10 @@ describe('usage provider IPC handlers', () => {
 
     const prefixes = ['claudeUsage', 'codexUsage', 'openCodeUsage']
     const suffixes = Object.keys(claudeUsage)
-    expect(handle.mock.calls.map(([channel]) => channel)).toEqual(
-      prefixes.flatMap((prefix) => suffixes.map((suffix) => `${prefix}:${suffix}`))
-    )
+    expect(handle.mock.calls.map(([channel]) => channel)).toEqual([
+      ...prefixes.flatMap((prefix) => suffixes.map((suffix) => `${prefix}:${suffix}`)),
+      'codexUsage:getCurrentMonthCreditEstimate'
+    ])
 
     const call = (prefix: string, suffix: string, args?: unknown): unknown => {
       const handler = handle.mock.calls.find(
@@ -50,6 +53,10 @@ describe('usage provider IPC handlers', () => {
     call('claudeUsage', 'getDaily', { scope: 'orca', range: '90d' })
     call('claudeUsage', 'getBreakdown', { scope: 'all', range: 'all', kind: 'model' })
     call('claudeUsage', 'getRecentSessions', { scope: 'orca', range: '30d', limit: 4 })
+    const estimateHandler = handle.mock.calls.find(
+      ([channel]) => channel === 'codexUsage:getCurrentMonthCreditEstimate'
+    )?.[1]
+    estimateHandler?.()
 
     expect(claudeUsage.getScanState).toHaveBeenCalledWith()
     expect(codexUsage.getScanState).toHaveBeenCalledWith()
@@ -61,5 +68,6 @@ describe('usage provider IPC handlers', () => {
     expect(claudeUsage.getDaily).toHaveBeenCalledWith('orca', '90d')
     expect(claudeUsage.getBreakdown).toHaveBeenCalledWith('all', 'all', 'model')
     expect(claudeUsage.getRecentSessions).toHaveBeenCalledWith('orca', '30d', 4)
+    expect(getCurrentMonthCreditEstimate).toHaveBeenCalledWith()
   })
 })

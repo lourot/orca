@@ -11,6 +11,11 @@ import { getTightestUsageSection } from './UsageRosterPanel'
 import { formatRateLimitWindowChipLabel } from '@/lib/window-label-formatter'
 import { formatUsagePercentageLabel } from './usage-percentage-label'
 import { translate } from '@/i18n/i18n'
+import {
+  formatCodexCreditAmount,
+  formatCodexCreditScope,
+  formatCodexCreditShortLabel
+} from './codex-credit-usage'
 
 function MiniBar({
   usedPct,
@@ -55,7 +60,9 @@ function WindowLabel({
 // the roster trigger and ProviderDetailsMenu so the dot's has-data condition
 // and markup can't drift between the two.
 export function ProviderLetterBadge({ p }: { p: ProviderRateLimits }): React.JSX.Element {
-  const hasData = Boolean(p.session || p.weekly || p.fableWeekly || p.monthly || p.buckets?.length)
+  const hasData = Boolean(
+    p.session || p.weekly || p.fableWeekly || p.monthly || p.creditUsage || p.buckets?.length
+  )
   return (
     <span className="inline-flex items-center gap-1 text-muted-foreground">
       <span
@@ -166,6 +173,16 @@ function VerboseProviderUsage({
           <WindowLabel w={window.window} label={window.label} display={display} />
         </React.Fragment>
       ))}
+      {p.creditUsage ? (
+        <>
+          {visibleWindows.length > 0 ? <span className="text-muted-foreground">·</span> : null}
+          <span className="tabular-nums">
+            {p.creditUsage.usedPercent === null
+              ? `${formatCodexCreditScope(p.creditUsage.scope)} ~${formatCodexCreditAmount(p.creditUsage.usedCredits) ?? '--'} ${translate('auto.components.status.bar.codexCreditShortLabel', 'cr')}`
+              : `${formatCodexCreditScope(p.creditUsage.scope)} ${formatUsagePercentageLabel(p.creditUsage.usedPercent, display)} ${formatCodexCreditShortLabel(p.creditUsage)}`}
+          </span>
+        </>
+      ) : null}
     </>
   )
 }
@@ -197,7 +214,7 @@ export function ProviderSegment({
   const tightest = getTightestUsageSection(p)
 
   // Fetching with no prior data
-  if (p.status === 'fetching' && !tightest) {
+  if (p.status === 'fetching' && !tightest && !p.creditUsage) {
     return (
       <span className="inline-flex items-center gap-1 text-muted-foreground">
         <ProviderIcon provider={provider} />
@@ -216,7 +233,7 @@ export function ProviderSegment({
   }
 
   // Error with no data
-  if (p.status === 'error' && !tightest) {
+  if (p.status === 'error' && !tightest && !p.creditUsage) {
     return (
       <span className="inline-flex items-center gap-1 text-muted-foreground">
         <ProviderIcon provider={provider} />
@@ -240,12 +257,26 @@ export function ProviderSegment({
           <VerboseProviderUsage p={p} display={display} />
         </>
       ) : tightest ? (
-        <WindowLabel
-          w={tightest.window}
-          label={tightest.label}
-          display={display}
-          showLabel={!compact}
-        />
+        tightest.creditUsage ? (
+          <span className="tabular-nums">
+            {formatCodexCreditScope(tightest.creditUsage.scope)}{' '}
+            {formatUsagePercentageLabel(tightest.window.usedPercent, display)}{' '}
+            {formatCodexCreditShortLabel(tightest.creditUsage)}
+          </span>
+        ) : (
+          <WindowLabel
+            w={tightest.window}
+            label={tightest.label}
+            display={display}
+            showLabel={!compact}
+          />
+        )
+      ) : p.creditUsage ? (
+        <span className="tabular-nums">
+          {p.creditUsage.usedPercent === null
+            ? `${formatCodexCreditScope(p.creditUsage.scope)} ~${formatCodexCreditAmount(p.creditUsage.usedCredits) ?? '--'} ${translate('auto.components.status.bar.codexCreditShortLabel', 'cr')}`
+            : `${formatCodexCreditScope(p.creditUsage.scope)} ${formatUsagePercentageLabel(p.creditUsage.usedPercent, display)} ${formatCodexCreditShortLabel(p.creditUsage)}`}
+        </span>
       ) : null}
       {isStale && <AlertTriangle size={11} className="text-muted-foreground/80" />}
     </span>

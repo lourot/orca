@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { cancelTrackingResponse } from '../lib/unread-response-body.test-fixtures'
+import type { ProviderRateLimits } from '../../shared/rate-limit-types'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { childSpawnMock, readFileMock, ptySpawnMock } = vi.hoisted(() => ({
@@ -16,6 +17,7 @@ vi.mock('./codex-auth-presence', () => ({
 }))
 
 import { consumeCodexRateLimitResetCredit, fetchCodexRateLimits } from './codex-fetcher'
+import { supplementCodexSessionWindow } from './codex-backend-usage-client'
 
 describe('Codex backend rate-limit requests', () => {
   beforeEach(() => {
@@ -95,6 +97,113 @@ describe('Codex backend rate-limit requests', () => {
         signal: expect.any(AbortSignal)
       })
     )
+  })
+
+  it('maps SSO monthly credit spend controls into active-account usage', async () => {
+    readFileMock.mockResolvedValue(
+      JSON.stringify({
+        tokens: { access_token: 'access-token', account_id: 'account-id' }
+      })
+    )
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            plan_type: 'team',
+            rate_limit: {
+              primary_window: {
+                used_percent: 0,
+                limit_window_seconds: 5 * 60 * 60,
+                reset_at: 1_800_000_000
+              },
+              secondary_window: {
+                used_percent: 0,
+                limit_window_seconds: 7 * 24 * 60 * 60,
+                reset_at: 1_800_100_000
+              }
+            },
+            credits: { has_credits: true, balance: null },
+            spend_control: {
+              individual_limit: {
+                used: '123.45',
+                limit: '10000',
+                remaining: '9876.55',
+                used_percent: 1.2345,
+                reset_at: 1_800_000_000
+              }
+            }
+          }),
+          { headers: { 'content-type': 'application/json' } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ available_count: 0 }), {
+          headers: { 'content-type': 'application/json' }
+        })
+      )
+
+    await expect(
+      fetchCodexRateLimits({
+        codexHomePath: '\\\\wsl.localhost\\Ubuntu\\home\\alice\\.codex'
+      })
+    ).resolves.toMatchObject({
+      creditUsage: {
+        usedCredits: 123.45,
+        limitCredits: 10000,
+        remainingCredits: 9876.55,
+        usedPercent: 1.2345,
+        resetsAt: 1_800_000_000_000,
+        source: 'provider',
+        scope: 'active-account'
+      },
+      status: 'ok'
+    })
+  })
+
+  it('supplements monthly credits when RPC reports no rate-limit windows', async () => {
+    readFileMock.mockResolvedValue(
+      JSON.stringify({
+        tokens: { access_token: 'access-token', account_id: 'account-id' }
+      })
+    )
+    const limits: ProviderRateLimits = {
+      provider: 'codex',
+      session: null,
+      weekly: null,
+      updatedAt: 1,
+      error: null,
+      status: 'ok'
+    }
+    const request = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          plan_type: 'business',
+          rate_limit: null,
+          spend_control: {
+            individual_limit: {
+              used: '792.6546635627747',
+              limit: '10000',
+              remaining: '9207.345336437225',
+              used_percent: 8,
+              reset_at: 1_790_812_800
+            }
+          }
+        }),
+        { headers: { 'content-type': 'application/json' } }
+      )
+    )
+
+    await expect(supplementCodexSessionWindow(limits, request)).resolves.toMatchObject({
+      creditUsage: {
+        usedCredits: 792.6546635627747,
+        limitCredits: 10000,
+        remainingCredits: 9207.345336437225,
+        usedPercent: 8,
+        source: 'provider',
+        scope: 'active-account'
+      }
+    })
+    expect(request).toHaveBeenCalledOnce()
   })
 
   it('classifies a sole seven-day backend primary window as weekly', async () => {

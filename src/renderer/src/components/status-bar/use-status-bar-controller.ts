@@ -10,10 +10,13 @@ import { getVisibleUsageProvider, isUsageEmptyState } from './status-bar-provide
 import { getUsageProviderAccountsSectionId } from './usage-provider-settings-target'
 import { CLOSE_ALL_CONTEXT_MENUS_EVENT, useStatusBarMenuFocusHandoff } from './ProviderDetailsMenu'
 import { observeStatusBarContainer } from './status-bar-container-observer'
+import { applyCodexLocalCreditEstimate } from './codex-credit-usage'
+import type { CodexLocalCreditEstimate } from '../../../../shared/codex-usage-types'
 
 export function useStatusBarController(floatingTerminalOpen: boolean) {
   const floatingTerminalShortcut = useShortcutLabel('floatingTerminal.toggle')
   const rateLimits = useAppStore((s) => s.rateLimits)
+  const codexUsageScanState = useAppStore((s) => s.codexUsageScanState)
   const settings = useAppStore((s) => s.settings)
   const refreshRateLimits = useAppStore((s) => s.refreshRateLimits)
   const openSettingsTarget = useAppStore((s) => s.openSettingsTarget)
@@ -45,6 +48,9 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPoint, setMenuPoint] = useState({ x: 0, y: 0 })
+  const [localCodexCreditEstimate, setLocalCodexCreditEstimate] =
+    useState<CodexLocalCreditEstimate | null>(null)
+  const [localCreditAnalyticsEnabled, setLocalCreditAnalyticsEnabled] = useState(false)
 
   const [containerWidth, setContainerWidth] = useState(900)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
@@ -80,6 +86,39 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
   }, [])
 
   const refreshDetectedAgents = useAppStore((s) => s.refreshDetectedAgents)
+  const refreshLocalCodexCreditEstimate = useCallback(async (): Promise<void> => {
+    const getScanState = window.api.codexUsage.getScanState
+    const getEstimate = window.api.codexUsage.getCurrentMonthCreditEstimate
+    if (typeof getScanState !== 'function' || typeof getEstimate !== 'function') {
+      setLocalCreditAnalyticsEnabled(false)
+      setLocalCodexCreditEstimate(null)
+      return
+    }
+    try {
+      const scanState = await getScanState()
+      if (!scanState?.enabled) {
+        setLocalCreditAnalyticsEnabled(false)
+        setLocalCodexCreditEstimate(null)
+        return
+      }
+      setLocalCreditAnalyticsEnabled(true)
+      const estimate = await getEstimate()
+      if (mountedRef.current) {
+        setLocalCodexCreditEstimate(estimate)
+      }
+    } catch (error) {
+      console.error('Failed to fetch local Codex credit estimate:', error)
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshLocalCodexCreditEstimate()
+  }, [
+    refreshLocalCodexCreditEstimate,
+    codexUsageScanState?.enabled,
+    codexUsageScanState?.lastScanCompletedAt
+  ])
+
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) {
       return
@@ -87,13 +126,17 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
     setIsRefreshing(true)
     try {
       // Why: re-run PATH detection so a freshly-installed/removed CLI's bar appears/hides without restarting Orca.
-      await Promise.all([refreshRateLimits(), refreshDetectedAgents()])
+      await Promise.all([
+        refreshRateLimits(),
+        refreshDetectedAgents(),
+        refreshLocalCodexCreditEstimate()
+      ])
     } finally {
       if (mountedRef.current) {
         setIsRefreshing(false)
       }
     }
-  }, [isRefreshing, refreshRateLimits, refreshDetectedAgents])
+  }, [isRefreshing, refreshRateLimits, refreshDetectedAgents, refreshLocalCodexCreditEstimate])
 
   if (!statusBarVisible) {
     return null
@@ -116,7 +159,17 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
     grokAuthConfigured: rateLimits.grokAuthConfigured
   }
   const visibleClaude = getVisibleUsageProvider('claude', claude, usageSettings)
-  const visibleCodex = getVisibleUsageProvider('codex', codex, usageSettings)
+  const visibleCodex = getVisibleUsageProvider(
+    'codex',
+    applyCodexLocalCreditEstimate(
+      codex,
+      localCodexCreditEstimate,
+      localCreditAnalyticsEnabled &&
+        rateLimits.codexTarget.runtime === 'host' &&
+        !settings?.activeRuntimeEnvironmentId?.trim()
+    ),
+    usageSettings
+  )
   const visibleGemini = getVisibleUsageProvider('gemini', gemini, usageSettings)
   const visibleKimi = getVisibleUsageProvider('kimi', kimi, usageSettings)
   const visibleAntigravity = getVisibleUsageProvider('antigravity', antigravity, usageSettings)

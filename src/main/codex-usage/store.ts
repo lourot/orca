@@ -10,6 +10,7 @@ import type {
   CodexUsageSnapshot,
   CodexUsageSummary
 } from '../../shared/codex-usage-types'
+import { buildCurrentMonthCreditEstimate } from './codex-usage-current-month'
 import type { AutomationRunUsage } from '../../shared/automations-types'
 import type { Store } from '../persistence'
 import type { CodexUsagePersistedState } from './types'
@@ -142,5 +143,12 @@ export class CodexUsageStore extends UsageProviderStoreLifecycle<
       getState: () => this.state,
       refresh: (force) => this.refresh(force)
     })
+  }
+
+  async getCurrentMonthCreditEstimate(): Promise<
+    ReturnType<typeof buildCurrentMonthCreditEstimate>
+  > {
+    await this.refresh(false)
+    return this.state.scanState.enabled ? buildCurrentMonthCreditEstimate(this.state) : null
   }
 }
