@@ -10,6 +10,7 @@ import type { SearchFiltersProps } from './SearchFilters'
 import type { SearchQueryRowProps } from './SearchQueryRow'
 import type { SearchRow } from './search-rows'
 import type { FileSearchScope } from './file-search-scope'
+import { activateFileSearchResultOwner } from '@/lib/file-search-result-activation'
 import { openMatchResult } from './search-match-open'
 import type { FileSearchPanelActionsArgs, SearchOptionsState } from './file-search-panel-types'
 
@@ -64,7 +65,6 @@ export function useFileSearchPanelActions(args: FileSearchPanelActionsArgs): {
     toggleFileSearchCollapsedFile,
     updateGlobalSearchState,
     openFile,
-    setActiveWorktree,
     setPendingEditorReveal,
     revealRafRef,
     revealInnerRafRef,
@@ -232,8 +232,8 @@ export function useFileSearchPanelActions(args: FileSearchPanelActionsArgs): {
   const handleMatchClick = useCallback(
     (fileResult: SearchFileResult, match: SearchMatch, owner?: FileSearchResultOwner) => {
       const resultOwner = owner ?? currentSearchResultOwner
-      if (resultOwner && resultOwner.worktreeId !== activeWorktreeId) {
-        setActiveWorktree(resultOwner.worktreeId)
+      if (resultOwner) {
+        activateFileSearchResultOwner(resultOwner)
       }
       openMatchResult({
         resultOwner,
@@ -251,7 +251,6 @@ export function useFileSearchPanelActions(args: FileSearchPanelActionsArgs): {
       openFile,
       revealInnerRafRef,
       revealRafRef,
-      setActiveWorktree,
       setPendingEditorReveal
     ]
   )

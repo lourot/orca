@@ -42,7 +42,6 @@ export type FileSearchPanelActionsArgs = {
   toggleFileSearchCollapsedFile: (worktreeId: string, collapseKey: string) => void
   updateGlobalSearchState: (updates: Partial<GlobalFileSearchState>) => void
   openFile: Parameters<typeof openMatchResult>[0]['openFile']
-  setActiveWorktree: (worktreeId: string) => void
   setPendingEditorReveal: Parameters<typeof openMatchResult>[0]['setPendingEditorReveal']
   revealRafRef: React.RefObject<number | null>
   revealInnerRafRef: React.RefObject<number | null>

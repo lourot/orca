@@ -93,6 +93,7 @@ describe('useFileSearchRunner result ownership', () => {
     )
     expect(updates).toContainEqual({
       results: RESULTS,
+      resultsStale: false,
       resultOwner: {
         worktreeId,
         runtimeEnvironmentId: 'search-runtime-a',
@@ -138,6 +139,7 @@ describe('useFileSearchRunner result ownership', () => {
     )
     expect(updates).toContainEqual({
       results: RESULTS,
+      resultsStale: false,
       resultOwner: {
         worktreeId,
         runtimeEnvironmentId: null,
@@ -173,6 +175,7 @@ describe('useFileSearchRunner result ownership', () => {
     )
     expect(updates).toContainEqual({
       results: RESULTS,
+      resultsStale: false,
       resultOwner: {
         worktreeId,
         runtimeEnvironmentId: null,
@@ -196,6 +199,7 @@ describe('useFileSearchRunner result ownership', () => {
 
     expect(updates).toContainEqual({
       results: RESULTS,
+      resultsStale: false,
       resultOwner: {
         worktreeId,
         runtimeEnvironmentId: null,

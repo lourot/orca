@@ -28,6 +28,7 @@ type UpdateSearchState = (updates: {
   loading?: boolean
   results?: SearchResult | null
   resultOwner?: FileSearchResultOwner | null
+  resultsStale?: boolean
 }) => void
 
 type UseFileSearchRunnerArgs = {
@@ -104,6 +105,7 @@ export function useFileSearchRunner({
             rootPath: worktreePath,
             executionHostId
           }),
+          resultsStale: false,
           loading: false
         })
         return
@@ -139,6 +141,7 @@ export function useFileSearchRunner({
               updateActiveSearchState({
                 results: createEmptyRuntimeFileSearchResult(),
                 resultOwner,
+                resultsStale: false,
                 loading: false
               })
             }
@@ -164,7 +167,7 @@ export function useFileSearchRunner({
             controller.signal
           )
           if (latestSearchIdRef.current === searchId) {
-            updateActiveSearchState({ results, resultOwner })
+            updateActiveSearchState({ results, resultOwner, resultsStale: false })
           }
         } catch (err) {
           if (controller.signal.aborted) {

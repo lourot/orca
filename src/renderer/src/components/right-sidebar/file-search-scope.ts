@@ -1,4 +1,9 @@
-import { getRepoExecutionHostId, LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
+import {
+  getRepoExecutionHostId,
+  getWorktreeExecutionHostId,
+  LOCAL_EXECUTION_HOST_ID,
+  type ExecutionHostId
+} from '../../../../shared/execution-host'
 import { normalizeRuntimePathForComparison } from '../../../../shared/cross-platform-path'
 import { isGitRepoKind } from '../../../../shared/repo-kind'
 import { getRepoMainWorktreeId } from '../../../../shared/worktree/id'
@@ -16,6 +21,7 @@ export type FileSearchRoot = {
   path: string
   repoName: string
   worktreeName: string
+  executionHostId: ExecutionHostId
 }
 
 export type FileSearchResultGroup = {
@@ -46,7 +52,8 @@ function rootFromRepo(repo: Repo, worktreeName = repo.displayName): FileSearchRo
     repoId: repo.id,
     path: repo.path,
     repoName: repo.displayName,
-    worktreeName
+    worktreeName,
+    executionHostId: getWorktreeExecutionHostId({ hostId: undefined }, repo)
   }
 }
 
@@ -57,7 +64,8 @@ function rootFromWorktree(worktree: Worktree, repo: Repo): FileSearchRoot {
     repoId: repo.id,
     path: worktree.path,
     repoName: repo.displayName,
-    worktreeName: worktree.displayName || worktree.path
+    worktreeName: worktree.displayName || worktree.path,
+    executionHostId: getWorktreeExecutionHostId(worktree, repo)
   }
 }
 
