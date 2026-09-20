@@ -90,6 +90,8 @@ export type WorktreeMeta = {
   orcaCreationWorkspaceLayout?: OrcaWorkspaceLayout
   /** User-assigned workspace board status for manual sidebar organization. */
   workspaceStatus?: WorkspaceStatus
+  /** User-assigned grouping color, as a normalized `#rrggbb` hex. Null/absent means untagged. */
+  colorTag?: string | null
   diffComments?: DiffComment[]
   /** Prior path-derived IDs let session GC/hydration retain sessions across folder renames. Removed with the worktree. */
   priorWorktreeIds?: string[]

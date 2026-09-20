@@ -54,6 +54,7 @@ type FolderWorkspaceUpdates = Partial<
     | 'sortOrder'
     | 'manualOrder'
     | 'workspaceStatus'
+    | 'colorTag'
     | 'createdWithAgent'
     | 'pendingFirstAgentMessageRename'
     | 'firstAgentMessageRenameError'

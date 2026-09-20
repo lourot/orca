@@ -5,6 +5,7 @@ import { normalizeStoredTaskSourceContext } from './task-source-context'
 import { normalizeWorkspaceLinkedItem } from './workspace-linked-item'
 import { isWorkspaceLinkedItemSourceContextMatch } from './workspace-linked-item-source-context'
 import { normalizeWorkspaceCreatorProvenance } from './workspace-creator-provenance'
+import { normalizeWorkspaceColorTag } from './workspace-color-tag'
 import { getWorkspaceAttachments } from './workspace-attachments'
 import { isSmartTier } from './sidebar-list/sort-stamps'
 import { normalizeOrcadRetainedMarker } from './orcad-retained-marker'
@@ -57,6 +58,7 @@ export function normalizeFolderWorkspaces(
     const linkedTaskSourceContext = normalizeStoredTaskSourceContext(raw.linkedTaskSourceContext)
     const creatorProvenance = normalizeWorkspaceCreatorProvenance(raw.creatorProvenance)
     const orcadRetained = normalizeOrcadRetainedMarker(raw.orcadRetained)
+    const colorTag = normalizeWorkspaceColorTag(raw.colorTag)
     seen.add(raw.id)
     // Do not persist fetch-time executionHostId: it may name an unowned runtime authority and lacks a generation fence.
     // connectionId is the durable pin main projects from.
@@ -100,6 +102,7 @@ export function normalizeFolderWorkspaces(
       ...(typeof raw.workspaceStatus === 'string' && raw.workspaceStatus.trim().length > 0
         ? { workspaceStatus: raw.workspaceStatus }
         : {}),
+      ...(colorTag !== null ? { colorTag } : {}),
       ...(isTuiAgent(raw.createdWithAgent) ? { createdWithAgent: raw.createdWithAgent } : {}),
       ...(raw.pendingFirstAgentMessageRename === true
         ? { pendingFirstAgentMessageRename: true }

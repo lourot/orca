@@ -8,6 +8,7 @@ import {
 } from '../../../../shared/sidebar-list/worktree-lineage-projection'
 import { useContextWorkspaceStatuses } from './use-workspace-board-statuses'
 import { useMenuScopedWorktreeCatalog } from './use-menu-scoped-worktree-catalog'
+import { useContextColorTag } from './worktree-context-menu-shared-meta'
 import { getEligibleWorktreeParents } from './worktree-parent-candidates'
 import {
   hasSleepableWorkspaceActivity,
@@ -186,6 +187,7 @@ export function useWorktreeContextMenuModel({
     () => getSharedWorkspaceStatus(activeContextWorktrees, statusesForWorktree),
     [activeContextWorktrees, statusesForWorktree]
   )
+  const contextColorTag = useContextColorTag(activeContextWorktrees, allWorktrees, menuOpen)
   const batchDeleteWorktrees = useMemo(
     () =>
       activeContextWorktrees.filter((item) => {
@@ -359,6 +361,7 @@ export function useWorktreeContextMenuModel({
     children,
     contentClassName,
     contextDeletePending,
+    contextColorTag,
     contextMenuOpenedAtRef,
     contextWorkspaceStatus,
     createGroupDialogOpen,

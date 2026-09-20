@@ -2,7 +2,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuSub,
@@ -16,7 +15,6 @@ import {
   Bell,
   BellOff,
   CircleX,
-  Pencil,
   Pin,
   PinOff,
   Trash2,
@@ -34,7 +32,8 @@ import { isEventTargetInsideCurrentTarget } from './worktree-card-dom-events'
 import { translate } from '@/i18n/i18n'
 import { useOptionalShortcutLabel } from '@/hooks/useShortcutLabel'
 import type { WorktreeContextMenuModel } from './use-worktree-context-menu-model'
-import { WorktreeStatusMenuItems } from './WorktreeStatusMenuItems'
+import { WorktreeWorkspaceMenuSection } from './WorktreeWorkspaceMenuSection'
+import { WorktreeColorTagMenuItems } from './WorktreeColorTagMenuItems'
 import { WorktreeContextMenuOverlays } from './WorktreeContextMenuOverlays'
 import {
   WORKTREE_CONTEXT_MENU_SCOPE_ATTR,
@@ -51,9 +50,9 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
     batchDeleteWorktrees,
     children,
     contentClassName,
+    contextColorTag,
     contextDeletePending,
     contextMenuOpenedAtRef,
-    contextWorkspaceStatus,
     deleteLabel,
     deletingContext,
     deletingSubtree,
@@ -61,7 +60,7 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
     eligibleParentCount,
     effectiveSelectedWorktrees,
     folderWorkspaceId,
-    handleAssignWorkspaceStatus,
+    handleAssignColorTag,
     handleCloseAutoFocus,
     handleCloseTerminals,
     handleCopyName,
@@ -73,7 +72,6 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
     handleOpenParentPicker,
     handleRemoveParentLink,
     handleRemoveProjectFromGroup,
-    handleRename,
     handleSleepSubtree,
     handleTogglePin,
     handleToggleRead,
@@ -98,8 +96,7 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
     subtreeSleepableWorktrees,
     suppressOpeningPointerEvent,
     validParentWorktreeId,
-    worktree,
-    workspaceStatuses
+    worktree
   } = model
   const deleteShortcut = useOptionalShortcutLabel('workspace.delete')
   return (
@@ -141,7 +138,7 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className={cn(lineageDescendantCount > 0 ? 'min-w-60' : 'min-w-52', contentClassName)}
+          className={cn('min-w-64', contentClassName)}
           sideOffset={0}
           align="start"
           onPointerUpCapture={suppressOpeningPointerEvent}
@@ -154,22 +151,14 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
           onClickCapture={suppressOpeningPointerEvent}
           onCloseAutoFocus={handleCloseAutoFocus}
         >
-          <DropdownMenuLabel>
-            {translate('auto.components.sidebar.WorktreeContextMenu.workspaceSection', 'Workspace')}
-          </DropdownMenuLabel>
-          {!isMultiContext && (
-            <DropdownMenuItem onSelect={handleRename} disabled={isDeleting}>
-              <Pencil className="size-3.5" />
-              {translate('auto.components.sidebar.WorktreeContextMenu.439fa94d53', 'Update')}
-            </DropdownMenuItem>
-          )}
-          <WorktreeStatusMenuItems
-            contextWorkspaceStatus={contextWorkspaceStatus}
-            deletingContext={deletingContext}
+          <WorktreeColorTagMenuItems
+            {...contextColorTag}
+            disabled={deletingContext}
             isMultiContext={isMultiContext}
-            onAssignWorkspaceStatus={handleAssignWorkspaceStatus}
-            workspaceStatuses={workspaceStatuses}
+            onAssignColorTag={handleAssignColorTag}
           />
+          <DropdownMenuSeparator />
+          <WorktreeWorkspaceMenuSection model={model} />
           <DropdownMenuSeparator />
           {!isMultiContext && (
             <>

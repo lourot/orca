@@ -134,6 +134,21 @@ export function useWorktreeContextMenuCommands(args: {
     },
     [args]
   )
+  const handleAssignColorTag = useCallback(
+    (colorTag: string | null) => {
+      args.setMenuOpenState(false)
+      void Promise.all(
+        args.activeContextWorktrees.map((worktree) =>
+          args.updateWorktreeMeta(
+            worktree.id,
+            { colorTag },
+            { executionHostId: worktree.hostId ?? 'local' }
+          )
+        )
+      )
+    },
+    [args]
+  )
   const handleRename = useCallback(() => {
     args.openModal('edit-meta', {
       worktreeId: args.worktree.id,
@@ -186,6 +201,7 @@ export function useWorktreeContextMenuCommands(args: {
     }
   }, [args.validParentWorktreeId])
   return {
+    handleAssignColorTag,
     handleAssignWorkspaceStatus,
     handleCloseTerminals,
     handleCopyName,

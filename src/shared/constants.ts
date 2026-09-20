@@ -114,6 +114,8 @@ export function getDefaultVoiceSettings(): VoiceSettings {
     language: 'en',
     dictationMode: 'toggle' as const,
     terminalConfirmBeforeInsert: false,
+    transcriptCleanupEnabled: false,
+    markDictatedTextForAgents: true,
     userModels: [],
     openAiApiKeyConfigured: false,
     microphoneDeviceId: null,
