@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { CODEX_ATTENTION_QUIET_MS } from '../../../../shared/codex-auto-review-attention'
 import { createAgentCompletionCoordinator } from './agent-completion-coordinator'
 import {
   flushAsyncTicks,
