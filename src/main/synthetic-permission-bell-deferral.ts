@@ -1,4 +1,15 @@
+import type { TerminalSideEffectBatch } from '../shared/terminal-side-effect-facts'
+
 type Timer = ReturnType<typeof setTimeout>
+
+/** Returns the pane whose native title proves a pending synthetic BEL is obsolete. */
+export function syntheticPermissionBellPaneToCancel(
+  batch: Pick<TerminalSideEffectBatch, 'paneKey' | 'facts'>
+): string | null {
+  return batch.paneKey && batch.facts.some((fact) => fact.kind === 'agent-working')
+    ? batch.paneKey
+    : null
+}
 
 /** Owns one cancellable per-pane timer for Orca-fabricated permission BELs. */
 export function createSyntheticPermissionBellDeferral(options: { quietMs: number }) {
