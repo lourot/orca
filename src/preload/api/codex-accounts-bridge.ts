@@ -34,6 +34,8 @@ export const codexAccountsApi = {
   > => ipcRenderer.invoke('codexAccounts:listStalePanes', args),
   listRecordedPaneLanes: (args: { ptyIds: string[] }): Promise<Record<string, string>> =>
     ipcRenderer.invoke('codexAccounts:listRecordedPaneLanes', args),
+  getForkContext: (args: { ptyId: string; command?: string }) =>
+    ipcRenderer.invoke('codexAccounts:getForkContext', args),
   forgetStalePanes: (args: { ptyIds: string[] }): Promise<void> =>
     ipcRenderer.invoke('codexAccounts:forgetStalePanes', args)
 } satisfies PreloadApi['codexAccounts']

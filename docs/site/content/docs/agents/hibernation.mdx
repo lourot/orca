@@ -51,6 +51,8 @@ Resume also reuses the launch command, arguments, and private environment captur
 
 If the agent CLI can't resume the session for any reason (the transcript was deleted, the provider rotated the session ID), the terminal opens to a fresh prompt and the previous transcript stays available under the agent's session history.
 
+A wake is always a resume of the **same** session id, never a branch — if you want a second agent working from the same history, [fork the session](/docs/terminal#fork-an-agent-session) instead, which copies it under a new id.
+
 ## Limitations
 
 Only the listed resumable agents hibernate. Cursor CLI, Hermes, Copilot, Trae, and other non-resumable terminals are left running.

@@ -6,6 +6,7 @@ import { openAccountSignInLink } from './account-sign-in-link-opener'
 import { listRecordedCodexPaneLanes } from '../codex/codex-pane-account-registry'
 import { forgetStaleCodexPanes, listStaleCodexPanes } from '../codex/codex-stale-pane-accounts'
 import type { GlobalSettings } from '../../shared/global-settings-types'
+import { getLocalCodexForkContext } from '../codex/codex-fork-context'
 
 export function registerCodexAccountHandlers(
   codexAccounts: CodexAccountService,
@@ -29,6 +30,20 @@ export function registerCodexAccountHandlers(
       args.ptyIds.filter((ptyId): ptyId is string => typeof ptyId === 'string')
     )
   })
+  ipcMain.handle(
+    'codexAccounts:getForkContext',
+    async (_event, args: { ptyId?: unknown; command?: unknown }) => {
+      const settings = getSettings?.()
+      if (!settings) {
+        return { status: 'unavailable', reason: 'source-account-unavailable' as const }
+      }
+      return getLocalCodexForkContext(
+        typeof args?.ptyId === 'string' ? args.ptyId : null,
+        settings,
+        typeof args?.command === 'string' ? args.command : null
+      )
+    }
+  )
   ipcMain.handle('codexAccounts:forgetStalePanes', (_event, args: { ptyIds?: unknown }) => {
     if (!Array.isArray(args?.ptyIds)) {
       return

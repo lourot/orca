@@ -207,6 +207,16 @@
           "errorUnavailable": "Screenshot markup is not available on this page."
         }
       },
+      "browserPane": {
+        "annotate": {
+          "detachedNotes": {
+            "count_one": "{{count}} unsent note from a closed page",
+            "count_other": "{{count}} unsent notes from closed pages",
+            "discardTitle_one": "Discard {{count}} unsent note?",
+            "discardTitle_other": "Discard {{count}} unsent notes?"
+          }
+        }
+      },
       "dashboard": {
         "DashboardAgentChildDisclosure": {
           "hideChildAgents_one": "Hide {{count}} child agent",
@@ -923,9 +933,18 @@
           "workspacesMatch_one": "{{matchCount}} of {{count}} workspace matches",
           "workspacesMatch_other": "{{matchCount}} of {{count}} workspaces match"
         },
+        "WorktreeCardMeta": {
+          "unsentReviewNotes_one": "{{count}} unsent review note",
+          "unsentReviewNotes_other": "{{count}} unsent review notes"
+        },
         "WorktreeCardPorts": {
           "livePorts_one": "{{count}} live port",
           "livePorts_other": "{{count}} live ports"
+        },
+        "WorktreeColorTagMenuItems": {
+          "usedBy": "used by {{count}} workspaces",
+          "usedBy_one": "used by {{count}} workspace",
+          "usedBy_other": "used by {{count}} workspaces"
         },
         "WorktreeList": {
           "childCount_one": "{{count}} child",
@@ -1291,6 +1310,9 @@
       "remoteSchedulingUnavailable": "Remote-server automation scheduling is not available from this Orca client yet. Run this automation on the remote server or update Orca when durable remote scheduling is available.",
       "repoDetached": "Repository is no longer attached to the selected automation host.",
       "repoUnavailable": "Repository for the selected automation host is no longer available.",
+      "skippedCooldown": "This automation ran recently, so the scheduled run was skipped.",
+      "skippedRunActive": "A previous run was still active, so the scheduled run was skipped.",
+      "skippedSessionOpen": "This automation's previous session is still open, so the run was skipped.",
       "targetMissing": "The automation host is no longer registered, so this automation has nowhere to run.",
       "targetReplaced": "The automation host was removed and re-registered, so this automation must be re-adopted before it can run.",
       "targetSetupMismatch": "Automation run target no longer matches the selected project host setup.",
@@ -2243,6 +2265,11 @@
         "targetNotFolder": "\"{{name}}\" already exists at this location and is not a folder."
       }
     },
+    "projectActivity": {
+      "summary": "{{count}} agent turns in the last {{days}} days",
+      "summary_one": "{{count}} agent turn in the last {{days}} days",
+      "summary_other": "{{count}} agent turns in the last {{days}} days"
+    },
     "wslHosts": {
       "addErrors": {
         "alreadyAdded": "{{distro}} is already a host.",
@@ -2298,6 +2325,7 @@
         "agentCannotGenerateBranchName": "Agent \"{{agent}}\" does not support Source Control AI branch names. Supported agents: {{agents}}, or Custom command.",
         "agentCannotGenerateChatName": "Agent \"{{agent}}\" does not support chat names. Supported agents: {{agents}}, or Custom command.",
         "agentCannotGenerateCommitMessage": "Agent \"{{agent}}\" does not support Source Control AI commit messages. Supported agents: {{agents}}, or Custom command.",
+        "agentCannotGenerateDictationCleanup": "Agent \"{{agent}}\" does not support dictation cleanup. Supported agents: {{agents}}, or Custom command.",
         "agentCannotGeneratePullRequest": "Agent \"{{agent}}\" does not support Source Control AI pull request details. Supported agents: {{agents}}, or Custom command.",
         "agentCouldNotStart": "{{label}} could not be started. Check the agent command in Settings and try again.",
         "agentFailedToStart": "{{label}} failed to start. Check the agent command in Settings and try again.",
@@ -2314,8 +2342,11 @@
         "commandTemplateEmptyBranchName": "Command template is empty for branch names.",
         "commandTemplateEmptyChatName": "Command template is empty for chat names.",
         "commandTemplateEmptyCommitMessage": "Command template is empty for commit messages.",
+        "commandTemplateEmptyDictationCleanup": "Command template is empty for dictation cleanup.",
         "commandTemplateEmptyPullRequest": "Command template is empty for pull request details.",
         "commitMessageUnparseable": "Generated commit message could not be parsed.",
+        "dictationCleanupAgentUnsupported": "Choose a supported dictation cleanup agent for this action in Settings -> Voice -> Transcript cleanup. Supported agents: {{agents}}, or Custom command.",
+        "dictationCleanupCustomCommandEmpty": "Custom command is empty. Add one in Settings -> Voice -> Transcript cleanup.",
         "emptyCommitMessage": "{{label}} returned an empty message.",
         "emptyCommitMessageWithDetail": "{{label}} returned an empty message. CLI output: {{detail}}",
         "emptyJiraSummary": "{{label}} returned an empty summary.",

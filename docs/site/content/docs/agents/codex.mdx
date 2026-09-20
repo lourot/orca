@@ -42,6 +42,10 @@ When Codex spawns Task subagents, Orca can show them as child rows under the par
 
 From an agent terminal's header or context menu, choose **Hand Off to Another Agent**. Orca starts a fresh agent session (same or different CLI) and injects a bounded handoff prompt from the prior transcript or captured context. The original session is left alone — this is not `codex resume`.
 
+## Fork the full conversation
+
+For local Codex sessions, **Fork Agent Session** can start a new worktree with the complete conversation by running `codex fork <session-id>`. The child receives a new Codex thread id, while the original session remains untouched. This option is unavailable when Orca cannot verify the local Codex CLI or source account context; **Recent context** remains available instead.
+
 ## Restart chip
 
 When Codex exits, the restart chip relaunches the agent with the same account. If you swapped accounts mid-session and want to restart with the new one, use the account switcher first, then restart.

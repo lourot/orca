@@ -87,7 +87,10 @@ export function launchAgentInNewTabWithOutcome(
           permissionSettings,
           readLaunchPermissionChoice(sessionOptions) ? 'own' : undefined
         )
-  const agentEnv = resolveTuiAgentLaunchEnv(agent, permissionSettings, resolvedLaunchPlatform)
+  const agentEnv = Object.assign(
+    resolveTuiAgentLaunchEnv(agent, permissionSettings, resolvedLaunchPlatform),
+    args.agentEnvOverride
+  )
   const trimmedPrompt = prompt?.trim() ?? ''
   const hasPrompt = trimmedPrompt.length > 0
   const isFollowupPath = TUI_AGENT_CONFIG[agent].promptInjectionMode === 'stdin-after-start'

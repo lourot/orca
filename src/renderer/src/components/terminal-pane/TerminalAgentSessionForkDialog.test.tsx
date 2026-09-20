@@ -44,16 +44,31 @@ vi.mock('@/components/ui/dialog', async () => {
 })
 
 vi.mock('./terminal-agent-session-fork', () => ({
-  copyAgentSessionForkContext: mocks.copyAgentSessionForkContext,
   startAgentSessionFork: mocks.startAgentSessionFork
 }))
 
-function makeFork(): PreparedAgentSessionFork {
+vi.mock('./terminal-agent-session-fork-clipboard', () => ({
+  copyAgentSessionForkContext: mocks.copyAgentSessionForkContext
+}))
+
+const SESSION_ID = 'c0ffee00-1111-4222-8333-444455556666'
+const CODEX_FORK_CONTEXT = { status: 'available' as const, env: { CODEX_HOME: '/codex/home' } }
+
+/** The selected radio card's markup, up to the end of its <button> element. */
+function checkedCardTag(html: string): string {
+  const start = html.lastIndexOf('<button', html.indexOf('aria-checked="true"'))
+  return html.slice(start, html.indexOf('</button>', start))
+}
+
+function makeFork(overrides: Partial<PreparedAgentSessionFork> = {}): PreparedAgentSessionFork {
   return {
     prompt: 'fork prompt',
-    agent: null,
+    agent: 'claude',
     worktreeId: 'wt-1',
-    pane: {} as PreparedAgentSessionFork['pane']
+    pane: {} as PreparedAgentSessionFork['pane'],
+    providerSession: { key: 'session_id', id: SESSION_ID },
+    mode: 'recent-context',
+    ...overrides
   }
 }
 
@@ -80,4 +95,99 @@ describe('TerminalAgentSessionForkDialog', () => {
 
     expect(mocks.startAgentSessionFork).toHaveBeenCalledTimes(1)
   })
+
+  it('defaults to forking the full conversation when the pane has a Claude session', async () => {
+    mocks.startAgentSessionFork.mockResolvedValue(true)
+    const { TerminalAgentSessionForkDialog } = await import('./TerminalAgentSessionForkDialog')
+
+    const html = renderToStaticMarkup(
+      <TerminalAgentSessionForkDialog open fork={makeFork()} onOpenChange={vi.fn()} />
+    )
+
+    expect(html).toContain('role="radiogroup"')
+    expect(checkedCardTag(html)).toContain('Full conversation')
+    expect(checkedCardTag(html)).not.toContain('disabled')
+
+    mocks.buttons[1]?.onClick?.()
+    await Promise.resolve()
+
+    expect(mocks.startAgentSessionFork).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'full-conversation' })
+    )
+  })
+
+  it('enables the full-conversation card for a capable local Codex session', async () => {
+    mocks.startAgentSessionFork.mockResolvedValue(true)
+    const { TerminalAgentSessionForkDialog } = await import('./TerminalAgentSessionForkDialog')
+
+    const html = renderToStaticMarkup(
+      <TerminalAgentSessionForkDialog
+        open
+        fork={makeFork({
+          agent: 'codex',
+          sourcePtyId: 'pty-1',
+          codexForkContext: CODEX_FORK_CONTEXT
+        })}
+        onOpenChange={vi.fn()}
+      />
+    )
+
+    expect(checkedCardTag(html)).toContain('Full conversation')
+    expect(checkedCardTag(html)).not.toContain('aria-disabled="true"')
+
+    mocks.buttons[1]?.onClick?.()
+    await Promise.resolve()
+
+    expect(mocks.startAgentSessionFork).toHaveBeenCalledWith(
+      expect.objectContaining({ agent: 'codex', mode: 'full-conversation' })
+    )
+  })
+
+  it.each([
+    [
+      'an unsupported agent',
+      { agent: 'gemini' as const },
+      'Only Claude and local Codex sessions can be forked with their full conversation.'
+    ],
+    [
+      'a Codex session without source account context',
+      {
+        agent: 'codex' as const,
+        sourcePtyId: 'pty-1',
+        codexForkContext: {
+          status: 'unavailable' as const,
+          reason: 'source-account-unavailable' as const
+        }
+      },
+      'The source Codex account context is unavailable.'
+    ],
+    [
+      'a pane with no session id',
+      { providerSession: null },
+      'No session id captured for this pane yet.'
+    ]
+  ])(
+    'disables the full-conversation card for %s and says why',
+    async (_label, overrides, reason) => {
+      mocks.startAgentSessionFork.mockResolvedValue(true)
+      const { TerminalAgentSessionForkDialog } = await import('./TerminalAgentSessionForkDialog')
+
+      const html = renderToStaticMarkup(
+        <TerminalAgentSessionForkDialog open fork={makeFork(overrides)} onOpenChange={vi.fn()} />
+      )
+
+      expect(html).toContain(reason)
+      // Why not `disabled`: the card must stay in the tab order so a screen
+      // reader reaches the reason instead of skipping the card entirely.
+      expect(html).toContain('aria-disabled="true"')
+      expect(html).not.toContain('disabled=""')
+
+      mocks.buttons[1]?.onClick?.()
+      await Promise.resolve()
+
+      expect(mocks.startAgentSessionFork).toHaveBeenCalledWith(
+        expect.objectContaining({ mode: 'recent-context' })
+      )
+    }
+  )
 })

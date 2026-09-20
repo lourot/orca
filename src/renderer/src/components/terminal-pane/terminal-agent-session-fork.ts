@@ -1,24 +1,24 @@
 import { toast } from 'sonner'
 import type { ManagedPane } from '@/lib/pane-manager/pane-manager'
-import { launchAgentInNewTab } from '@/lib/launch-agent-in-new-tab'
-import {
-  buildAgentSessionForkPrompt,
-  buildBoundedSessionTranscript
-} from '@/lib/agent-session-fork-context'
+import { buildAgentSessionForkPrompt } from '@/lib/agent-session-fork-context'
 import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import { resolveOwner } from '@/lib/resolve-owner'
 import { toRuntimeExecutionHostId, type ExecutionHostId } from '../../../../shared/execution-host'
 import { useAppStore } from '@/store'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
 import { TUI_AGENT_CONFIG } from '../../../../shared/tui-agent-config'
-import { getForkAgentLaunchPlatform } from './terminal-agent-session-fork-launch-platform'
+import { launchForkAgent } from './terminal-agent-session-fork-launch'
 import { slugifyForWorkspaceName } from '../../../../shared/workspace-name'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { CodexForkContext } from '../../../../shared/codex-fork-context'
+import {
+  isResumableTuiAgent,
+  type AgentProviderSessionMetadata
+} from '../../../../shared/agent-session-resume'
+import { getAgentForkResumeArgv } from '../../../../shared/agent-session-fork-resume-argv'
 import { getLocalProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
 import { translate } from '@/i18n/i18n'
-import { planAgentSessionLaunch } from '@/lib/agent-session-launch-plan'
-import { newAgentLaunchRequestId } from '@/lib/agent-launch-request-id'
 
 type ForkAgentSessionFromPaneArgs = {
   pane: ManagedPane
@@ -27,11 +27,29 @@ type ForkAgentSessionFromPaneArgs = {
   groupId: string | null
 }
 
+/** `full-conversation` resumes the agent's real transcript under a new session id;
+ *  `recent-context` hands it a bounded scrollback capture as an editable draft. */
+export type AgentSessionForkMode = 'full-conversation' | 'recent-context'
+
+/** `new-workspace` creates a top-level git worktree for the fork; `this-workspace` opens it in a
+ *  new tab beside the source pane. */
+export type AgentSessionForkDestination = 'new-workspace' | 'this-workspace'
+
 export type PreparedAgentSessionFork = {
   prompt: string
   agent: TuiAgent | null
   worktreeId: string
+  /** The source pane's tab group, so a same-workspace fork opens beside it. */
+  groupId?: string | null
+  /** The source cannot get a git worktree of its own (folder, floating, branchless, archived). */
+  newWorkspaceBlocked?: boolean
   pane: ManagedPane
+  /** The source pane's provider session, when its agent reported one. */
+  providerSession: AgentProviderSessionMetadata | null
+  mode: AgentSessionForkMode
+  sourcePtyId?: string | null
+  sourceCodexCommand?: string | null
+  codexForkContext?: CodexForkContext
 }
 
 function buildForkWorkspaceName(sourceName: string): string {
@@ -64,44 +82,25 @@ function getUsableForkBase(
   return branch
 }
 
-async function copyForkContext(prompt: string, pane: ManagedPane): Promise<boolean> {
-  try {
-    await window.api.ui.writeTerminalClipboardText(prompt)
-    toast.message(
-      translate(
-        'auto.components.terminal.pane.terminal.agent.session.fork.c00421d320',
-        'Fork context copied. Launch an agent and paste it to start the fork.'
-      )
-    )
-    pane.terminal.focus()
-    return true
-  } catch (error) {
-    toast.error(
-      error instanceof Error
-        ? error.message
-        : translate(
-            'auto.components.terminal.pane.terminal.agent.session.fork.2317900211',
-            'Failed to copy fork context.'
-          )
-    )
-    pane.terminal.focus()
-    return false
-  }
-}
-
 export function prepareAgentSessionForkFromPane({
   pane,
   tabId,
-  worktreeId
+  worktreeId,
+  groupId
 }: ForkAgentSessionFromPaneArgs): PreparedAgentSessionFork | null {
   const paneKey = makePaneKey(tabId, pane.leafId)
   const state = useAppStore.getState()
-  const sourceAgent = resolveTuiAgent(state.agentStatusByPaneKey[paneKey]?.agentType)
+  const paneStatus = state.agentStatusByPaneKey[paneKey]
+  const sourceAgent = resolveTuiAgent(paneStatus?.agentType)
   const tabAgent = resolveTuiAgent(
     state.tabsByWorktree[worktreeId]?.find((tab) => tab.id === tabId)?.launchAgent
   )
   const agent = sourceAgent ?? tabAgent
-  // This forks context, not the process; xterm capture works for both local and SSH panes.
+  const sourcePtyId = state.terminalLayoutsByTabId?.[tabId]?.ptyIdsByLeafId?.[pane.leafId] ?? null
+  const sourceCodexCommand = state.settings?.agentCmdOverrides?.codex ?? null
+  // Why capture scrollback even in full-conversation mode: it backs the
+  // `recent-context` fork and every clipboard fallback, and it keeps SSH and
+  // local panes on one path because both expose xterm state here.
   const prompt = buildAgentSessionForkPrompt({
     capturedText: pane.serializeAddon.serialize({ scrollback: 800 }),
     sourceLabel: paneKey,
@@ -119,57 +118,38 @@ export function prepareAgentSessionForkFromPane({
     return null
   }
 
+  const sourceWorktree = state.getKnownWorktreeById(worktreeId)
+  const sourceRepo = state.repos.find((repo) => repo.id === sourceWorktree?.repoId)
   return {
     prompt,
     agent,
     worktreeId,
-    pane
+    groupId,
+    newWorkspaceBlocked: getUsableForkBase(sourceWorktree, sourceRepo, worktreeId) === null,
+    pane,
+    providerSession: paneStatus?.providerSession ?? null,
+    mode: 'recent-context',
+    sourcePtyId,
+    sourceCodexCommand
   }
 }
 
-export async function copyAgentSessionForkContext(
-  fork: PreparedAgentSessionFork
-): Promise<boolean> {
-  return copyForkContext(fork.prompt, fork.pane)
+/** CLI arguments that resume the source conversation into a fresh copy, or null
+ *  when this fork is a scrollback capture. */
+function getForkResumeAgentArgs(fork: PreparedAgentSessionFork): string | null {
+  if (fork.mode !== 'full-conversation' || !fork.agent || !isResumableTuiAgent(fork.agent)) {
+    return null
+  }
+  const argv = fork.providerSession
+    ? getAgentForkResumeArgv(fork.agent, fork.providerSession)
+    : null
+  // Safe to join bare: the launcher re-quotes every word for the target shell,
+  // and getAgentForkResumeArgv only returns ids that survive being re-split.
+  return argv ? argv.slice(1).join(' ') : null
 }
 
-// Standalone Copy Context omits the dialog’s fork instructions so it can be pasted into another tool.
-export async function copyAgentSessionContextFromPane(pane: ManagedPane): Promise<boolean> {
-  const transcript = buildBoundedSessionTranscript(
-    pane.serializeAddon.serialize({ scrollback: 800 })
-  )
-  if (!transcript) {
-    toast.error(
-      translate(
-        'auto.components.terminal.pane.terminal.agent.session.fork.f62b40e2c7',
-        'No terminal context to copy'
-      )
-    )
-    pane.terminal.focus()
-    return false
-  }
-  try {
-    await window.api.ui.writeTerminalClipboardText(transcript)
-    toast.message(
-      translate(
-        'auto.components.terminal.pane.terminal.agent.session.fork.373a3103e7',
-        'Context copied'
-      )
-    )
-    pane.terminal.focus()
-    return true
-  } catch (error) {
-    toast.error(
-      error instanceof Error
-        ? error.message
-        : translate(
-            'auto.components.terminal.pane.terminal.agent.session.fork.3fc568a49d',
-            'Failed to copy context.'
-          )
-    )
-    pane.terminal.focus()
-    return false
-  }
+function hasForkLaunchContext(fork: PreparedAgentSessionFork): boolean {
+  return fork.agent !== 'codex' || fork.codexForkContext?.status === 'available'
 }
 
 /** The transport that owns the source: its server, else where this app reaches it (local or SSH). */
@@ -185,7 +165,61 @@ function forkCreationHostId(
   return endpoint.kind === 'environment' ? toRuntimeExecutionHostId(endpoint.environmentId) : at
 }
 
-export async function startAgentSessionFork(fork: PreparedAgentSessionFork): Promise<boolean> {
+export async function startAgentSessionFork(
+  fork: PreparedAgentSessionFork,
+  destination: AgentSessionForkDestination = 'new-workspace'
+): Promise<boolean> {
+  const resumeAgentArgs = getForkResumeAgentArgs(fork)
+  if (fork.mode === 'full-conversation' && (!resumeAgentArgs || !hasForkLaunchContext(fork))) {
+    // Unreachable from the dialog, which gates on the same predicate — so this
+    // means the session vanished. Say so rather than quietly forking the
+    // scrollback the user chose against.
+    toast.error(
+      translate(
+        'auto.components.terminal.pane.terminal.agent.session.fork.97c87c36a7',
+        'This agent session can no longer be forked with its full conversation.'
+      )
+    )
+    return false
+  }
+  return destination === 'this-workspace'
+    ? startForkInSourceWorkspace(fork, resumeAgentArgs)
+    : startForkInNewWorkspace(fork, resumeAgentArgs)
+}
+
+async function startForkInSourceWorkspace(
+  fork: PreparedAgentSessionFork,
+  resumeAgentArgs: string | null
+): Promise<boolean> {
+  const store = useAppStore.getState()
+  const sourceWorktree = store.getKnownWorktreeById(fork.worktreeId)
+  // The floating workspace has no worktree row; any other missing row was removed since the dialog opened.
+  if (!sourceWorktree && fork.worktreeId !== FLOATING_TERMINAL_WORKTREE_ID) {
+    toast.error(
+      translate(
+        'auto.components.terminal.pane.terminal.agent.session.fork.f867385bb5',
+        'Could not find the source workspace for this fork.'
+      )
+    )
+    return false
+  }
+  return launchForkAgent(fork, resumeAgentArgs, {
+    worktreeId: fork.worktreeId,
+    worktreePath: sourceWorktree?.path,
+    repo: store.repos.find((repo) => repo.id === sourceWorktree?.repoId),
+    projectRuntime: getLocalProjectExecutionRuntimeContext(store, fork.worktreeId),
+    ...(fork.groupId ? { groupId: fork.groupId } : {}),
+    openedMessage: translate(
+      'auto.components.terminal.pane.terminal.agent.session.fork.openedInNewTab',
+      'Session fork opened in a new tab'
+    )
+  })
+}
+
+async function startForkInNewWorkspace(
+  fork: PreparedAgentSessionFork,
+  resumeAgentArgs: string | null
+): Promise<boolean> {
   const store = useAppStore.getState()
   const sourceWorktree = store.getKnownWorktreeById(fork.worktreeId)
   if (!sourceWorktree) {
@@ -253,53 +287,21 @@ export async function startAgentSessionFork(fork: PreparedAgentSessionFork): Pro
     return false
   }
   const forkWorktreeId = created.worktree.id
-
-  if (!fork.agent) {
-    activateAndRevealWorktree(forkWorktreeId, { sidebarRevealBehavior: 'auto' })
-    return copyAgentSessionForkContext(fork)
-  }
-  const agentSessionLaunchPlan = planAgentSessionLaunch(useAppStore.getState(), {
-    requestId: newAgentLaunchRequestId(),
-    agent: fork.agent,
-    workspace: { kind: 'git-worktree', worktreeId: forkWorktreeId },
-    prompt: fork.prompt,
-    promptDelivery: 'draft'
-  })
-  const launchPlatform = getForkAgentLaunchPlatform({
-    repo: sourceRepo,
-    worktreePath: created.worktree.path,
-    projectRuntime: sourceProjectRuntime
-  })
-  const result = launchAgentInNewTab({
-    agent: fork.agent,
+  return launchForkAgent(fork, resumeAgentArgs, {
     worktreeId: forkWorktreeId,
-    prompt: fork.prompt,
-    promptDelivery: 'draft',
-    launchSource: 'terminal_context_menu',
-    agentSessionLaunchPlan,
-    // The launcher opens the fork surface; revealing must not seed a sibling shell.
-    beforeSurfaceOpen: () =>
+    worktreePath: created.worktree.path,
+    repo: sourceRepo,
+    projectRuntime: sourceProjectRuntime,
+    reveal: (providesInitialSurface) =>
       activateAndRevealWorktree(forkWorktreeId, {
         sidebarRevealBehavior: 'auto',
-        providesInitialSurface: true
+        ...(providesInitialSurface ? { providesInitialSurface: true } : {})
       }) !== false,
-    ...(launchPlatform ? { launchPlatform } : {})
-  })
-  if (!result) {
-    activateAndRevealWorktree(forkWorktreeId, { sidebarRevealBehavior: 'auto' })
-    return copyAgentSessionForkContext(fork)
-  }
-  notifyForkOpened()
-  return true
-}
-
-function notifyForkOpened(): void {
-  toast.success(
-    translate(
+    openedMessage: translate(
       'auto.components.terminal.pane.terminal.agent.session.fork.88e34d00eb',
       'Top-level session fork opened in a new workspace'
     )
-  )
+  })
 }
 
 export async function forkAgentSessionFromPane(args: ForkAgentSessionFromPaneArgs): Promise<void> {
