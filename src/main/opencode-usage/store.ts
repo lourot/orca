@@ -18,7 +18,11 @@ import type {
   OpenCodeUsageSession
 } from './types'
 import { openCodeUsageProvider } from './opencode-usage-provider'
-import { getDefaultState, normalizePersistedState } from './persisted-state-normalization'
+import {
+  DEFAULT_OPEN_CODE_MONTHLY_CAP_USD,
+  getDefaultState,
+  normalizePersistedState
+} from './persisted-state-normalization'
 import {
   filterDailyAggregatesByScopeAndRange,
   filterSessionsByScopeAndRange
@@ -31,8 +35,10 @@ import {
 } from './snapshot-rollups'
 import { UsageProviderStoreLifecycle } from '../usage/usage-provider-store-lifecycle'
 import { splitUsageCacheFileViaWorker } from '../usage/usage-scan-worker-spawn'
+import { fetchOpenCodeMonthlyCost } from './ccusage-open-code-monthly-cost'
 
 let _openCodeUsageFile: string | null = null
+const OPEN_CODE_MONTHLY_COST_STALE_MS = 5 * 60_000
 
 export function initOpenCodeUsagePath(): void {
   _openCodeUsageFile = join(app.getPath('userData'), 'orca-opencode-usage.json')
@@ -50,6 +56,8 @@ export class OpenCodeUsageStore extends UsageProviderStoreLifecycle<
   OpenCodeUsagePersistedState,
   'hasAnyOpenCodeData'
 > {
+  private openCodeMonthlyCostRefreshPromise: Promise<void> | null = null
+
   constructor(store: Pick<Store, 'getRepos' | 'getAllWorktreeMeta'>) {
     super(store, {
       tokenUsage: {
@@ -82,6 +90,33 @@ export class OpenCodeUsageStore extends UsageProviderStoreLifecycle<
     }
   }
 
+  async refresh(force = false) {
+    const scanState = await super.refresh(force)
+    if (this.state.scanState.enabled) {
+      await this.refreshOpenCodeMonthlyCost(force)
+    }
+    return scanState
+  }
+
+  async setOpenCodeMonthlyCap(capUsd: number): Promise<void> {
+    if (!Number.isFinite(capUsd) || capUsd <= 0) {
+      throw new Error('OpenCode monthly cap must be a positive USD amount')
+    }
+    this.state.openCodeMonthlyCapUsd = capUsd
+    if (this.state.openCodeMonthlyCost) {
+      const cost = this.state.openCodeMonthlyCost
+      this.state.openCodeMonthlyCost = {
+        ...cost,
+        monthlyCapUsd: capUsd,
+        usedPercent:
+          cost.estimatedCostUsd === null
+            ? null
+            : Math.min(100, (cost.estimatedCostUsd / capUsd) * 100)
+      }
+    }
+    await this.writeToDisk()
+  }
+
   async getSummary(
     scope: OpenCodeUsageScope,
     range: OpenCodeUsageRange
@@ -91,12 +126,50 @@ export class OpenCodeUsageStore extends UsageProviderStoreLifecycle<
   }
 
   private buildSummary(scope: OpenCodeUsageScope, range: OpenCodeUsageRange): OpenCodeUsageSummary {
-    return buildOpenCodeUsageSummary(
-      scope,
-      range,
-      this.getFilteredDaily(scope, range),
-      this.getFilteredSessions(scope, range)
-    )
+    return {
+      ...buildOpenCodeUsageSummary(
+        scope,
+        range,
+        this.getFilteredDaily(scope, range),
+        this.getFilteredSessions(scope, range)
+      ),
+      openCodeMonthlyCost: this.state.openCodeMonthlyCost ?? {
+        status: 'unavailable',
+        month: new Date().toISOString().slice(0, 7),
+        estimatedCostUsd: null,
+        monthlyCapUsd: this.state.openCodeMonthlyCapUsd ?? DEFAULT_OPEN_CODE_MONTHLY_CAP_USD,
+        usedPercent: null,
+        updatedAt: null,
+        error: null
+      }
+    }
+  }
+
+  private async refreshOpenCodeMonthlyCost(force: boolean): Promise<void> {
+    if (this.openCodeMonthlyCostRefreshPromise) {
+      await this.openCodeMonthlyCostRefreshPromise
+      return
+    }
+    const monthlyCapUsd = this.state.openCodeMonthlyCapUsd ?? DEFAULT_OPEN_CODE_MONTHLY_CAP_USD
+    const current = this.state.openCodeMonthlyCost
+    const month = new Date().toISOString().slice(0, 7)
+    if (
+      !force &&
+      current?.month === month &&
+      current.updatedAt !== null &&
+      Date.now() - current.updatedAt < OPEN_CODE_MONTHLY_COST_STALE_MS
+    ) {
+      return
+    }
+    this.openCodeMonthlyCostRefreshPromise = (async () => {
+      this.state.openCodeMonthlyCost = await fetchOpenCodeMonthlyCost(monthlyCapUsd)
+      await this.writeToDisk().catch(() => {})
+    })()
+    try {
+      await this.openCodeMonthlyCostRefreshPromise
+    } finally {
+      this.openCodeMonthlyCostRefreshPromise = null
+    }
   }
 
   async getDaily(

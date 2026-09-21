@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Activity, Brain, Coins, DatabaseZap, FolderKanban, Sparkles } from 'lucide-react'
 import type {
   OpenCodeUsageRange,
@@ -11,6 +11,8 @@ import { StatCard } from './StatCard'
 import { UsageFilterRadioGroup, UsageTrackingPaneShell } from './UsageTrackingPaneShell'
 import { formatCost, formatTokens, formatUpdatedAt } from './usage-formatters'
 import { getIntlLocale, translate } from '@/i18n/i18n'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const RANGE_OPTIONS: OpenCodeUsageRange[] = ['7d', '30d', '90d', 'all']
 const SCOPE_OPTIONS: { value: OpenCodeUsageScope; label: string }[] = [
@@ -60,6 +62,13 @@ export function OpenCodeUsagePane(): React.JSX.Element {
   const setOpenCodeUsageScope = useAppStore((state) => state.setOpenCodeUsageScope)
   const setOpenCodeUsageRange = useAppStore((state) => state.setOpenCodeUsageRange)
   const recordFeatureInteraction = useAppStore((state) => state.recordFeatureInteraction)
+  const [capDraft, setCapDraft] = useState('300')
+
+  useEffect(() => {
+    if (summary?.openCodeMonthlyCost) {
+      setCapDraft(String(summary.openCodeMonthlyCost.monthlyCapUsd))
+    }
+  }, [summary?.openCodeMonthlyCost])
 
   useEffect(() => {
     void fetchOpenCodeUsage()
@@ -68,6 +77,19 @@ export function OpenCodeUsagePane(): React.JSX.Element {
   const handleSetEnabled = (enabled: boolean): void => {
     recordFeatureInteraction('usage-tracking')
     void setOpenCodeUsageEnabled(enabled)
+  }
+
+  const saveMonthlyCap = async (): Promise<void> => {
+    const cap = Number(capDraft)
+    if (!Number.isFinite(cap) || cap <= 0) {
+      return
+    }
+    try {
+      await window.api.openCodeUsage.setOpenCodeMonthlyCap({ capUsd: cap })
+      await refreshOpenCodeUsage()
+    } catch (error) {
+      console.error('Failed to save OpenCode monthly cap:', error)
+    }
   }
 
   const title = translate(
@@ -156,6 +178,43 @@ export function OpenCodeUsagePane(): React.JSX.Element {
           {SCOPE_OPTIONS.find((option) => option.value === scope)?.label} • {RANGE_LABELS[range]}
         </>
       }
+      persistentContent={
+        <div className="space-y-2 rounded-md border border-border/60 bg-card/40 px-3 py-2">
+          <div className="space-y-1">
+            <Label htmlFor="open-code-monthly-cap">
+              {translate(
+                'auto.components.stats.OpenCodeUsagePane.openCodeMonthlyCapLabel',
+                'Monthly comparison amount (USD)'
+              )}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {translate(
+                'auto.components.stats.OpenCodeUsagePane.openCodeMonthlyCapDescription',
+                'Compared with the current-month estimate reported by ccusage for all OpenCode usage.'
+              )}
+            </p>
+          </div>
+          <Input
+            id="open-code-monthly-cap"
+            type="number"
+            min="1"
+            step="1"
+            value={capDraft}
+            onChange={(event) => setCapDraft(event.target.value)}
+            onBlur={() => void saveMonthlyCap()}
+            className="max-w-48 text-right"
+          />
+          {summary?.openCodeMonthlyCost?.error ? (
+            <p className="text-xs text-destructive">
+              {translate(
+                'auto.components.stats.OpenCodeUsagePane.openCodeMonthlyCostError',
+                'Monthly OpenCode estimate unavailable: {{value0}}',
+                { value0: summary.openCodeMonthlyCost.error }
+              )}
+            </p>
+          ) : null}
+        </div>
+      }
       emptyMessage={translate(
         'auto.components.stats.OpenCodeUsagePane.bb6363e08c',
         'No local OpenCode usage found yet for this scope.'
@@ -201,6 +260,14 @@ export function OpenCodeUsagePane(): React.JSX.Element {
             value={formatCost(summary?.estimatedCostUsd ?? null)}
             icon={<Coins className="size-4" />}
           />
+          <StatCard
+            label={translate(
+              'auto.components.stats.OpenCodeUsagePane.openCodeMonthlyCostLabel',
+              'OpenCode estimate (month)'
+            )}
+            value={formatCost(summary?.openCodeMonthlyCost?.estimatedCostUsd ?? null)}
+            icon={<Coins className="size-4" />}
+          />
         </div>
         <p className="px-1 text-xs text-muted-foreground">
           {translate(
@@ -208,7 +275,6 @@ export function OpenCodeUsagePane(): React.JSX.Element {
             'Cost comes from the local OpenCode database when the assistant message recorded one.'
           )}
         </p>
-
         <OpenCodeUsageDetails
           daily={daily}
           modelBreakdown={modelBreakdown}

@@ -66,6 +66,7 @@ type UsageTrackingPaneShellProps = {
       emptyMessage: ReactNode
       onRefresh: () => void | Promise<void>
       headerAction?: ReactNode
+      persistentContent?: ReactNode
       children: ReactNode
     }
 )
@@ -147,6 +148,8 @@ export function UsageTrackingPaneShell(props: UsageTrackingPaneShellProps): Reac
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">{props.selectionSummary}</p>
       </div>
+
+      {props.persistentContent}
 
       {!props.hasData ? (
         <div className="rounded-lg border border-dashed border-border/60 bg-card/30 px-4 py-6 text-sm text-muted-foreground">

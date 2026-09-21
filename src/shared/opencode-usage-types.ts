@@ -2,6 +2,16 @@ export type OpenCodeUsageScope = 'orca' | 'all'
 export type OpenCodeUsageRange = '7d' | '30d' | '90d' | 'all'
 export type OpenCodeUsageBreakdownKind = 'model' | 'project'
 
+export type OpenCodeMonthlyCost = {
+  status: 'ok' | 'unavailable'
+  month: string
+  estimatedCostUsd: number | null
+  monthlyCapUsd: number
+  usedPercent: number | null
+  updatedAt: number | null
+  error: string | null
+}
+
 export type OpenCodeUsageScanState = {
   enabled: boolean
   isScanning: boolean
@@ -22,6 +32,7 @@ export type OpenCodeUsageSummary = {
   reasoningOutputTokens: number
   totalTokens: number
   estimatedCostUsd: number | null
+  openCodeMonthlyCost?: OpenCodeMonthlyCost
   topModel: string | null
   topProject: string | null
   hasAnyOpenCodeData: boolean

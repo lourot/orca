@@ -1,3 +1,5 @@
+import type { OpenCodeMonthlyCost } from '../../shared/opencode-usage-types'
+
 export type OpenCodeUsageProcessedDatabase = {
   path: string
   mtimeMs: number
@@ -103,6 +105,8 @@ export type OpenCodeUsagePersistedState = {
   processedDatabases: OpenCodeUsagePersistedDatabase[]
   sessions: OpenCodeUsageSession[]
   dailyAggregates: OpenCodeUsageDailyAggregate[]
+  openCodeMonthlyCapUsd?: number
+  openCodeMonthlyCost?: OpenCodeMonthlyCost | null
   scanState: {
     enabled: boolean
     lastScanStartedAt: number | null

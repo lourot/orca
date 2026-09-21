@@ -49,7 +49,12 @@ export type CodexUsageApi = UsageProviderApi<CodexUsageSnapshot, CodexUsageBreak
   getCurrentMonthCreditEstimate: () => Promise<CodexLocalCreditEstimate | null>
 }
 
-export type OpenCodeUsageApi = UsageProviderApi<OpenCodeUsageSnapshot, OpenCodeUsageBreakdownKind>
+export type OpenCodeUsageApi = UsageProviderApi<
+  OpenCodeUsageSnapshot,
+  OpenCodeUsageBreakdownKind
+> & {
+  setOpenCodeMonthlyCap: (args: { capUsd: number }) => Promise<void>
+}
 
 export type MuseUsageApi = UsageProviderApi<MuseUsageSnapshot, MuseUsageBreakdownKind>
 

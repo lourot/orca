@@ -23,6 +23,18 @@ vi.mock('../usage/usage-scan-worker-spawn', () => ({
   splitUsageCacheFileViaWorker: vi.fn()
 }))
 
+vi.mock('./ccusage-open-code-monthly-cost', () => ({
+  fetchOpenCodeMonthlyCost: vi.fn(async (monthlyCapUsd: number) => ({
+    status: 'ok',
+    month: '2026-09',
+    estimatedCostUsd: 20,
+    monthlyCapUsd,
+    usedPercent: (20 / monthlyCapUsd) * 100,
+    updatedAt: Date.now(),
+    error: null
+  }))
+}))
+
 import { OpenCodeUsageStore, initOpenCodeUsagePath } from './store'
 import { OPENCODE_USAGE_SCHEMA_VERSION } from './opencode-usage-provider'
 import { normalizePersistedState } from './persisted-state-normalization'
@@ -42,6 +54,8 @@ function getDefaultState(): OpenCodeUsagePersistedState {
     processedDatabases: [],
     sessions: [],
     dailyAggregates: [],
+    openCodeMonthlyCapUsd: 300,
+    openCodeMonthlyCost: null,
     scanState: {
       enabled: false,
       lastScanStartedAt: null,
@@ -292,6 +306,28 @@ describe('OpenCodeUsageStore', () => {
     expect(breakdown.find((row) => row.key === 'openai/gpt-5.5')).toMatchObject({
       sessions: 1,
       estimatedCostUsd: null
+    })
+  })
+
+  it('persists the OpenCode monthly cap and recomputes its percentage', async () => {
+    const store = createStoreWithState({
+      openCodeMonthlyCost: {
+        status: 'ok',
+        month: '2026-04',
+        estimatedCostUsd: 20,
+        monthlyCapUsd: 300,
+        usedPercent: 6.666666666666667,
+        updatedAt: Date.now(),
+        error: null
+      }
+    })
+
+    await store.setOpenCodeMonthlyCap(400)
+
+    expect(store.getSnapshot('all', '30d').summary.openCodeMonthlyCost).toMatchObject({
+      estimatedCostUsd: 20,
+      monthlyCapUsd: 400,
+      usedPercent: 5
     })
   })
 
