@@ -7,7 +7,7 @@ import type { LaunchSource } from '../../../shared/telemetry-events'
 import type { AgentLaunchChoice } from '@/lib/agent-menu-selection'
 
 export type LaunchableWorkItem = {
-  provider?: TaskProvider
+  provider?: Exclude<TaskProvider, 'backlog'>
   title: string
   url: string
   type: 'issue' | 'pr' | 'mr'

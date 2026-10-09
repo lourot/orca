@@ -2,6 +2,7 @@ import type { ComposerModel } from './composer-model'
 
 type QuickCreationExecutionInput = Pick<
   ComposerModel,
+  | 'agentPrompt'
   | 'clearNewWorkspaceDraft'
   | 'createMultiple'
   | 'effectivePresetId'
@@ -46,14 +47,16 @@ import { buildQuickComposerStartup } from './quick-startup-plan'
 import { buildQuickCreationRequest, type QuickSubmitOptions } from './quick-creation-request'
 import type { PendingSmartGitHubSubmitResolution } from './source-selection-decisions'
 import { resolveAgentSessionLaunchRoute } from '@/lib/agent-session-launch-plan'
+import { assertBacklogLaunchTarget } from '@/lib/backlog-task-source'
+import { useQuickCreateEphemeralVmRecipe } from './quick-create-ephemeral-vm-recipe'
 
+/** Builds the quick-create executor with cancellation checks and Backlog prompt delivery as a draft. */
 export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
   const {
+    agentPrompt,
     clearNewWorkspaceDraft,
     createMultiple,
     effectivePresetId,
-    ephemeralVmRecipes,
-    ephemeralVmsEnabled,
     isSubmissionCancelled,
     linkedGitLabIssue,
     linkedGitLabMR,
@@ -65,20 +68,20 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
     prepareQuickSubmit,
     resetForNextCreate,
     resolvedInitialWorkspaceStatus,
-    selectedEphemeralVmRecipeId,
     selectedRepoAgentLaunchFact,
     selectedRepoExecutionHostId,
     selectedRepoIsGit,
     selectedRepoIsRemote,
     selectedRepoTarget,
     selectedRepoStartupShell,
-    selectedWorkspaceTarget,
     settings,
     sparseEnabled,
     taskSourceContext,
     telemetrySource
   } = input
+  const resolveEphemeralVmRecipe = useQuickCreateEphemeralVmRecipe(input)
 
+  /** Validates Backlog's source target before preparation, then queues creation without awaiting its completion. */
   const executeQuickCreation = useCallback(
     async (
       smartGitHubResolution: PendingSmartGitHubSubmitResolution,
@@ -89,6 +92,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
       options?: QuickSubmitOptions,
       handoff?: ComposerCreateHandoff
     ): Promise<void> => {
+      assertBacklogLaunchTarget(taskSourceContext, repoId, selectedRepoExecutionHostId)
       const prepared = await prepareQuickSubmit(
         smartGitHubResolution,
         requestedAgent,
@@ -125,7 +129,9 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
       const promptLinkedWorkItem = agent === null ? null : submitLinkedWorkItem
 
       const { prompt: quickPrompt, draftPrompt: quickDraftPrompt } =
-        resolveQuickCreateLinkedWorkItemPrompt(promptLinkedWorkItem, trimmedNote)
+        taskSourceContext?.provider === 'backlog'
+          ? { prompt: '', draftPrompt: agentPrompt || null }
+          : resolveQuickCreateLinkedWorkItemPrompt(promptLinkedWorkItem, trimmedNote)
 
       const {
         startupPlan,
@@ -160,21 +166,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         )
       }
 
-      let ephemeralVmRecipe: WorktreeCreationRequest['ephemeralVmRecipe']
-
-      const activeEphemeralVmRecipeId = ephemeralVmsEnabled ? selectedEphemeralVmRecipeId : null
-
-      if (activeEphemeralVmRecipeId && selectedWorkspaceTarget.status === 'ready') {
-        const selectedRecipe = ephemeralVmRecipes.find(
-          (recipe) => recipe.id === activeEphemeralVmRecipeId
-        )
-        ephemeralVmRecipe = {
-          sourceRepoId: repoId,
-          recipeId: activeEphemeralVmRecipeId,
-          projectId: selectedWorkspaceTarget.target.projectId,
-          ...(selectedRecipe?.checkoutMode ? { checkoutMode: selectedRecipe.checkoutMode } : {})
-        }
-      }
+      const { activeEphemeralVmRecipeId, ephemeralVmRecipe } = resolveEphemeralVmRecipe(repoId)
 
       const promptDelivery = quickDraftPrompt ? 'draft' : 'auto-submit'
       // Why: the verdict is persisted on the request as data and re-entered once the worktree exists.
@@ -287,11 +279,10 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
       }
     },
     [
+      agentPrompt,
       clearNewWorkspaceDraft,
       createMultiple,
       effectivePresetId,
-      ephemeralVmRecipes,
-      ephemeralVmsEnabled,
       isSubmissionCancelled,
       linkedGitLabIssue,
       linkedGitLabMR,
@@ -302,15 +293,14 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
       persistSetupAgentStartupPolicy,
       prepareQuickSubmit,
       resetForNextCreate,
+      resolveEphemeralVmRecipe,
       resolvedInitialWorkspaceStatus,
-      selectedEphemeralVmRecipeId,
       selectedRepoAgentLaunchFact,
       selectedRepoExecutionHostId,
       selectedRepoIsGit,
       selectedRepoIsRemote,
       selectedRepoTarget,
       selectedRepoStartupShell,
-      selectedWorkspaceTarget,
       settings,
       sparseEnabled,
       taskSourceContext,

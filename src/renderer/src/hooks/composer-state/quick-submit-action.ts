@@ -44,6 +44,7 @@ type QuickSubmitActionInput = Pick<
   | 'telemetrySource'
 >
 
+/** Exposes guarded quick submission with pending-creation reuse and UI error/creating state settlement. */
 export function useQuickSubmitAction(input: QuickSubmitActionInput) {
   const {
     effectiveLinkedPR,
@@ -73,8 +74,17 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
     telemetrySource
   } = input
 
+  /** Rejects project-group Backlog launches and checks source/setup readiness before requesting creation. */
   const submitQuick = useCallback(
     async (requestedAgent: TuiAgent | null, options?: QuickSubmitOptions): Promise<void> => {
+      if (isProjectGroupTarget && taskSourceContext?.provider === 'backlog') {
+        setCreateError(
+          formatWorkspaceCreateError(
+            new Error('Select the Backlog task’s original project before launching.')
+          )
+        )
+        return
+      }
       if (isProjectGroupTarget) {
         await submitFolderTarget(requestedAgent, options)
         return

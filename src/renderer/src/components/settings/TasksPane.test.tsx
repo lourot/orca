@@ -127,6 +127,7 @@ describe('TasksPane', () => {
     mocks.openSettingsPage.mockClear()
     mocks.openSettingsTarget.mockClear()
     mocks.readiness = {
+      backlog: { connected: true, checking: false, visible: true },
       github: { connected: true, checking: false, visible: true },
       gitlab: { connected: true, checking: false, visible: true },
       linear: {

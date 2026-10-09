@@ -6,6 +6,18 @@ import {
 } from './task-providers'
 
 describe('task providers', () => {
+  it('keeps Backlog visible without provider credentials or a Git hosting CLI', () => {
+    expect(
+      filterAvailableTaskProviders(['backlog'], { gitlabInstalled: false, linearConnected: false })
+    ).toEqual(['backlog'])
+    expect(
+      normalizeTaskProviderSettings({
+        visibleTaskProviders: ['backlog'],
+        defaultTaskSource: 'backlog'
+      })
+    ).toEqual({ visibleTaskProviders: ['backlog'], defaultTaskSource: 'backlog' })
+  })
+
   it('restores a valid saved default when provider settings drifted', () => {
     expect(
       normalizeTaskProviderSettings({

@@ -42,6 +42,7 @@ const HostedAddRepoDialog = lazyWithRetry(() => import('@/components/sidebar/Add
 
 type ComposerModalData = {
   prefilledName?: string
+  backlogTaskPrompt?: string
   initialRepoId?: string
   initialEphemeralVmRecipeId?: string
   initialProjectGroupId?: string
@@ -113,6 +114,7 @@ function ComposerModalBody({
   )
 }
 
+/** Seeds quick creation from modal data; only Backlog carries a task prompt into the editable draft. */
 function QuickTabBody({
   modalData,
   onClose,
@@ -136,8 +138,10 @@ function QuickTabBody({
     selectAddedProjectGroup
   } = useComposerState({
     initialName: modalData.prefilledName ?? '',
-    // Quick create ignores legacy prompt-prefill payloads.
-    initialPrompt: '',
+    initialPrompt:
+      modalData.taskSourceContext?.provider === 'backlog'
+        ? (modalData.backlogTaskPrompt ?? '')
+        : '',
     initialLinkedWorkItem: modalData.linkedWorkItem ?? null,
     initialGitHubWorkItem: modalData.initialGitHubWorkItem ?? null,
     initialTaskSourceContext: modalData.taskSourceContext ?? null,
