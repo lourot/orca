@@ -5,14 +5,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CLIPBOARD_TEXT_WRITE_TOO_LARGE_ERROR } from '../../../../../../shared/clipboard-text'
 import type { DiffComment } from '../../../../../../shared/diff-comment-types'
 
-const mocks = vi.hoisted(() => ({
-  toastError: vi.fn<(title: string, options: { description?: string }) => void>(),
-  writeClipboardText: vi.fn()
-}))
+const mocks = vi.hoisted(() => {
+  const storeState: Record<string, unknown> = {}
+  return {
+    toastError: vi.fn<(title: string, options: { description?: string }) => void>(),
+    writeClipboardText: vi.fn(),
+    storeState
+  }
+})
 
 vi.mock('sonner', () => ({ toast: { error: mocks.toastError, message: vi.fn() } }))
 vi.mock('@/store', () => ({
-  useAppStore: (selector: (state: Record<string, unknown>) => unknown) => selector({})
+  useAppStore: (selector: (state: Record<string, unknown>) => unknown) => selector(mocks.storeState)
 }))
 vi.mock('@/store/worktree-diff-comments-selector', () => ({
   selectWorktreeDiffCommentsOrEmpty: () => [
@@ -100,5 +104,36 @@ describe('diff-comment notes copy failures', () => {
 
     expect(result.current.diffCommentsCopied).toBe(true)
     expect(mocks.toastError).not.toHaveBeenCalled()
+  })
+})
+
+describe('diff-comment notes shelf reveal request', () => {
+  it('expands the shelf only for a fresh request on the active worktree', () => {
+    const cases = {
+      freshActive: { worktreeId: 'wt-1', ageMs: 0 },
+      staleActive: { worktreeId: 'wt-1', ageMs: 10_000 },
+      otherWorktree: { worktreeId: 'wt-2', ageMs: 0 }
+    }
+    const results: Record<string, unknown> = {}
+    for (const [name, { worktreeId, ageMs }] of Object.entries(cases)) {
+      const consume = vi.fn()
+      mocks.storeState = {
+        diffNotesShelfRevealRequest: { worktreeId, issuedAt: Date.now() - ageMs },
+        consumeDiffNotesShelfRevealRequest: consume
+      }
+      const { result, unmount } = renderNotes()
+      results[name] = {
+        expanded: result.current.diffCommentsExpanded,
+        consumedFor: consume.mock.calls.map(([id]) => id)
+      }
+      unmount()
+    }
+    mocks.storeState = {}
+
+    expect(results).toEqual({
+      freshActive: { expanded: true, consumedFor: ['wt-1'] },
+      staleActive: { expanded: false, consumedFor: ['wt-1'] },
+      otherWorktree: { expanded: false, consumedFor: [] }
+    })
   })
 })

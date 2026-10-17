@@ -43,12 +43,17 @@ export type WorktreeCardMetaBadgesProps = {
   jiraIssue?: WorktreeCardJiraIssueDisplay | null
   review: WorktreeCardPrDisplay | null
   comment: string | null
+  /** Review notes not yet handed to an agent. */
+  unsentReviewNoteCount?: number
   automationProvenance?: AutomationWorkspaceProvenance | null
   cliProvenance?: CliWorkspaceProvenance | null
 }
 
 export type WorktreeCardMetaBadgesRootProps = WorktreeCardMetaBadgesProps &
-  React.HTMLAttributes<HTMLDivElement>
+  React.HTMLAttributes<HTMLDivElement> & {
+    /** Opens the Source Control notes shelf; the click still bubbles so the card activates its worktree. */
+    onOpenReviewNotes?: () => void
+  }
 
 export type WorktreeCardDetailsHoverProps = WorktreeCardMetaBadgesProps & {
   workspace?: Worktree

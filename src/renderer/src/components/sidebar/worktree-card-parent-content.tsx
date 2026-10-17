@@ -40,6 +40,7 @@ export function WorktreeCardParentContent({
     hoverJiraIssue,
     hoverReview,
     hoverComment,
+    hoverUnsentReviewNoteCount,
     metaAutomationProvenance,
     metaCliProvenance,
     workspacePorts,
@@ -91,6 +92,7 @@ export function WorktreeCardParentContent({
         jiraIssue={hoverJiraIssue}
         review={hoverReview}
         comment={hoverComment}
+        unsentReviewNoteCount={hoverUnsentReviewNoteCount}
         automationProvenance={metaAutomationProvenance}
         cliProvenance={metaCliProvenance}
         branchName={hoverBranchName}

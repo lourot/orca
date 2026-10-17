@@ -1,9 +1,11 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
-import { formatDiffComments } from '@/lib/diff-comments-format'
+import { formatReviewNotes } from '@/lib/diff-comments-format'
 import { describeClipboardWriteFailure } from '@/lib/clipboard-write-failure'
+import { useAppStore } from '@/store'
 import type { DiffCommentsClearOptions } from '@/store/slices/diffComments'
+import { selectWorktreeGeneralNotesOrEmpty } from '@/store/worktree-diff-comments-selector'
 import { useVisibleWorktreeDiffComments } from '../../../diff-comments/use-visible-worktree-diff-comments'
 import {
   countPendingDiffCommentsClear,
@@ -12,6 +14,8 @@ import {
   type PendingDiffCommentsClear
 } from './diff-comments-clear-dialog-state'
 import { useCopyFeedbackState } from './copy-feedback'
+
+const SHELF_REVEAL_REQUEST_TTL_MS = 5000
 
 export function useSourceControlDiffCommentNotes({
   activeWorktreeId,
@@ -29,6 +33,11 @@ export function useSourceControlDiffCommentNotes({
   const { comments: diffCommentsForActive, markdownReviewNotesEnabled } =
     useVisibleWorktreeDiffComments(activeWorktreeId)
   const diffCommentCount = diffCommentsForActive.length
+  const generalNotesForActive = useAppStore((s) =>
+    selectWorktreeGeneralNotesOrEmpty(s, activeWorktreeId)
+  )
+  const noteCount = diffCommentCount + generalNotesForActive.length
+  const [generalNoteComposerOpen, setGeneralNoteComposerOpen] = useState(false)
   // Index counts once so each row need not refilter every comment.
   const diffCommentCountByPath = useMemo(() => {
     const map = new Map<string, number>()
@@ -38,10 +47,22 @@ export function useSourceControlDiffCommentNotes({
     return map
   }, [diffCommentsForActive])
   const diffCommentsPrompt = useMemo(
-    () => formatDiffComments(diffCommentsForActive),
-    [diffCommentsForActive]
+    () => formatReviewNotes([...generalNotesForActive, ...diffCommentsForActive]),
+    [diffCommentsForActive, generalNotesForActive]
   )
   const [diffCommentsExpanded, setDiffCommentsExpanded] = useState(false)
+  const shelfRevealRequest = useAppStore((s) => s.diffNotesShelfRevealRequest)
+  const consumeShelfRevealRequest = useAppStore((s) => s.consumeDiffNotesShelfRevealRequest)
+  useEffect(() => {
+    if (!activeWorktreeId || shelfRevealRequest?.worktreeId !== activeWorktreeId) {
+      return
+    }
+    if (Date.now() - shelfRevealRequest.issuedAt <= SHELF_REVEAL_REQUEST_TTL_MS) {
+      // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- Why: a one-shot store request with a wall-clock TTL that must be consumed (a store write), so it cannot run during render.
+      setDiffCommentsExpanded(true)
+    }
+    consumeShelfRevealRequest(activeWorktreeId)
+  }, [activeWorktreeId, consumeShelfRevealRequest, shelfRevealRequest])
   const [diffCommentsCopied, showDiffCommentsCopied] = useCopyFeedbackState(false)
   const [pendingDiffCommentsClear, setPendingDiffCommentsClear] =
     useState<PendingDiffCommentsClear | null>(null)
@@ -52,9 +73,15 @@ export function useSourceControlDiffCommentNotes({
     setNotesWorktreeId(activeWorktreeId)
     setPendingDiffCommentsClear(null)
     setIsClearingDiffComments(false)
+    setGeneralNoteComposerOpen(false)
   }
+  const openGeneralNoteComposer = useCallback(() => {
+    setDiffCommentsExpanded(true)
+    setGeneralNoteComposerOpen(true)
+  }, [])
+  const closeGeneralNoteComposer = useCallback(() => setGeneralNoteComposerOpen(false), [])
   const handleCopyDiffComments = useCallback(async (): Promise<void> => {
-    if (diffCommentsForActive.length === 0) {
+    if (noteCount === 0) {
       return
     }
     try {
@@ -70,15 +97,22 @@ export function useSourceControlDiffCommentNotes({
         { description: describeClipboardWriteFailure(error) }
       )
     }
-  }, [diffCommentsForActive, diffCommentsPrompt, showDiffCommentsCopied])
+  }, [noteCount, diffCommentsPrompt, showDiffCommentsCopied])
 
   const pendingDiffCommentsClearCount = useMemo(() => {
-    return countPendingDiffCommentsClear(
+    const fileNoteCount = countPendingDiffCommentsClear(
       pendingDiffCommentsClear,
       activeWorktreeId,
       diffCommentsForActive
     )
-  }, [activeWorktreeId, diffCommentsForActive, pendingDiffCommentsClear])
+    // Why: "Clear all notes" in this shelf also clears the general notes it lists.
+    const generalNoteCount =
+      pendingDiffCommentsClear?.kind === 'all' &&
+      pendingDiffCommentsClear.worktreeId === activeWorktreeId
+        ? generalNotesForActive.length
+        : 0
+    return fileNoteCount + generalNoteCount
+  }, [activeWorktreeId, diffCommentsForActive, generalNotesForActive, pendingDiffCommentsClear])
 
   const resolvedPendingDiffCommentsClear = resolvePendingDiffCommentsClear({
     activeWorktreeId,
@@ -110,7 +144,10 @@ export function useSourceControlDiffCommentNotes({
     try {
       const ok =
         pending.kind === 'all'
-          ? await clearDiffComments(pending.worktreeId, clearOptions)
+          ? await clearDiffComments(pending.worktreeId, {
+              ...clearOptions,
+              includeGeneralNotes: true
+            })
           : await clearDiffCommentsForFile(pending.worktreeId, pending.filePath, clearOptions)
       if (ok) {
         setPendingDiffCommentsClear(null)
@@ -136,6 +173,11 @@ export function useSourceControlDiffCommentNotes({
   ])
 
   return {
+    closeGeneralNoteComposer,
+    generalNoteComposerOpen,
+    generalNotesForActive,
+    noteCount,
+    openGeneralNoteComposer,
     diffCommentCount,
     diffCommentCountByPath,
     diffCommentsCopied,

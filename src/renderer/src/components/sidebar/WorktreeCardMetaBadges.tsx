@@ -1,5 +1,12 @@
 import React from 'react'
-import { CalendarClock, CircleDot, Link2, SquareTerminal, StickyNote } from 'lucide-react'
+import {
+  CalendarClock,
+  CircleDot,
+  Link2,
+  MessageSquare,
+  SquareTerminal,
+  StickyNote
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LinearIcon } from '@/components/icons/LinearIcon'
 import { JiraIcon } from '@/components/icons/JiraIcon'
@@ -11,6 +18,19 @@ import type {
 } from './worktree-card-meta-types'
 import { translate } from '@/i18n/i18n'
 import { WorktreeReferenceStack } from './WorktreeReferenceStack'
+import { unsentReviewNotesLabel } from './WorktreeCardReviewNotesDetailSection'
+
+function ReviewNotesBadgeContent({ count }: { count: number }): React.JSX.Element {
+  return (
+    <>
+      <MessageSquare />
+      <span className="text-2xs font-semibold leading-none tabular-nums" aria-hidden>
+        {count}
+      </span>
+      <span className="sr-only">{unsentReviewNotesLabel(count)}</span>
+    </>
+  )
+}
 
 function hasComment(comment: string | null): boolean {
   return (comment ?? '').trim().length > 0
@@ -23,6 +43,7 @@ export function hasWorktreeCardDetails({
   jiraIssue,
   review,
   comment,
+  unsentReviewNoteCount = 0,
   automationProvenance,
   cliProvenance
 }: WorktreeCardMetaBadgesProps): boolean {
@@ -33,6 +54,7 @@ export function hasWorktreeCardDetails({
     jiraIssue ||
     review ||
     hasComment(comment) ||
+    unsentReviewNoteCount > 0 ||
     automationProvenance ||
     cliProvenance
   )
@@ -51,8 +73,10 @@ export const WorktreeCardMetaBadges = React.forwardRef<
     jiraIssue,
     review,
     comment,
+    unsentReviewNoteCount = 0,
     automationProvenance,
     cliProvenance,
+    onOpenReviewNotes,
     className,
     ...props
   },
@@ -66,6 +90,7 @@ export const WorktreeCardMetaBadges = React.forwardRef<
       jiraIssue,
       review,
       comment,
+      unsentReviewNoteCount,
       automationProvenance,
       cliProvenance
     })
@@ -118,6 +143,24 @@ export const WorktreeCardMetaBadges = React.forwardRef<
           <StickyNote className="text-muted-foreground" />
         </MetaIconBadge>
       )}
+      {unsentReviewNoteCount > 0 &&
+        (onOpenReviewNotes ? (
+          <button
+            type="button"
+            className="inline-flex shrink-0 items-center gap-0.5 rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring [&>svg]:size-3.5"
+            data-unsent-review-notes=""
+            onClick={onOpenReviewNotes}
+          >
+            <ReviewNotesBadgeContent count={unsentReviewNoteCount} />
+          </button>
+        ) : (
+          <span
+            className="inline-flex shrink-0 items-center gap-0.5 text-muted-foreground [&>svg]:size-3.5"
+            data-unsent-review-notes=""
+          >
+            <ReviewNotesBadgeContent count={unsentReviewNoteCount} />
+          </span>
+        ))}
       {automationProvenance && (
         <MetaIconBadge
           label={translate(

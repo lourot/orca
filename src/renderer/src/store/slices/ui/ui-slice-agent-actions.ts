@@ -33,6 +33,9 @@ export function createUiAgentActions(
   | 'diffNotesSendMenuOpenRequest'
   | 'openDiffNotesSendMenuForActiveWorktree'
   | 'consumeDiffNotesSendMenuOpenRequest'
+  | 'diffNotesShelfRevealRequest'
+  | 'requestDiffNotesShelfReveal'
+  | 'consumeDiffNotesShelfRevealRequest'
   | 'acknowledgedAgentsByPaneKey'
   | 'acknowledgeAgents'
   | 'unacknowledgeAgents'
@@ -105,6 +108,18 @@ export function createUiAgentActions(
       set((s) =>
         s.diffNotesSendMenuOpenRequest?.worktreeId === worktreeId
           ? { diffNotesSendMenuOpenRequest: null }
+          : s
+      ),
+    diffNotesShelfRevealRequest: null,
+    requestDiffNotesShelfReveal: (worktreeId) => {
+      get().setRightSidebarTab('source-control')
+      get().setRightSidebarOpen(true)
+      set({ diffNotesShelfRevealRequest: { worktreeId, issuedAt: Date.now() } })
+    },
+    consumeDiffNotesShelfRevealRequest: (worktreeId) =>
+      set((s) =>
+        s.diffNotesShelfRevealRequest?.worktreeId === worktreeId
+          ? { diffNotesShelfRevealRequest: null }
           : s
       ),
     closeAgentSendPopoverTargetMode: (id, instanceId) =>

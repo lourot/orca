@@ -121,6 +121,7 @@ export type UiViewHistory =
   | 'space'
   | 'skills'
   | 'artifacts'
+  | 'messages'
   | 'mobile'
 
 export type UISliceCore = {
@@ -138,6 +139,11 @@ export type UISliceCore = {
   /** Reveal Source Control and request its notes send menu open; returns false (no-op) when the active worktree has no unsent notes. */
   openDiffNotesSendMenuForActiveWorktree: () => boolean
   consumeDiffNotesSendMenuOpenRequest: (worktreeId: string) => void
+  /** Asks the Source Control notes shelf to expand once `worktreeId` is active. `issuedAt` bounds staleness so a click that never activated the worktree can't expand it much later. */
+  diffNotesShelfRevealRequest: { worktreeId: string; issuedAt: number } | null
+  /** Reveal Source Control and request its notes shelf expand for `worktreeId`; the caller activates the worktree. */
+  requestDiffNotesShelfReveal: (worktreeId: string) => void
+  consumeDiffNotesShelfRevealRequest: (worktreeId: string) => void
   /** Persisted read timestamps by pane; absent ack or newer stateStartedAt makes the row unvisited. */
   acknowledgedAgentsByPaneKey: Record<string, number>
   /** `explicit` only from a user action on the row (Mark read, a jump, a dashboard ack). */
@@ -162,6 +168,7 @@ export type UISliceCore = {
   previousViewBeforeSkills: Exclude<UiViewHistory, 'skills'>
   previousViewBeforeMobile: Exclude<UiViewHistory, 'mobile'>
   previousViewBeforeArtifacts: Exclude<UiViewHistory, 'artifacts'>
+  previousViewBeforeMessages: Exclude<UiViewHistory, 'messages'>
   setActiveView: (view: UISliceCore['activeView']) => void
   taskPageData: TaskPageData
   taskResumeState: TaskResumeState | undefined
@@ -203,6 +210,8 @@ export type UISliceCore = {
   clearPendingSkillsSharedView: () => void
   openArtifactsPage: () => void
   closeArtifactsPage: () => void
+  openMessagesPage: () => void
+  closeMessagesPage: () => void
   openMobilePage: () => void
   closeMobilePage: () => void
   setNewWorkspaceDraft: (draft: NonNullable<UISliceCore['newWorkspaceDraft']>) => void

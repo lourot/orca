@@ -27,6 +27,44 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
 }))
 
 describe('WorktreeCardDetailsHover', () => {
+  it('shows the unsent review-notes count on the badge row and in the hover', () => {
+    const render = (count: number) => ({
+      badges: renderToStaticMarkup(
+        <WorktreeCardMetaBadges
+          issue={null}
+          linearIssue={null}
+          review={null}
+          comment={null}
+          unsentReviewNoteCount={count}
+        />
+      ),
+      hover: renderToStaticMarkup(
+        <WorktreeCardDetailsHover
+          issue={null}
+          linearIssue={null}
+          review={null}
+          comment={null}
+          unsentReviewNoteCount={count}
+        >
+          <span>card</span>
+        </WorktreeCardDetailsHover>
+      )
+    })
+
+    const none = render(0)
+    expect(none.badges).toBe('')
+    expect(none.hover).toBe('<span>card</span>')
+
+    const one = render(1)
+    expect(one.badges).toContain('data-unsent-review-notes')
+    expect(one.badges).toContain('1 unsent review note<')
+    expect(one.hover).toContain('Review notes')
+
+    const two = render(2)
+    expect(two.badges).toContain('2 unsent review notes')
+    expect(two.hover).toContain('2 unsent review notes')
+  })
+
   it('puts workspace title before branch identity and metadata details', () => {
     const markup = renderToStaticMarkup(
       <WorktreeCardDetailsHover

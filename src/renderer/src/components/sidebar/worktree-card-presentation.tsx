@@ -63,6 +63,8 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
     metaJiraIssue,
     metaReview,
     metaComment,
+    metaUnsentReviewNoteCount,
+    handleOpenReviewNotes,
     metaAutomationProvenance,
     metaCliProvenance,
     hoverIssue,
@@ -70,6 +72,7 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
     hoverJiraIssue,
     hoverReview,
     hoverComment,
+    hoverUnsentReviewNoteCount,
     linearIssue,
     handleEditIssue,
     handleManageLinks,
@@ -157,6 +160,7 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
         jiraIssue: hoverJiraIssue,
         review: hoverReview,
         comment: hoverComment,
+        unsentReviewNoteCount: hoverUnsentReviewNoteCount,
         automationProvenance: metaAutomationProvenance,
         cliProvenance: metaCliProvenance
       }) ||
@@ -204,6 +208,8 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
             jiraIssue={metaJiraIssue}
             review={newCardStyle ? null : metaReview}
             comment={metaComment}
+            unsentReviewNoteCount={metaUnsentReviewNoteCount}
+            onOpenReviewNotes={affiliateListMode ? undefined : handleOpenReviewNotes}
             automationProvenance={metaAutomationProvenance}
             cliProvenance={metaCliProvenance}
             className="ml-0 pr-0"
@@ -222,6 +228,7 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
         jiraIssue={metaJiraIssue}
         review={metaReview}
         comment={metaComment}
+        unsentReviewNoteCount={metaUnsentReviewNoteCount}
         automationProvenance={metaAutomationProvenance}
         cliProvenance={metaCliProvenance}
         detailsAfter={hasPorts ? <WorktreeCardPortsDetails ports={workspacePorts} /> : null}
