@@ -16,6 +16,10 @@ import {
 } from './agent-generated-tab-title-copy'
 import { getAgentStatusHooksDescription, getAgentStatusHooksTitle } from './agent-status-hooks-copy'
 import {
+  getRollingAgentTitleDescription,
+  getRollingAgentTitleTitle
+} from './rolling-agent-title-copy'
+import {
   getAgentWorkspaceTrustDescription,
   getAgentWorkspaceTrustTitle
 } from './agent-workspace-trust-copy'
@@ -114,6 +118,7 @@ export function AgentsPane({
           </>
         ) : null}
         <AgentGeneratedTabTitlesSetting settings={settings} updateSettings={updateSettings} />
+        <RollingAgentTitleSetting settings={settings} updateSettings={updateSettings} />
         {!isPairedWebClientWindow() ? (
           <AgentAwakeSetting settings={settings} updateSettings={updateSettings} />
         ) : null}
@@ -167,6 +172,21 @@ export function AgentGeneratedTabTitlesSetting({ settings, updateSettings }: Age
         checked={enabled}
         onChange={() => updateSettings({ tabAutoGenerateTitle: !enabled })}
         ariaLabel={getAgentGeneratedTabTitlesTitle()}
+      />
+    </section>
+  )
+}
+
+export function RollingAgentTitleSetting({ settings, updateSettings }: AgentSettingProps) {
+  const enabled = settings.tabRollingAgentTitle === true
+  return (
+    <section className="space-y-3">
+      <SettingsSwitchRow
+        label={getRollingAgentTitleTitle()}
+        description={getRollingAgentTitleDescription()}
+        checked={enabled}
+        onChange={() => updateSettings({ tabRollingAgentTitle: !enabled })}
+        ariaLabel={getRollingAgentTitleTitle()}
       />
     </section>
   )

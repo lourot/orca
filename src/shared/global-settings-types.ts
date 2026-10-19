@@ -409,6 +409,8 @@ export type GlobalSettings = GlobalSettingsBase & {
   dismissedSkillFreshnessNudges?: string[]
   /** Why: generated tab titles are subjective, so they stay opt-in and manual renames win. */
   tabAutoGenerateTitle: boolean
+  /** Why: regenerating a title per finished turn spends a model call each time, so it stays opt-in. */
+  tabRollingAgentTitle: boolean
   /** Why: pinned tabs can still be closed via keyboard/native-menu; this gates that behind a confirmation. Defaults on. */
   confirmClosePinnedTab: boolean
   /** Why: preview tabs reuse one slot per group, so browsing replaces the open file; off makes every open its own tab. Defaults on. */

@@ -240,6 +240,7 @@ export function buildDefaultSettings(args: {
     codexTerminalServerIsolation: true,
     codexSharedServerWarning: true,
     tabAutoGenerateTitle: false,
+    tabRollingAgentTitle: false,
     confirmClosePinnedTab: true,
     editorPreviewTabsEnabled: true,
     keepComputerAwakeWhileAgentsRun: false,

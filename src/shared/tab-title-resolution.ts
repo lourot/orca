@@ -3,7 +3,10 @@ import type { TerminalTab } from './terminal-tab-types'
 import { isMeaningfulOpenCodeTerminalTitle } from './opencode-terminal-title'
 
 export function resolveTerminalTabTitle(
-  tab: Pick<TerminalTab, 'quickCommandLabel' | 'aiVaultTitle' | 'generatedTitle' | 'title'> & {
+  tab: Pick<
+    TerminalTab,
+    'quickCommandLabel' | 'aiVaultTitle' | 'rollingTitle' | 'generatedTitle' | 'title'
+  > & {
     customTitle?: string | null
   },
   generatedTitlesEnabled: boolean,
@@ -13,6 +16,9 @@ export function resolveTerminalTabTitle(
   return (
     tab.customTitle?.trim() ||
     tab.quickCommandLabel?.trim() ||
+    // Why: Claude's session name and OpenCode's `OC |` title are minted once from the
+    // opening prompt, so below them the rolling title would never surface.
+    tab.rollingTitle?.trim() ||
     (isMeaningfulOpenCodeTerminalTitle(liveTitle) ? liveTitle : '') ||
     tab.aiVaultTitle?.title.trim() ||
     (generatedTitlesEnabled ? tab.generatedTitle?.trim() : '') ||
@@ -23,7 +29,15 @@ export function resolveTerminalTabTitle(
 
 export function resolveUnifiedTabLabel(
   tab:
-    | Pick<Tab, 'customLabel' | 'quickCommandLabel' | 'aiVaultTitle' | 'generatedLabel' | 'label'>
+    | Pick<
+        Tab,
+        | 'customLabel'
+        | 'quickCommandLabel'
+        | 'aiVaultTitle'
+        | 'rollingLabel'
+        | 'generatedLabel'
+        | 'label'
+      >
     | undefined,
   generatedTitlesEnabled: boolean,
   fallback = ''
@@ -32,6 +46,7 @@ export function resolveUnifiedTabLabel(
   return (
     tab?.customLabel?.trim() ||
     tab?.quickCommandLabel?.trim() ||
+    tab?.rollingLabel?.trim() ||
     (isMeaningfulOpenCodeTerminalTitle(liveLabel) ? liveLabel : '') ||
     tab?.aiVaultTitle?.title.trim() ||
     (generatedTitlesEnabled ? tab?.generatedLabel?.trim() : '') ||

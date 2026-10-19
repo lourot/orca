@@ -3,6 +3,7 @@ import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { AgentHibernationGate } from '../components/AgentHibernationGate'
 import { AiVaultTabTitleSyncGate } from '../components/AiVaultTabTitleSyncGate'
 import RetainedAgentsSyncGate from '../components/dashboard/RetainedAgentsSyncGate'
+import { RollingAgentTitleSyncGate } from '../components/RollingAgentTitleSyncGate'
 import { WorkspacePortScanner } from '../components/ports/WorkspacePortScanner'
 import { SavedHostScopeWidenGate } from '../components/sidebar/SavedHostScopeWidenGate'
 import { MacosTccPromptNoticeHost } from '../hooks/MacosTccPromptNoticeHost'
@@ -29,6 +30,7 @@ export function AppBackgroundServices(): React.JSX.Element {
       {/* Keep agent-status retention subscriptions out of the App render tree. */}
       <RetainedAgentsSyncGate />
       <AiVaultTabTitleSyncGate />
+      <RollingAgentTitleSyncGate />
       <SavedHostScopeWidenGate />
       {dashboardPopoutEnabled ? (
         <Suspense fallback={null}>

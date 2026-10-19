@@ -20,6 +20,11 @@ import {
   getAgentStatusHooksTitle
 } from './agent-status-hooks-copy'
 import {
+  getRollingAgentTitleDescription,
+  getRollingAgentTitleSearchKeywords,
+  getRollingAgentTitleTitle
+} from './rolling-agent-title-copy'
+import {
   getAgentWorkspaceTrustDescription,
   getAgentWorkspaceTrustSearchKeywords,
   getAgentWorkspaceTrustTitle
@@ -162,6 +167,11 @@ const getAllAgentsPaneSearchEntries = createLocalizedCatalog(() => [
     title: getAgentGeneratedTabTitlesTitle(),
     description: getAgentGeneratedTabTitlesDescription(),
     keywords: getAgentGeneratedTabTitlesSearchKeywords()
+  },
+  {
+    title: getRollingAgentTitleTitle(),
+    description: getRollingAgentTitleDescription(),
+    keywords: getRollingAgentTitleSearchKeywords()
   },
   {
     title: getAgentAwakeTitle(),

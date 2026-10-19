@@ -1,4 +1,4 @@
-// Follow tab-title-resolution precedence: manual, quick command, semantic, provider, generated, then live title. Reject status/identity/cwd live titles so rows retain message previews.
+// Follow tab-title-resolution precedence: manual, quick command, rolling agent title, semantic, provider, generated, then live title. Reject status/identity/cwd live titles so rows retain message previews.
 import type { AgentType } from './agent-status-types'
 import { isClaudeManagementTitle } from './agent-title-core'
 import { stripLeadingAgentTitleDecorationOrEmpty } from './agent-title-decoration'
@@ -10,7 +10,13 @@ import type { TerminalTab } from './terminal-tab-types'
 
 export type ConversationNameTab = Pick<
   TerminalTab,
-  'customTitle' | 'quickCommandLabel' | 'aiVaultTitle' | 'generatedTitle' | 'title' | 'defaultTitle'
+  | 'customTitle'
+  | 'quickCommandLabel'
+  | 'aiVaultTitle'
+  | 'rollingTitle'
+  | 'generatedTitle'
+  | 'title'
+  | 'defaultTitle'
 >
 
 // Synthetic status labels describe state rather than a conversation name.
@@ -116,6 +122,12 @@ export function getAgentRowConversationName(
   const quickCommandLabel = tab.quickCommandLabel?.trim()
   if (quickCommandLabel) {
     return quickCommandLabel
+  }
+  // Why: Claude's session name and OpenCode's `OC |` title are minted once from the
+  // opening prompt, so below them the rolling title would never surface.
+  const rollingTitle = tab.rollingTitle?.trim()
+  if (rollingTitle) {
+    return rollingTitle
   }
   const liveTitle =
     paneLiveTitle === undefined ? (tab.title?.trim() ?? '') : (paneLiveTitle?.trim() ?? '')
