@@ -28,6 +28,7 @@ import {
 import { getTuiAgentLaunchCommand, isTuiAgent, TUI_AGENT_CONFIG } from './tui-agent-config'
 import { findOptionOccurrence } from './command-option-occurrence'
 import { assertOpenCodeCopyUsesLocalStore } from './opencode-launch-command'
+import { isOpenCodeV2DatabaseName } from './opencode-database-name'
 import { CLI_CONVERSATION_ADOPTING_AGENTS } from './structured-agent-cli-conversation-adoption'
 import type { GlobalSettings } from './global-settings-types'
 import { parseWslUncPath } from './wsl-paths'
@@ -110,6 +111,26 @@ function resumeCommandOverrides(
   }
 }
 
+/**
+ * The agent a local resume launches. Stable OpenCode 2.x installs only `opencode`, yet its
+ * migrated chats list as `opencode2`, the beta binary's kind; a beta store (`opencode-next.db`)
+ * or a detected `opencode2` keeps the row's agent. Unknown detection keeps it too.
+ */
+export function resolveAiVaultResumeLaunchAgent(
+  session: Pick<AiVaultResumeCommandSession, 'agent' | 'filePath'>,
+  detectedAgentIds: readonly string[] | null | undefined
+): AiVaultAgent {
+  if (
+    session.agent !== 'opencode2' ||
+    !detectedAgentIds ||
+    detectedAgentIds.includes('opencode2')
+  ) {
+    return session.agent
+  }
+  const databaseName = session.filePath?.split(/[\\/]/).at(-1) ?? ''
+  return isOpenCodeV2DatabaseName(databaseName) ? session.agent : 'opencode'
+}
+
 /** A resume run on the host itself: no prebuilt remote command and no Antigravity reference. */
 export function buildAiVaultLocalResumeStartup(
   args: AiVaultResumeStartupArgs & {
@@ -118,9 +139,14 @@ export function buildAiVaultLocalResumeStartup(
     /** Copy-path only: names the pasted line must strip off the agent itself.
      *  Spawned startups drop them through `envToDelete` instead. */
     clearEnvNames?: readonly string[]
+    /** The host's detected agents; absent keeps the row's agent. */
+    detectedAgentIds?: readonly string[] | null
   }
 ): AiVaultResumeStartup {
-  const { session, settings, embedCwd, clearEnvNames } = args
+  const launchAgent = resolveAiVaultResumeLaunchAgent(args.session, args.detectedAgentIds)
+  const session = { ...args.session, agent: launchAgent }
+  const launchedAs = launchAgent === args.session.agent ? {} : { agent: launchAgent }
+  const { settings, embedCwd, clearEnvNames } = args
   const { platform, codexHome, liveShell } = args.host
   const resumeFilePath = normalizeAiVaultResumeFilePath(session.filePath, platform)
   // Why: Pi resumes by transcript path, spelled for the shell it runs in (#24408).
@@ -134,7 +160,7 @@ export function buildAiVaultLocalResumeStartup(
     const startupPlan = buildAgentResumeStartupPlan({
       agent: session.agent,
       providerSession: localProviderSession,
-      cmdOverrides: resumeCommandOverrides(args),
+      cmdOverrides: resumeCommandOverrides({ ...args, session }),
       platform,
       agentHostPlatform: args.host.agentHostPlatform,
       shell: liveShell,
@@ -148,6 +174,7 @@ export function buildAiVaultLocalResumeStartup(
     })
     if (startupPlan) {
       return {
+        ...launchedAs,
         command:
           session.agent === 'omp'
             ? buildAiVaultResumeCommand({
@@ -179,6 +206,7 @@ export function buildAiVaultLocalResumeStartup(
   }
 
   return {
+    ...launchedAs,
     command: buildAiVaultResumeCommand({
       agent: session.agent,
       sessionId: session.sessionId,

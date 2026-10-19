@@ -32,12 +32,17 @@ function buildSessionListQuery(db: SyncDatabase, limited: boolean, scoped: boole
   const archivedPredicate = columnExists(db, 'session', 'time_archived')
     ? 'AND time_archived IS NULL'
     : ''
+  // Why: OpenCode 2 copies each 1.x session into session_v2 under the same id and stops updating
+  // the 1.x row; the OpenCode 2 lister owns that chat.
+  const migratedPredicate = tableExists(db, 'session_v2')
+    ? 'AND id NOT IN (SELECT id FROM session_v2)'
+    : ''
 
   // Discovery needs identity and recency; defer message blobs and unused metadata until parsing.
   const directory = scoped && columnExists(db, 'session', 'directory') ? ', directory' : ''
   return `SELECT id, time_created, time_updated${directory}
           FROM session
-          WHERE 1=1 ${parentIdPredicate} ${archivedPredicate}
+          WHERE 1=1 ${parentIdPredicate} ${archivedPredicate} ${migratedPredicate}
           ORDER BY CASE WHEN time_updated > 0 THEN time_updated ELSE time_created END DESC
           ${limited ? 'LIMIT ?' : ''}`
 }

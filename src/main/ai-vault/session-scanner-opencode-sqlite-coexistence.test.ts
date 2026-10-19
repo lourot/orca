@@ -13,8 +13,10 @@ vi.mock('./session-scanner-opencode-sqlite-worker-spawn', async () => {
     import('./session-scanner-opencode-sqlite')
   ])
   const { listOpenCode2SqliteSessions } = await import('./session-scanner-opencode2-sqlite-list')
+  const { parseOpenCode2SqliteSession } = await import('./session-scanner-opencode2-sqlite')
   return {
     listOpenCode2SqliteSessionsViaWorker: listOpenCode2SqliteSessions,
+    parseOpenCode2SqliteSessionViaWorker: parseOpenCode2SqliteSession,
     listOpenCodeSqliteSessionsViaWorker: listOpenCodeSqliteSessions,
     listZcodeSqliteSessionsViaWorker: (args: Parameters<typeof listOpenCodeSqliteSessions>[0]) =>
       listOpenCodeSqliteSessions({ ...args, agent: 'zcode' }),
@@ -231,5 +233,63 @@ describe('scanAiVaultSessions — OpenCode SQLite + legacy file coexistence', ()
     expect(legacyEntry!.resumeCommand).toBe(
       "cd '/tmp/sqlite' && opencode --session 'legacy-session'"
     )
+  })
+
+  it('lists a chat OpenCode 2 migrated in place once, as OpenCode 2', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'orca-ai-vault-migrated-'))
+    tempRoots.push(root)
+    const { db, path: dbPath } = createTempOpenCodeDb()
+    applyOpenCodeSchema(db)
+    db.exec(`
+      CREATE TABLE session_v2 (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        parent_id TEXT,
+        slug TEXT NOT NULL,
+        directory TEXT NOT NULL,
+        title TEXT,
+        version TEXT NOT NULL,
+        time_created INTEGER NOT NULL,
+        time_updated INTEGER NOT NULL,
+        time_archived INTEGER
+      );
+      CREATE TABLE session_message (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        seq INTEGER NOT NULL,
+        time_created INTEGER NOT NULL,
+        time_updated INTEGER NOT NULL,
+        data TEXT NOT NULL
+      );
+    `)
+    const insertV1 = db.prepare(
+      `INSERT INTO session (id, project_id, slug, directory, title, version, time_created, time_updated)
+       VALUES (?, 'proj-1', 'slug', '/tmp/migrated', ?, '1.19.0', 1777634000000, 1777634001000)`
+    )
+    insertV1.run('migrated-session', 'Migrated chat')
+    insertV1.run('v1-only-session', 'Written after the migration')
+    db.prepare(
+      `INSERT INTO session_v2 (id, project_id, slug, directory, title, version, time_created, time_updated)
+       VALUES ('migrated-session', 'proj-1', 'slug', '/tmp/migrated', 'Migrated chat', '2.0.27',
+         1777634000000, 1777634002000)`
+    ).run()
+    db.close()
+
+    const result = await scanAiVaultSessions({
+      ...isolatedScanRoots(root),
+      opencodeDbPaths: [dbPath],
+      platform: 'darwin',
+      limit: 50
+    })
+
+    const listed = result.sessions
+      .filter((s) => s.agent === 'opencode' || s.agent === 'opencode2')
+      .map((s) => [s.sessionId, s.agent])
+      .sort()
+    expect(listed).toEqual([
+      ['migrated-session', 'opencode2'],
+      ['v1-only-session', 'opencode']
+    ])
   })
 })

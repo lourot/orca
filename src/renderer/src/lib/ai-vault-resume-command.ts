@@ -5,6 +5,7 @@ import {
 import { isAntigravityReferenceSession } from '../../../shared/antigravity-session-origin'
 import { normalizeAiVaultResumeFilePath } from '../../../shared/ai-vault-resume-path'
 import type { AiVaultSessionDragPayload } from '@/lib/ai-vault-session-drag'
+import type { AppState } from '@/store/types'
 import { resolveAiVaultResumeStartupShell } from '@/lib/ai-vault-resume-shell'
 import {
   getAiVaultResumePlatform,
@@ -29,7 +30,7 @@ export type {
 export { getAiVaultAgentProviderSession }
 
 export type AiVaultResumeWorktreeArgs = {
-  state: AiVaultResumePlatformState
+  state: AiVaultResumePlatformState & Partial<Pick<AppState, 'detectedAgentIds'>>
   worktreeId?: string | null
   session: AiVaultResumeCommandSession
   commandOverride?: string | null
@@ -114,7 +115,8 @@ function buildAiVaultResumeForWorktree(
     commandOverride: args.commandOverride,
     agentArgs: args.agentArgs,
     embedCwd,
-    clearEnvNames
+    clearEnvNames,
+    detectedAgentIds: args.state.detectedAgentIds
   })
 }
 
