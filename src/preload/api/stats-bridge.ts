@@ -7,5 +7,6 @@ export const statsApi = {
     totalPRsCreated: number
     totalAgentTimeMs: number
     firstEventAt: number | null
-  }> => ipcRenderer.invoke('stats:summary')
+  }> => ipcRenderer.invoke('stats:summary'),
+  getProjectActivity: () => ipcRenderer.invoke('stats:projectActivity')
 } satisfies PreloadApi['stats']

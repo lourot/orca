@@ -103,7 +103,9 @@ function createWebPreloadApi(): Partial<PreloadApi> {
           totalPRsCreated: 0,
           totalAgentTimeMs: 0,
           firstEventAt: null
-        }))
+        })),
+      // Why empty: the stats log lives on the desktop; the sidebar then shows no activity.
+      getProjectActivity: async () => ({})
     },
     memory: {
       getSnapshot: () => Promise.resolve(createEmptyMemorySnapshot()),

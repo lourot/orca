@@ -1,7 +1,8 @@
 import { join } from 'node:path'
 import { getAppEnvironment } from '../../shared/app-environment'
-import type { StatsSummary } from '../../shared/process-stats-types'
+import type { ProjectActivity, StatsSummary } from '../../shared/process-stats-types'
 import type { StatsEvent, StatsAggregates, StatsFile } from './types'
+import { selectRecentAgentStarts, summarizeProjectActivity } from './project-activity'
 import { loadStatsFile, STATS_SCHEMA_VERSION } from './stats-file-loader'
 import { AtomicSnapshotWriter } from '../persistence/atomic-snapshot-writer'
 
@@ -37,6 +38,11 @@ export class StatsCollector {
   constructor() {
     const data = loadStatsFile(getStatsFile())
     this.aggregates = data.aggregates
+    // Seeded once from a pre-#35544 event log; the compaction below then drops that log.
+    this.aggregates.recentAgentStarts = selectRecentAgentStarts(
+      this.aggregates.recentAgentStarts ?? data.events ?? [],
+      Date.now()
+    )
     // Compact pre-#35544 files so later boots stop parsing the legacy event log.
     if (Array.isArray(data.events) && data.events.length > 0) {
       this.scheduleSave()
@@ -101,6 +107,10 @@ export class StatsCollector {
     }
   }
 
+  getProjectActivity(now = Date.now()): Record<string, ProjectActivity> {
+    return summarizeProjectActivity(this.aggregates.recentAgentStarts ?? [], now)
+  }
+
   /** Repeated before-quit passes must remain safe; retain in-memory state so later activity can be flushed again. */
   flush(): void {
     if (this.quitFlushStarted) {
@@ -141,6 +151,10 @@ export class StatsCollector {
     switch (event.type) {
       case 'agent_start':
         this.aggregates.totalAgentsSpawned++
+        this.aggregates.recentAgentStarts = selectRecentAgentStarts(
+          [...(this.aggregates.recentAgentStarts ?? []), event],
+          Date.now()
+        )
         // Notify after increment and isolate listeners so observer failures cannot lose persisted events.
         for (const listener of this.agentStartListeners) {
           try {

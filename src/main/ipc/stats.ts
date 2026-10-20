@@ -5,4 +5,7 @@ export function registerStatsHandlers(stats: StatsCollector): void {
   ipcMain.handle('stats:summary', () => {
     return stats.getSummary()
   })
+  ipcMain.handle('stats:projectActivity', () => {
+    return stats.getProjectActivity()
+  })
 }

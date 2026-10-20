@@ -1,9 +1,15 @@
 import type { ResourceViewAdmission } from '../../shared/resource-view-admission'
 import type { TelemetryConsentState } from '../../shared/telemetry-consent-types'
-import type { MemorySnapshot, StatsSummary } from '../../shared/process-stats-types'
+import type {
+  MemorySnapshot,
+  ProjectActivity,
+  StatsSummary
+} from '../../shared/process-stats-types'
 
 export type StatsApi = {
   getSummary: () => Promise<StatsSummary>
+  /** Keyed by repo id; projects without recent agent turns are absent. */
+  getProjectActivity: () => Promise<Record<string, ProjectActivity>>
 }
 
 // Diagnostics IPC payloads; mirror the runtime types in `src/main/observability/{index,bundle}.ts`.

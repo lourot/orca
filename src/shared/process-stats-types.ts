@@ -6,6 +6,13 @@ export type StatsSummary = {
   firstEventAt: number | null // timestamp of first-ever event, for "tracking since..."
 }
 
+/** Agent activity of one project over the last few local days. */
+export type ProjectActivity = {
+  /** Agent turns (an agent starting to work) per day, oldest first; the last entry is today. */
+  dailyTurns: number[]
+  lastActiveAt: number
+}
+
 /** cpu is percent of a single core — can exceed 100 on multi-core. memory is in bytes. */
 export type UsageValues = {
   cpu: number
