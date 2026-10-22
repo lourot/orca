@@ -21,14 +21,16 @@ type WorktreeColorTagMenuItemsProps = {
   mixed: boolean
   disabled: boolean
   isMultiContext: boolean
+  /** Workspaces carrying each tag, the right-clicked ones included, keyed by normalized hex. */
+  colorTagUsage: ReadonlyMap<string, number>
   onAssignColorTag: (colorTag: string | null) => void
 }
 
-function getSwatchLabel(swatch: SwatchOption, isSelected: boolean): string {
+function getSwatchLabel(swatch: SwatchOption, isSelected: boolean, usage: number): string {
   if (swatch === null) {
     return translate('auto.components.sidebar.WorktreeColorTagMenuItems.noColor', 'No color')
   }
-  return isSelected
+  const action = isSelected
     ? translate(
         'auto.components.sidebar.WorktreeColorTagMenuItems.removeColor',
         'Remove color {{value0}}',
@@ -39,6 +41,15 @@ function getSwatchLabel(swatch: SwatchOption, isSelected: boolean): string {
         'Use color {{value0}}',
         { value0: swatch }
       )
+  if (usage === 0) {
+    return action
+  }
+  const usedBy = translate(
+    'auto.components.sidebar.WorktreeColorTagMenuItems.usedBy',
+    'used by {{count}} workspaces',
+    { count: usage }
+  )
+  return `${action}, ${usedBy}`
 }
 
 export function WorktreeColorTagMenuItems({
@@ -46,6 +57,7 @@ export function WorktreeColorTagMenuItems({
   mixed,
   disabled,
   isMultiContext,
+  colorTagUsage,
   onAssignColorTag
 }: WorktreeColorTagMenuItemsProps): React.JSX.Element {
   const [activeIndex, setActiveIndex] = useState(() =>
@@ -94,8 +106,10 @@ export function WorktreeColorTagMenuItems({
     : translate('auto.components.sidebar.WorktreeColorTagMenuItems.groupColor', 'Group color')
   // Why: focus stays on the row while arrows move between swatches, so the row's own name has to
   // say which swatch Enter will activate or a screen reader hears only "Group color".
+  const getUsage = (swatch: SwatchOption): number =>
+    swatch === null ? 0 : (colorTagUsage.get(swatch) ?? 0)
   const activeSwatch = SWATCH_OPTIONS[activeIndex] ?? null
-  const rowLabel = `${groupLabel}: ${getSwatchLabel(activeSwatch, isSwatchSelected(activeSwatch))}`
+  const rowLabel = `${groupLabel}: ${getSwatchLabel(activeSwatch, isSwatchSelected(activeSwatch), getUsage(activeSwatch))}`
 
   return (
     <DropdownMenuItem
@@ -105,9 +119,10 @@ export function WorktreeColorTagMenuItems({
       onKeyDown={handleRowKeyDown}
       aria-label={rowLabel}
     >
-      <div className="flex w-full items-center justify-between gap-1" role="radiogroup">
+      <div className="flex w-full items-center justify-between gap-0.5 pt-3.5" role="radiogroup">
         {SWATCH_OPTIONS.map((swatch, index) => {
           const isSelected = isSwatchSelected(swatch)
+          const usage = getUsage(swatch)
           return (
             <button
               key={swatch ?? 'none'}
@@ -115,16 +130,19 @@ export function WorktreeColorTagMenuItems({
               role="radio"
               tabIndex={-1}
               aria-checked={isSelected}
-              aria-label={getSwatchLabel(swatch, isSelected)}
+              aria-label={getSwatchLabel(swatch, isSelected, usage)}
               data-workspace-color-swatch={swatch ?? 'none'}
               onPointerEnter={() => moveActiveIndex(index)}
               onClick={() => {
                 activeIndexRef.current = index
               }}
               className={cn(
-                'flex size-4 items-center justify-center rounded-full outline-none transition-shadow',
-                (swatch === null || swatch === '#ffffff') &&
-                  'border border-border text-muted-foreground',
+                // Why: every swatch carries a border so the absolutely placed count, which is
+                // offset from the padding edge, sits at the same height on all of them.
+                'relative flex size-4 shrink-0 items-center justify-center rounded-full border outline-none transition-shadow',
+                swatch === null || swatch === '#ffffff'
+                  ? 'border-border text-muted-foreground'
+                  : 'border-transparent',
                 isSelected && 'ring-2 ring-foreground ring-offset-2 ring-offset-popover',
                 !isSelected &&
                   index === activeIndex &&
@@ -133,6 +151,15 @@ export function WorktreeColorTagMenuItems({
               style={swatch === null ? undefined : { backgroundColor: swatch }}
             >
               {swatch === null ? <Slash className="size-2.5" /> : null}
+              {usage > 0 ? (
+                <span
+                  aria-hidden
+                  data-workspace-color-usage
+                  className="absolute -top-4 left-1/2 -translate-x-1/2 text-3xs leading-none tabular-nums text-muted-foreground"
+                >
+                  {usage > 9 ? '9+' : usage}
+                </span>
+              ) : null}
             </button>
           )
         })}

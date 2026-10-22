@@ -41,3 +41,18 @@ export function isMixedWorkspaceColorTagSelection(
 ): boolean {
   return new Set(colorTags.map((tag) => normalizeWorkspaceColorTag(tag))).size > 1
 }
+
+/** How many non-archived workspaces carry each tag, keyed by normalized hex. */
+export function countWorkspaceColorTagUsage(
+  worktrees: readonly { colorTag?: string | null; isArchived: boolean }[]
+): ReadonlyMap<string, number> {
+  const counts = new Map<string, number>()
+  for (const worktree of worktrees) {
+    const tag = normalizeWorkspaceColorTag(worktree.colorTag)
+    if (tag === null || worktree.isArchived) {
+      continue
+    }
+    counts.set(tag, (counts.get(tag) ?? 0) + 1)
+  }
+  return counts
+}
