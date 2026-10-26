@@ -1,66 +1,145 @@
-import type React from 'react'
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
-import { useFileSearchScope } from './useFileSearchScope'
 import { useActiveWorktree } from '@/store/selectors'
-import type {
-  SearchFileResult,
-  SearchMatch,
-  SearchResult
-} from '../../../../shared/code-search-types'
-import { buildSearchRows } from './search-rows'
-import { cancelRevealFrame, openMatchResult } from './search-match-open'
-import type { SearchQueryRowProps } from './SearchQueryRow'
-import type { SearchFiltersProps } from './SearchFilters'
+import { buildGroupedSearchRows, buildSearchRows } from './search-rows'
+import { cancelRevealFrame } from './search-match-open'
 import { useFileSearchRunner } from './useFileSearchRunner'
+import { useFileSearchScope } from './useFileSearchScope'
+import {
+  defaultGlobalFileSearchState,
+  summarizeGlobalFileSearchResult,
+  useGlobalFileSearchRunner,
+  type GlobalFileSearchState
+} from './useGlobalFileSearchRunner'
+import { getFileSearchRoots, type FileSearchScope } from './file-search-scope'
+import { useFileSearchPanelActions } from './use-file-search-panel-actions'
+import { useFileSearchStaleWatch } from './use-file-search-stale-watch'
+import type { FileSearchPanelActionsArgs } from './file-search-panel-types'
+import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 
 const EMPTY_COLLAPSED_FILES = new Set<string>()
 
-export type FileSearchPanelModel = {
+type PanelActions = ReturnType<typeof useFileSearchPanelActions>
+
+export type FileSearchPanelModel = Omit<PanelActions, 'resultsProps'> & {
+  resultsProps: PanelActions['resultsProps'] & ReturnType<typeof useFileSearchStaleWatch>
   activeWorktreeId: string | null
-  queryRowProps: SearchQueryRowProps
-  filtersProps: SearchFiltersProps
-  resultsProps: {
-    results: SearchResult | null
-    error?: string | null
-    hasCommittedResults: boolean
-    query: string
-    loading: boolean
-    rows: ReturnType<typeof buildSearchRows>
-    scrollRef: React.RefObject<HTMLDivElement | null>
-    onToggleCollapsedFile: (filePath: string) => void
-    onMatchClick: (fileResult: SearchFileResult, match: SearchMatch) => void
-  }
-  focusQueryInput: () => void
+  canSearch: boolean
 }
 
 export function useFileSearchPanel(explorerView: 'files' | 'search'): FileSearchPanelModel {
   const activeWorktree = useActiveWorktree()
   const activeWorktreeId = useAppStore((s) => s.activeWorktreeId)
+  const repos = useAppStore((s) => s.repos)
+  const worktreesByRepo = useAppStore((s) => selectWorktreesByRepo(s))
   const openFile = useAppStore((s) => s.openFile)
   const setPendingEditorReveal = useAppStore((s) => s.setPendingEditorReveal)
-
-  const searchState = useAppStore((s) =>
-    activeWorktreeId ? s.fileSearchStateByWorktree[activeWorktreeId] : null
-  )
-  const fileSearchQuery = searchState?.query ?? ''
-  const fileSearchCaseSensitive = searchState?.caseSensitive ?? false
-  const fileSearchWholeWord = searchState?.wholeWord ?? false
-  const fileSearchUseRegex = searchState?.useRegex ?? false
-  const fileSearchIncludePattern = searchState?.includePattern ?? ''
-  const fileSearchExcludePattern = searchState?.excludePattern ?? ''
-  const fileSearchResults = searchState?.results ?? null
-  const fileSearchResultOwner = searchState?.resultOwner ?? null
-  const fileSearchLoading = searchState?.loading ?? false
-  const fileSearchCollapsedFiles = searchState?.collapsedFiles ?? EMPTY_COLLAPSED_FILES
-  const fileSearchSeedRequestId = searchState?.seedRequestId
-  const fileSearchFocusRequestId = searchState?.focusRequestId
-
   const updateFileSearchState = useAppStore((s) => s.updateFileSearchState)
   const consumeFileSearchSeedRequest = useAppStore((s) => s.consumeFileSearchSeedRequest)
   const toggleFileSearchCollapsedFile = useAppStore((s) => s.toggleFileSearchCollapsedFile)
   const clearFileSearch = useAppStore((s) => s.clearFileSearch)
+  const searchState = useAppStore((s) =>
+    activeWorktreeId ? s.fileSearchStateByWorktree[activeWorktreeId] : null
+  )
+  const [scope, setScope] = useState<FileSearchScope>('current')
+  const [globalSearchState, setGlobalSearchState] = useState<GlobalFileSearchState>(
+    defaultGlobalFileSearchState
+  )
 
+  const worktreePath = activeWorktree?.path ?? null
+  const roots = useMemo(
+    () => getFileSearchRoots(scope, activeWorktreeId, { repos, worktreesByRepo }),
+    [activeWorktreeId, repos, scope, worktreesByRepo]
+  )
+  const updateActiveSearchState = useCallback<
+    FileSearchPanelActionsArgs['updateActiveSearchState']
+  >(
+    (updates) => {
+      if (activeWorktreeId) {
+        updateFileSearchState(activeWorktreeId, updates)
+      }
+    },
+    [activeWorktreeId, updateFileSearchState]
+  )
+  const updateGlobalSearchState = useCallback((updates: Partial<GlobalFileSearchState>): void => {
+    setGlobalSearchState((current) => ({ ...current, ...updates }))
+  }, [])
+  const { executeSearch: executeCurrentSearch, cancelPendingSearch: cancelCurrentSearch } =
+    useFileSearchRunner({
+      activeWorktreeId,
+      worktreePath,
+      updateActiveSearchState
+    })
+  const { executeSearch: executeGlobalSearch, cancelPendingSearch: cancelGlobalSearch } =
+    useGlobalFileSearchRunner({
+      roots: scope === 'current' ? [] : roots,
+      updateSearchState: updateGlobalSearchState
+    })
+
+  const isGlobalScope = scope !== 'current'
+  const currentSearchQuery = searchState?.query ?? ''
+  const currentSearchOptions = {
+    caseSensitive: searchState?.caseSensitive ?? false,
+    wholeWord: searchState?.wholeWord ?? false,
+    useRegex: searchState?.useRegex ?? false,
+    includePattern: searchState?.includePattern ?? '',
+    excludePattern: searchState?.excludePattern ?? ''
+  }
+  const isCurrentOwner = useFileSearchScope({
+    activeWorktreeId,
+    worktreePath,
+    // Why: the current-worktree runner has nothing to show while a wider scope is active.
+    explorerView: scope === 'current' ? explorerView : 'files',
+    executeSearch: executeCurrentSearch,
+    cancelPendingSearch: cancelCurrentSearch,
+    updateActiveSearchState
+  })
+  const currentResultsAreCurrent = isCurrentOwner(searchState?.resultOwner)
+  const currentSearchResults = currentResultsAreCurrent ? (searchState?.results ?? null) : null
+  const currentSearchResultOwner = currentResultsAreCurrent
+    ? (searchState?.resultOwner ?? null)
+    : null
+  const currentSearchError = currentResultsAreCurrent ? (searchState?.error ?? null) : null
+  const currentSearchLoading = searchState?.loading ?? false
+  const currentSearchCollapsedFiles = searchState?.collapsedFiles ?? EMPTY_COLLAPSED_FILES
+  const currentSearchSeedRequestId = searchState?.seedRequestId
+  const currentSearchFocusRequestId = searchState?.focusRequestId
+  const globalSearchResults = useDeferredValue(globalSearchState.results)
+  const committedCurrentSearch = useMemo(
+    () => ({ results: currentSearchResults, owner: currentSearchResultOwner }),
+    [currentSearchResultOwner, currentSearchResults]
+  )
+  const deferredCurrentSearch = useDeferredValue(committedCurrentSearch)
+  const deferredCurrentResultsAreCurrent = isCurrentOwner(deferredCurrentSearch.owner)
+  const deferredCurrentSearchResults = deferredCurrentResultsAreCurrent
+    ? deferredCurrentSearch.results
+    : null
+  const fileSearchQuery = isGlobalScope ? globalSearchState.query : currentSearchQuery
+  const fileSearchOptions = isGlobalScope
+    ? {
+        caseSensitive: globalSearchState.caseSensitive,
+        wholeWord: globalSearchState.wholeWord,
+        useRegex: globalSearchState.useRegex,
+        includePattern: globalSearchState.includePattern,
+        excludePattern: globalSearchState.excludePattern
+      }
+    : currentSearchOptions
+  const fileSearchResults = isGlobalScope
+    ? globalSearchResults
+      ? summarizeGlobalFileSearchResult(globalSearchResults)
+      : null
+    : deferredCurrentSearchResults
+  const fileSearchLoading = isGlobalScope ? globalSearchState.loading : currentSearchLoading
+  const fileSearchCollapsedFiles = isGlobalScope
+    ? globalSearchState.collapsedFiles
+    : currentSearchCollapsedFiles
+  const searchRows = useMemo(
+    () =>
+      isGlobalScope
+        ? buildGroupedSearchRows(globalSearchResults?.groups ?? [], fileSearchCollapsedFiles)
+        : buildSearchRows(deferredCurrentSearchResults, fileSearchCollapsedFiles),
+    [deferredCurrentSearchResults, fileSearchCollapsedFiles, globalSearchResults, isGlobalScope]
+  )
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsScrollRef = useRef<HTMLDivElement>(null)
   const revealRafRef = useRef<number | null>(null)
@@ -69,59 +148,20 @@ export function useFileSearchPanel(explorerView: 'files' | 'search'): FileSearch
   const includeInputRef = useRef<HTMLInputElement>(null)
   const excludeInputRef = useRef<HTMLInputElement>(null)
 
-  const updateActiveSearchState = useCallback(
-    (updates: Partial<NonNullable<typeof searchState>>) => {
-      if (!activeWorktreeId) {
-        return
-      }
-      updateFileSearchState(activeWorktreeId, updates)
-    },
-    [activeWorktreeId, updateFileSearchState]
-  )
-
-  const clearActiveSearch = useCallback(() => {
-    if (!activeWorktreeId) {
-      return
-    }
-    clearFileSearch(activeWorktreeId)
-  }, [activeWorktreeId, clearFileSearch])
-
-  const toggleActiveCollapsedFile = useCallback(
-    (filePath: string) => {
-      if (!activeWorktreeId) {
-        return
-      }
-      toggleFileSearchCollapsedFile(activeWorktreeId, filePath)
-    },
-    [activeWorktreeId, toggleFileSearchCollapsedFile]
-  )
-
-  const worktreePath = activeWorktree?.path ?? null
-  const { executeSearch, cancelPendingSearch } = useFileSearchRunner({
-    activeWorktreeId,
-    worktreePath,
-    updateActiveSearchState
-  })
-
-  const cancelSeededInputSelectionFrame = useCallback(() => {
+  const cancelSeededInputSelectionFrame = (): void => {
     if (seededInputSelectionRafRef.current !== null) {
       cancelAnimationFrame(seededInputSelectionRafRef.current)
       seededInputSelectionRafRef.current = null
     }
-  }, [])
-
-  const scheduleSeededInputSelection = useCallback(() => {
+  }
+  const scheduleSeededInputSelection = (): void => {
     cancelSeededInputSelectionFrame()
     seededInputSelectionRafRef.current = requestAnimationFrame(() => {
       seededInputSelectionRafRef.current = null
       inputRef.current?.focus()
       inputRef.current?.select()
     })
-  }, [cancelSeededInputSelectionFrame])
-
-  const focusQueryInput = useCallback(() => {
-    inputRef.current?.focus()
-  }, [])
+  }
 
   useEffect(() => {
     return () => {
@@ -129,188 +169,104 @@ export function useFileSearchPanel(explorerView: 'files' | 'search'): FileSearch
       cancelRevealFrame(revealRafRef)
       cancelRevealFrame(revealInnerRafRef)
     }
-  }, [cancelSeededInputSelectionFrame])
+  }, [])
 
   useEffect(() => {
-    if (!worktreePath) {
-      cancelPendingSearch()
+    if (scope === 'current' && !worktreePath) {
+      cancelCurrentSearch()
       updateActiveSearchState({ results: null, resultOwner: null, error: null })
     }
-  }, [worktreePath, cancelPendingSearch, updateActiveSearchState])
-
-  const isCurrentOwner = useFileSearchScope({
-    activeWorktreeId,
-    worktreePath,
-    explorerView,
-    executeSearch,
-    cancelPendingSearch,
-    updateActiveSearchState
-  })
-  const resultsAreCurrent = isCurrentOwner(fileSearchResultOwner)
-  const committedSearchResults = useMemo(
-    () => ({
-      results: resultsAreCurrent ? fileSearchResults : null,
-      owner: resultsAreCurrent ? fileSearchResultOwner : null
-    }),
-    [fileSearchResultOwner, fileSearchResults, resultsAreCurrent]
-  )
-  const deferredSearchResults = useDeferredValue(committedSearchResults)
-  const deferredResultsAreCurrent = isCurrentOwner(deferredSearchResults.owner)
-  const searchRows = useMemo(
-    () =>
-      buildSearchRows(
-        deferredResultsAreCurrent && fileSearchQuery.trim() && worktreePath
-          ? deferredSearchResults.results
-          : null,
-        fileSearchCollapsedFiles
-      ),
-    [
-      deferredSearchResults.results,
-      fileSearchCollapsedFiles,
-      fileSearchQuery,
-      worktreePath,
-      deferredResultsAreCurrent
-    ]
-  )
+  }, [cancelCurrentSearch, scope, updateActiveSearchState, worktreePath])
 
   useEffect(() => {
-    if (!activeWorktreeId || fileSearchSeedRequestId === undefined) {
+    if (scope !== 'current' || !activeWorktreeId || currentSearchSeedRequestId === undefined) {
       return
     }
-
-    if (fileSearchQuery.trim()) {
-      executeSearch(fileSearchQuery)
+    if (currentSearchQuery.trim()) {
+      executeCurrentSearch(currentSearchQuery)
     }
     scheduleSeededInputSelection()
-    consumeFileSearchSeedRequest(activeWorktreeId, fileSearchSeedRequestId)
+    consumeFileSearchSeedRequest(activeWorktreeId, currentSearchSeedRequestId)
   }, [
     activeWorktreeId,
     consumeFileSearchSeedRequest,
-    executeSearch,
-    fileSearchQuery,
-    fileSearchSeedRequestId,
-    scheduleSeededInputSelection
+    currentSearchQuery,
+    currentSearchSeedRequestId,
+    executeCurrentSearch,
+    scope
   ])
 
   useEffect(() => {
-    if (!activeWorktreeId || fileSearchFocusRequestId === undefined) {
+    if (scope !== 'current' || !activeWorktreeId || currentSearchFocusRequestId === undefined) {
       return
     }
     inputRef.current?.focus()
-  }, [activeWorktreeId, fileSearchFocusRequestId])
+  }, [activeWorktreeId, currentSearchFocusRequestId, scope])
 
-  const handleClearSearch = useCallback(() => {
-    cancelPendingSearch()
-    clearActiveSearch()
-  }, [cancelPendingSearch, clearActiveSearch])
+  const actions = useFileSearchPanelActions({
+    activeWorktreeId,
+    scope,
+    setScope,
+    currentSearchQuery,
+    currentSearchOptions,
+    currentSearchResultOwner: deferredCurrentResultsAreCurrent ? deferredCurrentSearch.owner : null,
+    currentSearchError,
+    globalSearchState,
+    setGlobalSearchState,
+    isGlobalScope,
+    fileSearchQuery,
+    fileSearchOptions,
+    fileSearchCaseSensitive: fileSearchOptions.caseSensitive,
+    fileSearchWholeWord: fileSearchOptions.wholeWord,
+    fileSearchUseRegex: fileSearchOptions.useRegex,
+    fileSearchIncludePattern: fileSearchOptions.includePattern,
+    fileSearchExcludePattern: fileSearchOptions.excludePattern,
+    fileSearchResults,
+    globalSearchResults,
+    fileSearchLoading,
+    searchRows,
+    executeCurrentSearch,
+    cancelCurrentSearch,
+    executeGlobalSearch,
+    cancelGlobalSearch,
+    updateActiveSearchState,
+    clearFileSearch,
+    toggleFileSearchCollapsedFile,
+    updateGlobalSearchState,
+    openFile,
+    setPendingEditorReveal,
+    revealRafRef,
+    revealInnerRafRef,
+    resultsScrollRef,
+    inputRef,
+    includeInputRef,
+    excludeInputRef
+  })
 
-  const rerunSearch = useCallback(() => {
-    if (!activeWorktreeId) {
-      return
-    }
-    const q = useAppStore.getState().fileSearchStateByWorktree[activeWorktreeId]?.query ?? ''
-    if (q.trim()) {
-      executeSearch(q)
-    }
-  }, [executeSearch, activeWorktreeId])
-
-  const handleQueryChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value
-      updateActiveSearchState({ query: val })
-      executeSearch(val)
-    },
-    [updateActiveSearchState, executeSearch]
-  )
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.nativeEvent.isComposing) {
-        return
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        e.stopPropagation()
-        inputRef.current?.blur()
-        if (fileSearchQuery) {
-          handleClearSearch()
-        }
-      }
-      if (e.key === 'Enter') {
-        executeSearch(fileSearchQuery)
-      }
-    },
-    [fileSearchQuery, handleClearSearch, executeSearch]
-  )
-
-  const handleMatchClick = useCallback(
-    (fileResult: SearchFileResult, match: SearchMatch) => {
-      if (!deferredResultsAreCurrent) {
-        return
-      }
-      openMatchResult({
-        resultOwner: deferredSearchResults.owner,
-        fileResult,
-        match,
-        openFile,
-        setPendingEditorReveal,
-        revealRafRef,
-        revealInnerRafRef
-      })
-    },
-    [deferredSearchResults.owner, openFile, setPendingEditorReveal, deferredResultsAreCurrent]
-  )
+  const staleWatch = useFileSearchStaleWatch({
+    scope,
+    explorerView,
+    activeWorktreeId,
+    worktreePath,
+    roots,
+    hasCurrentResults: currentSearchResults !== null,
+    currentResultOwner: currentSearchResultOwner,
+    currentResultsStale: searchState?.resultsStale ?? false,
+    globalResults: globalSearchState.results,
+    globalResultsStale: globalSearchState.resultsStale,
+    loading: fileSearchLoading,
+    updateCurrentSearchState: updateActiveSearchState,
+    updateGlobalSearchState,
+    query: fileSearchQuery,
+    options: fileSearchOptions,
+    executeCurrentSearch,
+    executeGlobalSearch
+  })
 
   return {
+    ...actions,
+    resultsProps: { ...actions.resultsProps, ...staleWatch },
     activeWorktreeId,
-    queryRowProps: {
-      inputRef,
-      query: fileSearchQuery,
-      loading: fileSearchLoading,
-      caseSensitive: fileSearchCaseSensitive,
-      wholeWord: fileSearchWholeWord,
-      useRegex: fileSearchUseRegex,
-      onQueryChange: handleQueryChange,
-      onKeyDown: handleKeyDown,
-      onClearSearch: handleClearSearch,
-      onToggleCaseSensitive: () => {
-        updateActiveSearchState({ caseSensitive: !fileSearchCaseSensitive })
-        rerunSearch()
-      },
-      onToggleWholeWord: () => {
-        updateActiveSearchState({ wholeWord: !fileSearchWholeWord })
-        rerunSearch()
-      },
-      onToggleRegex: () => {
-        updateActiveSearchState({ useRegex: !fileSearchUseRegex })
-        rerunSearch()
-      }
-    },
-    filtersProps: {
-      includePattern: fileSearchIncludePattern,
-      excludePattern: fileSearchExcludePattern,
-      includeInputRef,
-      excludeInputRef,
-      onIncludeChange: (value: string) => {
-        updateActiveSearchState({ includePattern: value })
-        rerunSearch()
-      },
-      onExcludeChange: (value: string) => {
-        updateActiveSearchState({ excludePattern: value })
-        rerunSearch()
-      }
-    },
-    resultsProps: {
-      results: deferredResultsAreCurrent ? deferredSearchResults.results : null,
-      error: resultsAreCurrent ? searchState?.error : null,
-      hasCommittedResults: resultsAreCurrent && fileSearchResults !== null,
-      query: fileSearchQuery,
-      loading: fileSearchLoading,
-      rows: searchRows,
-      scrollRef: resultsScrollRef,
-      onToggleCollapsedFile: toggleActiveCollapsedFile,
-      onMatchClick: handleMatchClick
-    },
-    focusQueryInput
+    canSearch: scope === 'current' ? Boolean(activeWorktreeId && worktreePath) : roots.length > 0
   }
 }

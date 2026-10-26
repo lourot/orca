@@ -11,6 +11,12 @@ Once you have more than a handful of worktrees, navigation becomes the bottlenec
 
 File search scoped to the current worktree. Type a fragment; Orca ranks by recency plus match score and opens the file in a new editor tab. Result rows lead with the **filename** and truncate the parent directory when space is tight (hover for the full path). Gitignored files are included in results — they're surfaced as a second pass after tracked matches, so the files you frequently quick-open (build outputs, env files) stay reachable without polluting the top of the list.
 
+## File contents search
+
+Open the **Contents** view in the File Explorer to search text with ripgrep. The scope menu keeps the default search on the current worktree and also offers **All primary checkouts** and **All local worktrees**. Broad searches use Orca's registered local repositories and worktrees, so they do not scan unrelated folders under the workspace directory.
+
+Results are grouped by repository and worktree. Selecting a result activates the owning worktree before opening the file, so the match is read from the checkout where it was found.
+
 ## New-tab omnibox
 
 The tab strip **+** omnibox searches **open tabs**, files, URLs, and agents in one field (placeholder: _Search open tabs, files, URLs, agents…_). File rows use the same filename-first layout as Quick Open. Matching an already-open editor tab prefers that tab over a duplicate file result, so you jump to the open buffer instead of opening a second copy.

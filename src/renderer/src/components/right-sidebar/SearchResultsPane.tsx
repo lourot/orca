@@ -5,9 +5,12 @@ import type {
   SearchMatch,
   SearchResult
 } from '../../../../shared/code-search-types'
+import type { FileSearchResultOwner } from '@/lib/file-search-result-owner'
 import type { SearchRow } from './search-rows'
 import { FileResultRow, MatchResultRow } from './SearchResultItems'
 import { translate } from '@/i18n/i18n'
+import { RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const SEARCH_VIRTUAL_OVERSCAN = 12
 
@@ -19,8 +22,16 @@ type SearchResultsPaneProps = {
   loading: boolean
   rows: SearchRow[]
   scrollRef: React.RefObject<HTMLDivElement | null>
-  onToggleCollapsedFile: (filePath: string) => void
-  onMatchClick: (fileResult: SearchFileResult, match: SearchMatch) => void
+  unavailableRootCount?: number
+  untrackedRootCount?: number
+  stale?: boolean
+  onRefresh?: () => void
+  onToggleCollapsedFile: (collapseKey: string) => void
+  onMatchClick: (
+    fileResult: SearchFileResult,
+    match: SearchMatch,
+    owner?: FileSearchResultOwner
+  ) => void
 }
 
 function formatSearchResultSummary(matchCount: number, fileCount: number): string {
@@ -51,6 +62,10 @@ export function SearchResultsPane({
   loading,
   rows,
   scrollRef,
+  unavailableRootCount = 0,
+  untrackedRootCount = 0,
+  stale = false,
+  onRefresh,
   onToggleCollapsedFile,
   onMatchClick
 }: SearchResultsPaneProps): React.JSX.Element {
@@ -61,6 +76,9 @@ export function SearchResultsPane({
       const row = rows[index]
       if (!row) {
         return 20
+      }
+      if (row.type === 'scope') {
+        return 28
       }
       // File rows include 6px inter-group spacing and need a taller estimate.
       if (row.type === 'file') {
@@ -76,8 +94,11 @@ export function SearchResultsPane({
       if (!row) {
         return `missing:${index}`
       }
+      if (row.type === 'scope') {
+        return `scope:${row.id}`
+      }
       if (row.type === 'file') {
-        return `file:${row.fileResult.filePath}`
+        return `file:${row.collapseKey}`
       }
       return `match:${row.fileResult.filePath}:${row.match.line}:${row.match.column}:${row.matchIndex}`
     }
@@ -90,6 +111,23 @@ export function SearchResultsPane({
           {formatSearchResultSummary(results.totalMatches, results.files.length)}{' '}
           {results.truncated &&
             translate('auto.components.right.sidebar.Search.dcc294f28d', '(results truncated)')}
+          {unavailableRootCount > 0 &&
+            ` ${translate('auto.components.right.sidebar.Search.unavailableRoots', '({{value0}} worktrees unavailable)', { value0: unavailableRootCount })}`}
+          {untrackedRootCount > 0 &&
+            ` ${translate('fileSearch.untrackedRoots', "(changes in {{value0}} workspaces aren't tracked)", { value0: untrackedRootCount })}`}
+        </div>
+      )}
+
+      {!error && hasCommittedResults && stale && onRefresh && (
+        <div
+          role="status"
+          className="flex items-center justify-between gap-2 border-b border-border px-2 py-0.5 text-[10px] text-muted-foreground"
+        >
+          <span>{translate('fileSearch.resultsOutdated', 'Results may be outdated')}</span>
+          <Button variant="ghost" size="xs" onClick={onRefresh}>
+            <RefreshCw />
+            {translate('fileSearch.refresh', 'Refresh')}
+          </Button>
         </div>
       )}
 
@@ -116,18 +154,24 @@ export function SearchResultsPane({
                   className="absolute left-0 top-0 w-full"
                   style={{ transform: `translateY(${virtualRow.start}px)` }}
                 >
+                  {row.type === 'scope' && (
+                    <div className="flex items-center gap-1 border-t border-border bg-muted/30 px-2 py-1 text-[10px] font-medium text-foreground">
+                      <span className="truncate">{row.label}</span>
+                      <span className="truncate text-muted-foreground">{row.detail}</span>
+                    </div>
+                  )}
                   {row.type === 'file' && (
                     <FileResultRow
                       fileResult={row.fileResult}
                       collapsed={row.collapsed}
-                      onToggleCollapse={() => onToggleCollapsedFile(row.fileResult.filePath)}
+                      onToggleCollapse={() => onToggleCollapsedFile(row.collapseKey)}
                     />
                   )}
                   {row.type === 'match' && (
                     <MatchResultRow
                       match={row.match}
                       relativePath={row.fileResult.relativePath}
-                      onClick={() => onMatchClick(row.fileResult, row.match)}
+                      onClick={() => onMatchClick(row.fileResult, row.match, row.owner)}
                     />
                   )}
                 </div>

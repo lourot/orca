@@ -25,6 +25,7 @@ import { FileExplorerQueryStrip } from './FileExplorerQueryStrip'
 import { FileExplorerToolbar } from './FileExplorerToolbar'
 import { SearchFilters } from './SearchFilters'
 import { SearchQueryRow } from './SearchQueryRow'
+import { FileSearchScopeSelect } from './FileSearchScopeSelect'
 import { SearchResultsPane } from './SearchResultsPane'
 import { useFileSearchPanel } from './useFileSearchPanel'
 import {
@@ -303,6 +304,11 @@ function FileExplorerFiles(): React.JSX.Element {
               <SearchQueryRow {...searchPanel.queryRowProps} />
             </div>
             <div hidden={explorerView !== 'search'}>
+              <div className="flex pt-2">
+                <FileSearchScopeSelect {...searchPanel.scopeProps} />
+              </div>
+            </div>
+            <div hidden={explorerView !== 'search'}>
               <SearchFilters key={activeWorktreeId} {...searchPanel.filtersProps} />
             </div>
           </div>
@@ -336,7 +342,7 @@ function FileExplorerFiles(): React.JSX.Element {
               explorerView !== 'search' && 'pointer-events-none invisible'
             )}
           >
-            {searchPanel.activeWorktreeId ? (
+            {searchPanel.canSearch ? (
               <SearchResultsPane {...searchPanel.resultsProps} />
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
