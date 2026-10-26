@@ -10,6 +10,8 @@ export type FileSearchWorktreeState = {
   excludePattern: string
   results: SearchResult | null
   resultOwner: FileSearchResultOwner | null
+  /** Files under the searched root changed, or Search was hidden, since `results` were committed. */
+  resultsStale?: boolean
   error?: string | null
   loading: boolean
   collapsedFiles: Set<string>

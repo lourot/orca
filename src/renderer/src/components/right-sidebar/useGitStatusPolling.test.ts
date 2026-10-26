@@ -309,16 +309,16 @@ describe('useGitStatusPolling', () => {
 
   it('filters filesystem payloads to files inside the active worktree', async () => {
     vi.resetModules()
-    const { shouldRefreshGitStatusForFileChange } = await import('./git-status-file-watch-refresh')
+    const { isFileChangeUnderRoot } = await import('@/lib/worktree-file-change-filter')
 
     expect(
-      shouldRefreshGitStatusForFileChange(
+      isFileChangeUnderRoot(
         { worktreePath: '/repo', events: [{ kind: 'update', absolutePath: '/repo/src/app.ts' }] },
         '/repo'
       )
     ).toBe(true)
     expect(
-      shouldRefreshGitStatusForFileChange(
+      isFileChangeUnderRoot(
         {
           worktreePath: '/repo',
           events: [{ kind: 'update', absolutePath: '/repo/src', isDirectory: true }]
@@ -327,13 +327,13 @@ describe('useGitStatusPolling', () => {
       )
     ).toBe(false)
     expect(
-      shouldRefreshGitStatusForFileChange(
+      isFileChangeUnderRoot(
         { worktreePath: '/other', events: [{ kind: 'overflow', absolutePath: '/other' }] },
         '/repo'
       )
     ).toBe(false)
     expect(
-      shouldRefreshGitStatusForFileChange(
+      isFileChangeUnderRoot(
         { worktreePath: '/repo', events: [{ kind: 'overflow', absolutePath: '/repo' }] },
         '/repo'
       )

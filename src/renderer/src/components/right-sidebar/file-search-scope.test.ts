@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
-import { getFileSearchRoots } from './file-search-scope'
+import {
+  getFileSearchRoots,
+  selectWatchedFileSearchRoots,
+  type FileSearchRoot
+} from './file-search-scope'
 
 function makeRepo(overrides: Partial<Repo> = {}): Repo {
   return {
@@ -125,5 +129,52 @@ describe('getFileSearchRoots', () => {
         worktreesByRepo: { [repo.id]: [remote] }
       })
     ).toEqual([expect.objectContaining({ path: remote.path })])
+  })
+})
+
+function makeRoot(id: string): FileSearchRoot {
+  return {
+    id,
+    worktreeId: `wt-${id}`,
+    repoId: 'repo',
+    path: `/roots/${id}`,
+    repoName: 'repo',
+    worktreeName: id,
+    executionHostId: 'local'
+  }
+}
+
+describe('selectWatchedFileSearchRoots', () => {
+  it.each([
+    {
+      name: 'under the cap keeps every root, matched first',
+      matched: ['c'],
+      max: 4,
+      expected: ['c', 'a', 'b', 'd']
+    },
+    {
+      name: 'over the cap keeps matched roots before unmatched ones',
+      matched: ['d', 'b'],
+      max: 3,
+      expected: ['b', 'd', 'a']
+    },
+    {
+      name: 'more matched roots than the cap keeps the first matched ones',
+      matched: ['a', 'b', 'c', 'd'],
+      max: 2,
+      expected: ['a', 'b']
+    },
+    {
+      name: 'no matches keeps catalog order up to the cap',
+      matched: [],
+      max: 2,
+      expected: ['a', 'b']
+    }
+  ])('$name', ({ matched, max, expected }) => {
+    const roots = ['a', 'b', 'c', 'd'].map(makeRoot)
+
+    expect(
+      selectWatchedFileSearchRoots(roots, new Set(matched), max).map((root) => root.id)
+    ).toEqual(expected)
   })
 })

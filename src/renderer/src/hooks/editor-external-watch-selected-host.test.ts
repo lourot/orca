@@ -43,7 +43,6 @@ function makeState(
     projectGroups: [],
     rightSidebarOpen: true,
     rightSidebarTab: 'explorer',
-    rightSidebarExplorerView: 'files',
     gitStatusHugeByWorktree: {},
     sshConnectionStates: new Map()
   }

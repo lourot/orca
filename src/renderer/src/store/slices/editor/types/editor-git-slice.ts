@@ -121,6 +121,9 @@ export type EditorGitSlice = {
   consumeFileSearchSeedRequest: (worktreeId: string, seedRequestId: number) => void
   toggleFileSearchCollapsedFile: (worktreeId: string, filePath: string) => void
   clearFileSearch: (worktreeId: string) => void
+  /** Multi-workspace search roots to keep watched while their results are shown. */
+  fileSearchWatchWorktreeIds: readonly string[]
+  setFileSearchWatchWorktreeIds: (worktreeIds: readonly string[]) => void
 
   pendingEditorReveal: PendingEditorReveal | null
   setPendingEditorReveal: (reveal: PendingEditorReveal | null) => void

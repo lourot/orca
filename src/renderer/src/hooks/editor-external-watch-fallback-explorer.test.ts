@@ -25,7 +25,6 @@ function makeState(
     projectGroups: [],
     rightSidebarOpen: true,
     rightSidebarTab: 'source-control',
-    rightSidebarExplorerView: 'files',
     gitStatusHugeByWorktree: {},
     sshConnectionStates: new Map(),
     ...overrides

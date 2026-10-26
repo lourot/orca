@@ -58,7 +58,6 @@ it('refreshes the selected host Explorer when another host publishes the same wo
     projectGroups: [],
     rightSidebarOpen: true,
     rightSidebarTab: 'explorer',
-    rightSidebarExplorerView: 'files',
     gitStatusHugeByWorktree: {},
     sshConnectionStates: new Map()
   })

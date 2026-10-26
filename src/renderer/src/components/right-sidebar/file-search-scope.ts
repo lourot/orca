@@ -133,3 +133,17 @@ export function getFileSearchRoots(
   }
   return deduplicateRoots(roots)
 }
+
+// Why: each root is a recursive OS watch; Linux inotify spends one watch per subdirectory.
+export const FILE_SEARCH_MAX_WATCHED_ROOTS = 32
+
+/** Roots to watch for a multi-workspace result: those with matches first, then the rest, capped. */
+export function selectWatchedFileSearchRoots(
+  roots: readonly FileSearchRoot[],
+  matchedRootIds: ReadonlySet<string>,
+  max = FILE_SEARCH_MAX_WATCHED_ROOTS
+): FileSearchRoot[] {
+  const matched = roots.filter((root) => matchedRootIds.has(root.id))
+  const unmatched = roots.filter((root) => !matchedRootIds.has(root.id))
+  return [...matched, ...unmatched].slice(0, max)
+}

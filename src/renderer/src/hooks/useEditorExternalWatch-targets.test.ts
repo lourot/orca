@@ -60,7 +60,7 @@ describe('getEditorExternalWatchTargets', () => {
     runtimeEnvironmentId?: string | null
     rightSidebarOpen?: boolean
     rightSidebarTab?: EditorExternalWatchTargetState['rightSidebarTab']
-    rightSidebarExplorerView?: EditorExternalWatchTargetState['rightSidebarExplorerView']
+    fileSearchWatchWorktreeIds?: readonly string[]
     gitStatusHugeByWorktree?: EditorExternalWatchTargetState['gitStatusHugeByWorktree']
     sshConnectionStates?: EditorExternalWatchTargetState['sshConnectionStates']
   }): EditorExternalWatchTargetState => ({
@@ -70,7 +70,7 @@ describe('getEditorExternalWatchTargets', () => {
     activeWorktreeId: args.activeWorktreeId ?? null,
     rightSidebarOpen: args.rightSidebarOpen ?? false,
     rightSidebarTab: args.rightSidebarTab ?? 'explorer',
-    rightSidebarExplorerView: args.rightSidebarExplorerView ?? 'files',
+    fileSearchWatchWorktreeIds: args.fileSearchWatchWorktreeIds,
     gitStatusHugeByWorktree: args.gitStatusHugeByWorktree ?? {},
     sshConnectionStates: args.sshConnectionStates ?? new Map(),
     folderWorkspaces: [],
@@ -312,22 +312,22 @@ describe('getEditorExternalWatchTargets', () => {
     ])
   })
 
-  it('does not watch the active worktree while Explorer search is visible', () => {
-    const repo = makeRepo('repo-active-search')
-    const worktree = makeWorktree(repo.id, 'wt-active-search')
+  it('watches multi-workspace search roots on the local host with the sidebar closed', () => {
+    const repo = makeRepo('repo-search-roots')
+    const worktree = makeWorktree(repo.id, 'wt-search-root')
 
     expect(
       getEditorExternalWatchTargets(
-        makeState({
-          repo,
-          worktree,
-          activeWorktreeId: worktree.id,
-          rightSidebarOpen: true,
-          rightSidebarTab: 'explorer',
-          rightSidebarExplorerView: 'search'
-        })
+        makeState({ repo, worktree, fileSearchWatchWorktreeIds: [worktree.id] })
       ).targets
-    ).toEqual([])
+    ).toEqual([
+      {
+        worktreeId: 'wt-search-root',
+        worktreePath: '/repo-search-roots/worktree',
+        connectionId: undefined,
+        runtimeEnvironmentId: null
+      }
+    ])
   })
 
   it('keeps watching the active worktree when Source Control is visible', () => {

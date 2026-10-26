@@ -9,6 +9,7 @@ import {
   parseExecutionHostId,
   toRuntimeExecutionHostId,
   toSshExecutionHostId,
+  LOCAL_EXECUTION_HOST_ID,
   type ExecutionHostId
 } from '../../../shared/execution-host'
 import { isGitRepoKind } from '../../../shared/repo-kind'
@@ -36,7 +37,6 @@ export type EditorExternalWatchTargetState = Pick<
   | 'settings'
   | 'rightSidebarOpen'
   | 'rightSidebarTab'
-  | 'rightSidebarExplorerView'
   | 'gitStatusHugeByWorktree'
   | 'sshConnectionStates'
   | 'folderWorkspaces'
@@ -45,7 +45,10 @@ export type EditorExternalWatchTargetState = Pick<
   Partial<
     Pick<
       AppState,
-      'activeWorkspaceExecutionHostId' | 'rightSidebarEffectiveTab' | 'lastVisitedAtByWorktreeId'
+      | 'activeWorkspaceExecutionHostId'
+      | 'rightSidebarEffectiveTab'
+      | 'lastVisitedAtByWorktreeId'
+      | 'fileSearchWatchWorktreeIds'
     >
   >
 
@@ -66,11 +69,11 @@ let cachedRuntimeEnvironmentId: string | undefined
 let cachedRightSidebarOpen: boolean | null = null
 let cachedRightSidebarTab: AppState['rightSidebarTab'] | null = null
 let cachedRightSidebarEffectiveTab: AppState['rightSidebarEffectiveTab'] | undefined
-let cachedRightSidebarExplorerView: AppState['rightSidebarExplorerView'] | null = null
 let cachedGitStatusHugeByWorktree: AppState['gitStatusHugeByWorktree'] | null = null
 let cachedSshConnectionStates: AppState['sshConnectionStates'] | null = null
 let cachedFolderWorkspaces: AppState['folderWorkspaces'] | null = null
 let cachedProjectGroups: AppState['projectGroups'] | null = null
+let cachedFileSearchWatchWorktreeIds: AppState['fileSearchWatchWorktreeIds'] | undefined
 let cachedLastVisitedAtByWorktreeId: AppState['lastVisitedAtByWorktreeId'] | undefined
 let cachedWatchedTargetsSnapshot: WatchedTargetsSnapshot = {
   targets: [],
@@ -159,12 +162,12 @@ export function selectEditorExternalWatchTargets(
     cachedRightSidebarOpen === state.rightSidebarOpen &&
     cachedRightSidebarTab === state.rightSidebarTab &&
     cachedRightSidebarEffectiveTab === state.rightSidebarEffectiveTab &&
-    cachedRightSidebarExplorerView === state.rightSidebarExplorerView &&
     cachedGitStatusHugeByWorktree === state.gitStatusHugeByWorktree &&
     cachedSshConnectionStates === state.sshConnectionStates &&
     cachedFolderWorkspaces === selectFolderWorkspaces(state) &&
     cachedProjectGroups === state.projectGroups &&
-    cachedLastVisitedAtByWorktreeId === state.lastVisitedAtByWorktreeId
+    cachedLastVisitedAtByWorktreeId === state.lastVisitedAtByWorktreeId &&
+    cachedFileSearchWatchWorktreeIds === state.fileSearchWatchWorktreeIds
   ) {
     return cachedWatchedTargetsSnapshot
   }
@@ -213,7 +216,8 @@ export function selectEditorExternalWatchTargets(
   const activeWorktreeNeedsSidebarWatch =
     activeWorktreeId !== null &&
     state.rightSidebarOpen &&
-    ((shownRightSidebarTab === 'explorer' && state.rightSidebarExplorerView === 'files') ||
+    // Why: Search shows a stale-results bar fed by these events.
+    (shownRightSidebarTab === 'explorer' ||
       (shownRightSidebarTab === 'source-control' && sourceControlCanConsumeWatch))
   if (activeWorktreeNeedsSidebarWatch) {
     // Why: this app-level watcher owns Explorer/Source-Control subscriptions so downstream consumers don't fight over watch/unwatch IPC.
@@ -222,6 +226,14 @@ export function selectEditorExternalWatchTargets(
       activeWorktreeId,
       getSidebarWatchConsumer(state, activeWorktreeId)
     )
+  }
+
+  // Why: multi-workspace search roots are always local (see getFileSearchRoots).
+  for (const worktreeId of state.fileSearchWatchWorktreeIds ?? []) {
+    addWatchConsumer(consumersByWorktreeId, worktreeId, {
+      owner: null,
+      hostId: LOCAL_EXECUTION_HOST_ID
+    })
   }
 
   const targetsByKey = resolveWatchTargets(state, consumersByWorktreeId)
@@ -247,12 +259,12 @@ export function selectEditorExternalWatchTargets(
   cachedRightSidebarOpen = state.rightSidebarOpen
   cachedRightSidebarTab = state.rightSidebarTab
   cachedRightSidebarEffectiveTab = state.rightSidebarEffectiveTab
-  cachedRightSidebarExplorerView = state.rightSidebarExplorerView
   cachedGitStatusHugeByWorktree = state.gitStatusHugeByWorktree
   cachedSshConnectionStates = state.sshConnectionStates
   cachedFolderWorkspaces = selectFolderWorkspaces(state)
   cachedProjectGroups = state.projectGroups
   cachedLastVisitedAtByWorktreeId = state.lastVisitedAtByWorktreeId
+  cachedFileSearchWatchWorktreeIds = state.fileSearchWatchWorktreeIds
 
   if (
     targetsKey === cachedWatchedTargetsSnapshot.targetsKey &&

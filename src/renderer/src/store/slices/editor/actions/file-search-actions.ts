@@ -15,9 +15,20 @@ export function createFileSearchActions(
   | 'consumeFileSearchSeedRequest'
   | 'toggleFileSearchCollapsedFile'
   | 'clearFileSearch'
+  | 'fileSearchWatchWorktreeIds'
+  | 'setFileSearchWatchWorktreeIds'
 > {
   return {
     fileSearchStateByWorktree: {},
+    fileSearchWatchWorktreeIds: [],
+    setFileSearchWatchWorktreeIds: (worktreeIds) =>
+      set((s) =>
+        // Why: a new array identity re-runs the watch-target selector and its watch IPC.
+        s.fileSearchWatchWorktreeIds.length === worktreeIds.length &&
+        s.fileSearchWatchWorktreeIds.every((id, index) => id === worktreeIds[index])
+          ? s
+          : { fileSearchWatchWorktreeIds: worktreeIds }
+      ),
     updateFileSearchState: (worktreeId, updates) =>
       set((s) => {
         const existing = s.fileSearchStateByWorktree[worktreeId]
@@ -44,6 +55,7 @@ export function createFileSearchActions(
               query,
               results: null,
               resultOwner: null,
+              resultsStale: false,
               loading: false,
               error: null,
               collapsedFiles: new Set(),
@@ -63,6 +75,7 @@ export function createFileSearchActions(
               includePattern,
               results: null,
               resultOwner: null,
+              resultsStale: false,
               loading: false,
               error: null,
               collapsedFiles: new Set(),
@@ -119,6 +132,7 @@ export function createFileSearchActions(
               query: '',
               results: null,
               resultOwner: null,
+              resultsStale: false,
               loading: false,
               error: null,
               collapsedFiles: new Set()

@@ -3,11 +3,7 @@ import { useAppStore } from '@/store'
 import { shouldPollActiveGitStatus } from '@/lib/passive-macos-app-data-access'
 import { isWindowVisible } from '@/lib/window-visibility-interval'
 import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
-import {
-  normalizeRuntimePathForComparison,
-  relativePathInsideRoot
-} from '../../../../shared/cross-platform-path'
-import type { FsChangedPayload } from '../../../../shared/filesystem-entry-types'
+import { isFileChangeUnderRoot } from '@/lib/worktree-file-change-filter'
 import type {
   ActiveRightSidebarTab,
   RightSidebarExplorerView
@@ -33,28 +29,6 @@ type UseGitStatusFileWatchRefreshParams = {
   rightSidebarOpen: boolean
   rightSidebarTab: ActiveRightSidebarTab
   worktreePath: string | null
-}
-
-export function shouldRefreshGitStatusForFileChange(
-  payload: FsChangedPayload,
-  worktreePath: string
-): boolean {
-  if (
-    normalizeRuntimePathForComparison(payload.worktreePath) !==
-    normalizeRuntimePathForComparison(worktreePath)
-  ) {
-    return false
-  }
-
-  return payload.events.some((event) => {
-    if (event.kind === 'overflow') {
-      return true
-    }
-    if (event.isDirectory === true) {
-      return false
-    }
-    return relativePathInsideRoot(worktreePath, event.absolutePath) !== null
-  })
 }
 
 export function useGitStatusFileWatchRefresh({
@@ -124,7 +98,7 @@ export function useGitStatusFileWatchRefresh({
         return
       }
       const { payload } = detail
-      if (shouldRefreshGitStatusForFileChange(payload, worktreePath)) {
+      if (isFileChangeUnderRoot(payload, worktreePath)) {
         scheduleRefresh()
       }
     }
