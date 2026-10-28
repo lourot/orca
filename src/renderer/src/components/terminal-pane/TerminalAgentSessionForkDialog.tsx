@@ -1,4 +1,4 @@
-import { Copy, GitFork } from 'lucide-react'
+import { Copy, GitBranchPlus, GitFork, SquareTerminal, type LucideIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   startAgentSessionFork,
+  type AgentSessionForkDestination,
   type AgentSessionForkMode,
   type PreparedAgentSessionFork
 } from './terminal-agent-session-fork'
@@ -90,13 +91,14 @@ function getFullConversationBlocker(
   )
 }
 
-function ForkModeCard({
+function ForkOptionCard({
   selected,
   disabled,
   title,
   description,
   badge,
   blocker,
+  icon: Icon = GitFork,
   onSelect
 }: {
   selected: boolean
@@ -105,6 +107,7 @@ function ForkModeCard({
   description: string
   badge?: string
   blocker?: string | null
+  icon?: LucideIcon
   onSelect: () => void
 }): React.JSX.Element {
   // Why not a real `disabled` here: it leaves the tab order, so a screen reader
@@ -126,7 +129,7 @@ function ForkModeCard({
         disabled || blocked ? 'cursor-not-allowed opacity-60' : 'hover:bg-accent'
       )}
     >
-      <GitFork className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 space-y-1">
         <p className="flex items-center gap-2 text-sm font-medium">
           {title}
@@ -185,6 +188,23 @@ export function TerminalAgentSessionForkDialog({
   )
   const [requestedMode, setRequestedMode] = useState<AgentSessionForkMode>('full-conversation')
   const mode: AgentSessionForkMode = blocker ? 'recent-context' : requestedMode
+  const newWorkspaceBlocker = fork?.newWorkspaceBlocked
+    ? translate(
+        'auto.components.terminal.pane.terminal.agent.session.fork.38e41edc6e',
+        'This workspace cannot be forked into a git worktree.'
+      )
+    : null
+  const [requestedDestination, setRequestedDestination] =
+    useState<AgentSessionForkDestination>('new-workspace')
+  // Why: the dialog stays mounted between forks, and only New workspace is the documented default.
+  const [destinationFork, setDestinationFork] = useState(fork)
+  if (destinationFork !== fork) {
+    setDestinationFork(fork)
+    setRequestedDestination('new-workspace')
+  }
+  const destination: AgentSessionForkDestination = newWorkspaceBlocker
+    ? 'this-workspace'
+    : requestedDestination
   const forkForStart =
     fork && fork.agent === 'codex' && codexForkContext && codexForkContext !== 'checking'
       ? { ...fork, codexForkContext }
@@ -213,7 +233,7 @@ export function TerminalAgentSessionForkDialog({
     busyRef.current = true
     setBusy(true)
     try {
-      if (forkForStart && (await startAgentSessionFork({ ...forkForStart, mode }))) {
+      if (forkForStart && (await startAgentSessionFork({ ...forkForStart, mode }, destination))) {
         onOpenChange(false)
       }
     } finally {
@@ -241,8 +261,8 @@ export function TerminalAgentSessionForkDialog({
           </DialogTitle>
           <DialogDescription>
             {translate(
-              'auto.components.terminal.pane.TerminalAgentSessionForkDialog.4835d8f456',
-              'The fork appears as its own workspace, not as a nested child. Choose what the new agent starts from.'
+              'auto.components.terminal.pane.TerminalAgentSessionForkDialog.description',
+              'Choose what the new agent starts from and where it opens.'
             )}
           </DialogDescription>
         </DialogHeader>
@@ -255,7 +275,7 @@ export function TerminalAgentSessionForkDialog({
           )}
           className="space-y-2"
         >
-          <ForkModeCard
+          <ForkOptionCard
             selected={mode === 'full-conversation'}
             disabled={busy}
             onSelect={() => setRequestedMode('full-conversation')}
@@ -264,8 +284,8 @@ export function TerminalAgentSessionForkDialog({
               'Full conversation'
             )}
             description={translate(
-              'auto.components.terminal.pane.TerminalAgentSessionForkDialog.b961b7c227',
-              'Resumes this agent session in the new workspace with its whole history, under a new session id. The original is left untouched.'
+              'auto.components.terminal.pane.TerminalAgentSessionForkDialog.fullConversationDescription',
+              'Resumes this agent session with its whole history, under a new session id. The original is left untouched.'
             )}
             badge={translate(
               'auto.components.terminal.pane.TerminalAgentSessionForkDialog.db34dacd3a',
@@ -273,7 +293,7 @@ export function TerminalAgentSessionForkDialog({
             )}
             blocker={blocker}
           />
-          <ForkModeCard
+          <ForkOptionCard
             selected={mode === 'recent-context'}
             disabled={busy}
             onSelect={() => setRequestedMode('recent-context')}
@@ -284,6 +304,45 @@ export function TerminalAgentSessionForkDialog({
             description={translate(
               'auto.components.terminal.pane.TerminalAgentSessionForkDialog.7be47ba4c8',
               'Starts a fresh agent and hands it a bounded transcript of this pane as an editable draft.'
+            )}
+          />
+        </div>
+
+        <div
+          role="radiogroup"
+          aria-label={translate(
+            'auto.components.terminal.pane.TerminalAgentSessionForkDialog.destinationLabel',
+            'Where the fork opens'
+          )}
+          className="space-y-2"
+        >
+          <ForkOptionCard
+            selected={destination === 'new-workspace'}
+            disabled={busy}
+            onSelect={() => setRequestedDestination('new-workspace')}
+            icon={GitBranchPlus}
+            title={translate(
+              'auto.components.terminal.pane.TerminalAgentSessionForkDialog.newWorkspace',
+              'New workspace'
+            )}
+            description={translate(
+              'auto.components.terminal.pane.TerminalAgentSessionForkDialog.newWorkspaceDescription',
+              'A new top-level git worktree, branched from this one.'
+            )}
+            blocker={newWorkspaceBlocker}
+          />
+          <ForkOptionCard
+            selected={destination === 'this-workspace'}
+            disabled={busy}
+            onSelect={() => setRequestedDestination('this-workspace')}
+            icon={SquareTerminal}
+            title={translate(
+              'auto.components.terminal.pane.TerminalAgentSessionForkDialog.thisWorkspace',
+              'This workspace'
+            )}
+            description={translate(
+              'auto.components.terminal.pane.TerminalAgentSessionForkDialog.thisWorkspaceDescription',
+              'A new tab here, beside this session.'
             )}
           />
         </div>

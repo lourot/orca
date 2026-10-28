@@ -21,15 +21,17 @@ A Claude transcript is keyed by `sessionId` and is **global to the machine** —
 
 `--fork-session` is what avoids it: the child mints its own id at startup, writes into the **new** cwd's project directory, and leaves the parent's transcript untouched. Without the flag, forking would deliberately reproduce that corruption on every use.
 
+A fork into **This workspace** shares the parent's cwd, so there both panes would write the same transcript even from one worktree. The new id is what keeps them apart, not the dedupe guard.
+
 ## Why the default must not change
 
 `getAgentResumeArgv` is on the hibernation path (`agent-hibernation-pane-eligibility.ts`, `resume-sleeping-agent-session.ts`). Waking a sleeping pane is a resume, not a fork — adding a fork flag to the default would branch a new conversation every time any pane woke up, with no user-visible signal. `src/shared/agent-session-resume.test.ts` pins the plain Claude argv against exactly that regression; do not relax it.
 
 ## Adding a second forkable agent
 
-`getAgentForkResumeArgv` supports Claude and Codex only. That is a safety decision, not a gap. Claude exposes `--fork-session`; Codex exposes `fork <id>`. Both create a new provider identity instead of reusing the parent's id. Resuming any other agent into a second worktree would reuse the parent's id — the corruption above. Before adding an agent:
+`getAgentForkResumeArgv` supports Claude and Codex only. That is a safety decision, not a gap. Claude exposes `--fork-session`; Codex exposes `fork <id>`. Both create a new provider identity instead of reusing the parent's id. Resuming any other agent as a fork would reuse the parent's id — the corruption above. Before adding an agent:
 
-1. Confirm the CLI has a documented operation that creates a **new** session id, and that it resolves the source session from the fresh worktree (verify rather than assume).
+1. Confirm the CLI has a documented operation that creates a **new** session id, and that it resolves the source session from a fresh worktree as well as from the source's own (verify rather than assume).
 2. Add it to `getAgentForkResumeArgv` only — the UI predicate follows automatically.
 3. Leave `getAgentResumeArgv` alone.
 
@@ -41,7 +43,7 @@ So eligibility is surfaced, not absorbed. The card renders disabled with the rea
 
 ## Upstream context
 
-Forking has a long history in `stablyai/orca` and the state of it is easy to misread. Issue #2026 ("Fork existing agent sessions (context branching)") proposed three levels of fork and was **closed as completed** when only the transcript-level one shipped — so the tracker says done while the conversation-level fork was still missing. PR #5609 ("first-class agent session forking") built a much larger subsystem and stalled. PR #19340 forks _structured/native chat_ from a completed turn and explicitly excludes new-workspace placement, so it does not cover the terminal-pane path. A separate "fork in this worktree" PR was closed as a duplicate, so the same-worktree variant has been proposed and declined.
+Forking has a long history in `stablyai/orca` and the state of it is easy to misread. Issue #2026 ("Fork existing agent sessions (context branching)") proposed three levels of fork and was **closed as completed** when only the transcript-level one shipped — so the tracker says done while the conversation-level fork was still missing. PR #5609 ("first-class agent session forking") built a much larger subsystem and stalled. PR #19340 forks _structured/native chat_ from a completed turn and explicitly excludes new-workspace placement, so it does not cover the terminal-pane path. The same-worktree variant is issue #4505: closed as a duplicate of #2026, then reopened on 2026-10-09 because forks still always created a worktree. Its PR #6256 only forked the scrollback draft and was closed unmerged by its author. The fork dialog's **This workspace** destination covers both modes.
 
 Read #2026's closed state as "one of three levels shipped", not as "forking is done".
 

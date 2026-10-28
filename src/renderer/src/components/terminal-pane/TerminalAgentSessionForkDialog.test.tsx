@@ -112,7 +112,8 @@ describe('TerminalAgentSessionForkDialog', () => {
     await Promise.resolve()
 
     expect(mocks.startAgentSessionFork).toHaveBeenCalledWith(
-      expect.objectContaining({ mode: 'full-conversation' })
+      expect.objectContaining({ mode: 'full-conversation' }),
+      'new-workspace'
     )
   })
 
@@ -139,9 +140,37 @@ describe('TerminalAgentSessionForkDialog', () => {
     await Promise.resolve()
 
     expect(mocks.startAgentSessionFork).toHaveBeenCalledWith(
-      expect.objectContaining({ agent: 'codex', mode: 'full-conversation' })
+      expect.objectContaining({ agent: 'codex', mode: 'full-conversation' }),
+      'new-workspace'
     )
   })
+
+  it.each([
+    ['a git worktree', false, 'new-workspace'],
+    ['a source that cannot get a git worktree', true, 'this-workspace']
+  ] as const)(
+    'forks %s into its default destination',
+    async (_label, newWorkspaceBlocked, destination) => {
+      mocks.startAgentSessionFork.mockResolvedValue(true)
+      const { TerminalAgentSessionForkDialog } = await import('./TerminalAgentSessionForkDialog')
+
+      const html = renderToStaticMarkup(
+        <TerminalAgentSessionForkDialog
+          open
+          fork={makeFork({ newWorkspaceBlocked })}
+          onOpenChange={vi.fn()}
+        />
+      )
+
+      expect(html.includes('This workspace cannot be forked into a git worktree.')).toBe(
+        newWorkspaceBlocked
+      )
+      mocks.buttons[1]?.onClick?.()
+      await Promise.resolve()
+
+      expect(mocks.startAgentSessionFork).toHaveBeenCalledWith(expect.anything(), destination)
+    }
+  )
 
   it.each([
     [
@@ -186,7 +215,8 @@ describe('TerminalAgentSessionForkDialog', () => {
       await Promise.resolve()
 
       expect(mocks.startAgentSessionFork).toHaveBeenCalledWith(
-        expect.objectContaining({ mode: 'recent-context' })
+        expect.objectContaining({ mode: 'recent-context' }),
+        'new-workspace'
       )
     }
   )
