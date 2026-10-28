@@ -87,6 +87,7 @@ export type FolderWorkspaceUpdates = Partial<
     | 'firstAgentMessageRenameError'
     | 'lastActivityAt'
     | 'diffComments'
+    | 'generalNotes'
   >
 > &
   WorkspaceAttachmentMutation

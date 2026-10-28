@@ -149,6 +149,9 @@ export function useWorktreeContextMenuCommands(args: {
     },
     [args]
   )
+  const handleAddGeneralNote = useCallback(() => {
+    args.openModal('general-notes', { worktreeId: args.worktree.id })
+  }, [args])
   const handleRename = useCallback(() => {
     args.openModal('edit-meta', {
       worktreeId: args.worktree.id,
@@ -212,6 +215,7 @@ export function useWorktreeContextMenuCommands(args: {
     handleMoveProjectToGroup,
     handleOpenParent,
     handleRemoveProjectFromGroup,
+    handleAddGeneralNote,
     handleRename,
     handleSleepSubtree,
     handleSubmitNewProjectGroup,

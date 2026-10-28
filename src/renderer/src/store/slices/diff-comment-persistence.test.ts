@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { DiffComment } from '../../../../shared/diff-comment-types'
-import { normalizeDiffComment } from './diff-comment-persistence'
+import { normalizeDiffComment } from './review-note-normalize'
 
 function note(overrides: Partial<DiffComment> = {}): DiffComment {
   return {

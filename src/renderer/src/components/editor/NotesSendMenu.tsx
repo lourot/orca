@@ -14,7 +14,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { ReviewNotesSendMenuContent } from './ReviewNotesSendMenuContent'
-import type { DiffCommentDeliverySnapshot } from '@/store/slices/diffComments'
+import type { ReviewNoteDeliverySnapshot } from '@/store/slices/diffComments'
 import {
   diffCommentSendKey,
   holdNotesForSend,
@@ -70,7 +70,7 @@ export function buildNotesSendTargetModeId(modeIdParts: readonly string[]): stri
   return `note-send:${modeIdParts.map((part) => `${part.length}:${part}`).join('|')}`
 }
 
-export function NotesSendMenu<TNote extends DiffCommentDeliverySnapshot>({
+export function NotesSendMenu<TNote extends ReviewNoteDeliverySnapshot>({
   worktreeId,
   groupId,
   modeIdParts,

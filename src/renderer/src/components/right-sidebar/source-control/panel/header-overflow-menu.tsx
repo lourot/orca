@@ -1,5 +1,13 @@
 import React from 'react'
-import { List, ListTree, MessageSquare, MoreHorizontal, RefreshCw, Settings2 } from 'lucide-react'
+import {
+  List,
+  ListTree,
+  MessageSquare,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  Settings2
+} from 'lucide-react'
 import type { SourceControlViewMode } from '../../../../../../shared/ui-chrome-types'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -20,7 +28,8 @@ export function SourceControlHeaderOverflowMenu({
   onRefreshBranchCompare,
   branchCompareRefreshDisabled,
   diffCommentCount,
-  onExpandNotes
+  onExpandNotes,
+  onAddGeneralNote
 }: {
   sourceControlViewMode: SourceControlViewMode
   viewModeToggleDisabled: boolean
@@ -30,6 +39,7 @@ export function SourceControlHeaderOverflowMenu({
   branchCompareRefreshDisabled: boolean
   diffCommentCount: number
   onExpandNotes: () => void
+  onAddGeneralNote: () => void
 }): React.JSX.Element {
   const viewModeLabel =
     sourceControlViewMode === 'tree'
@@ -82,18 +92,20 @@ export function SourceControlHeaderOverflowMenu({
             'Refresh branch compare'
           )}
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         {diffCommentCount > 0 ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onExpandNotes}>
-              <MessageSquare className="size-3.5" />
-              {translate('auto.components.right.sidebar.SourceControl.cc474e0b8c', 'Notes')}
-              <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
-                {diffCommentCount}
-              </span>
-            </DropdownMenuItem>
-          </>
+          <DropdownMenuItem onSelect={onExpandNotes}>
+            <MessageSquare className="size-3.5" />
+            {translate('auto.components.right.sidebar.SourceControl.cc474e0b8c', 'Notes')}
+            <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
+              {diffCommentCount}
+            </span>
+          </DropdownMenuItem>
         ) : null}
+        <DropdownMenuItem onSelect={onAddGeneralNote}>
+          <Plus className="size-3.5" />
+          {translate('generalNotes.addEllipsis', 'Add note for the AI…')}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

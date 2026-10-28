@@ -3,7 +3,7 @@ import type { WorktreeCatalogVersion } from './catalog-version'
 import type { AutomationExecutionTargetType } from '../automations-types'
 import type { TaskSourceContext } from '../task-source-context'
 import type { TuiAgent } from '../tui-agent'
-import type { DiffComment, MobileDiffReviewState } from '../diff-comment-types'
+import type { DiffComment, GeneralNote, MobileDiffReviewState } from '../diff-comment-types'
 import type { EphemeralVmCheckoutMode } from '../orca-yaml-hook-types'
 import type { BuiltInWorktreeVisibilitySourceId } from '../repo-types'
 import type { WorktreeIdentity } from './identity'
@@ -163,6 +163,7 @@ export type Worktree = {
   /** User-assigned grouping color, as a normalized `#rrggbb` hex. Null/absent means untagged. */
   colorTag?: string | null
   diffComments?: DiffComment[]
+  generalNotes?: GeneralNote[]
   mobileDiffReview?: MobileDiffReviewState
   automationProvenance?: AutomationWorkspaceProvenance
   cliProvenance?: CliWorkspaceProvenance

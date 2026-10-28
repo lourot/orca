@@ -12,7 +12,8 @@ import { toast } from 'sonner'
 import { installOpenDraftAddReviewNoteGuard } from '../editor/editor-shortcuts'
 
 export type DiffCommentDraftCardProps = {
-  lineNumber: number
+  /** Omitted for a general note, which has no line and so no header. */
+  lineNumber?: number
   startLine?: number
   placeholder?: string
   submitLabel?: string
@@ -61,17 +62,19 @@ export function DiffCommentDraftCard({
 
   const labelId = useId()
   const headerLabel =
-    startLine && startLine !== lineNumber
-      ? translate(
-          'auto.components.diff.comments.DiffCommentPopover.c845170b3b',
-          'Lines {{value0}}-{{value1}}',
-          { value0: startLine, value1: lineNumber }
-        )
-      : translate(
-          'auto.components.diff.comments.DiffCommentPopover.e05063cfc1',
-          'Line {{value0}}',
-          { value0: lineNumber }
-        )
+    lineNumber === undefined
+      ? null
+      : startLine && startLine !== lineNumber
+        ? translate(
+            'auto.components.diff.comments.DiffCommentPopover.c845170b3b',
+            'Lines {{value0}}-{{value1}}',
+            { value0: startLine, value1: lineNumber }
+          )
+        : translate(
+            'auto.components.diff.comments.DiffCommentPopover.e05063cfc1',
+            'Line {{value0}}',
+            { value0: lineNumber }
+          )
 
   const focusTextareaRef = useCallback((textarea: HTMLTextAreaElement | null): void => {
     textareaRef.current = textarea
@@ -201,14 +204,17 @@ export function DiffCommentDraftCard({
       ref={cardRef}
       className="orca-diff-comment-popover orca-diff-comment-draft-card"
       role="region"
-      aria-labelledby={labelId}
+      aria-labelledby={headerLabel ? labelId : undefined}
+      aria-label={headerLabel ? undefined : translate('generalNotes.draftLabel', 'General note')}
       onMouseDown={(ev) => ev.stopPropagation()}
       onClick={(ev) => ev.stopPropagation()}
     >
       <div className="orca-diff-comment-content-col gap-2">
-        <div id={labelId} className="orca-diff-comment-popover-label">
-          {headerLabel}
-        </div>
+        {headerLabel ? (
+          <div id={labelId} className="orca-diff-comment-popover-label">
+            {headerLabel}
+          </div>
+        ) : null}
 
         {/* Textarea */}
         <ImeTextarea

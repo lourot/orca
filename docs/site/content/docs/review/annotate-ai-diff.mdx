@@ -32,6 +32,21 @@ The same **+** works in the plain editor, on any text file — `.cpp`, `.json`, 
 
 Each note's own card sends just that note. To send several at once, use the **AI notes** pill in the editor header — it offers **This file** and **All unsent notes** — or the **Notes** shelf in the Source Control sidebar, which covers the whole worktree.
 
+## Notes not tied to a file
+
+Some feedback has no line to sit on: "bump the SDK before release", "add a changelog entry". Write these as general notes, either with **Add note for the AI…** in the Source Control **⋯** menu (or the **+** on the **Notes** shelf), or from the same item in a workspace's right-click menu, which also works for folder workspaces.
+
+General notes appear under **General** in the Notes shelf. **All unsent notes** in the shelf or the workspace dialog sends them ahead of the file notes:
+
+```text
+Scope: workspace
+User comment: "bump the SDK before release"
+```
+
+The send menus in a diff or editor header leave them out, since those views don't list them.
+
+A remote host must run an Orca version that knows general notes. An older host refuses to save them rather than silently dropping them, so update Orca there first. The mobile app does not show general notes yet.
+
 ## What the agent receives
 
 Each note carries the file, the line or line range, and — for notes left on a diff — the comparison you were reviewing when you wrote it:

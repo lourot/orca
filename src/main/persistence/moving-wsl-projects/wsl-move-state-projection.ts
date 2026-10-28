@@ -65,6 +65,8 @@ export const WSL_MOVE_PROJECTION_DEFERRED = {
   retiredWorktreeNamesByNamespace: 'D1b-3: recomputed from the Linux probe path, not mapped.',
   folderWorkspaceDiffComments:
     'Write-only copy of folderWorkspaces[].diffComments, compared there.',
+  folderWorkspaceGeneralNotes:
+    'Write-only copy of folderWorkspaces[].generalNotes, compared there.',
   scrollbackSnapshotBytes: 'D1b-6: blob digests join the input with the chunk channel.',
   shellHistoryBlobs: 'D1b-6.',
   nativeChatJournalRecords: 'D1b-6.'

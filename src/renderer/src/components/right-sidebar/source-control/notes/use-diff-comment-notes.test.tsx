@@ -19,6 +19,7 @@ vi.mock('@/store', () => ({
   useAppStore: (selector: (state: Record<string, unknown>) => unknown) => selector(mocks.storeState)
 }))
 vi.mock('@/store/worktree-diff-comments-selector', () => ({
+  selectWorktreeGeneralNotesOrEmpty: () => [],
   selectWorktreeDiffCommentsOrEmpty: () => [
     {
       id: 'c1',

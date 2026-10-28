@@ -1,18 +1,25 @@
 import React, { useCallback, useMemo } from 'react'
-import type { DiffComment } from '../../../../shared/diff-comment-types'
+import {
+  isGeneralNote,
+  type DiffComment,
+  type GeneralNote,
+  type ReviewNote
+} from '../../../../shared/diff-comment-types'
 import { useAppStore } from '@/store'
-import { formatDiffComments } from '@/lib/diff-comments-format'
+import { formatDiffComments, formatReviewNotes } from '@/lib/diff-comments-format'
 import { NotesSendMenu, type NotesSendMenuScope } from './NotesSendMenu'
 import { translate } from '@/i18n/i18n'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 
 // Expire unconsumed keyboard requests so navigating away cannot reopen the menu on a later mount.
 const OPEN_REQUEST_TTL_MS = 5000
+const NO_GENERAL_NOTES: readonly GeneralNote[] = Object.freeze([])
 
 export function DiffNotesSendMenu({
   worktreeId,
   groupId,
   comments,
+  generalNotes = NO_GENERAL_NOTES,
   filePath,
   showFileScope = false,
   triggerClassName,
@@ -26,6 +33,8 @@ export function DiffNotesSendMenu({
   worktreeId: string
   groupId: string
   comments: readonly DiffComment[]
+  // Why a prop: only a surface that lists general notes may send them, since delivery deletes them.
+  generalNotes?: readonly GeneralNote[]
   filePath?: string
   showFileScope?: boolean
   triggerClassName?: string
@@ -51,19 +60,22 @@ export function DiffNotesSendMenu({
     () => consumeOpenRequest(worktreeId),
     [consumeOpenRequest, worktreeId]
   )
-  const unsentNotes = useMemo(() => comments.filter((comment) => !comment.sentAt), [comments])
+  const unsentNotes = useMemo<ReviewNote[]>(
+    () => [...generalNotes, ...comments].filter((note) => !note.sentAt),
+    [comments, generalNotes]
+  )
   const fileNotes = useMemo(
     () => (filePath ? comments.filter((comment) => comment.filePath === filePath) : []),
     [comments, filePath]
   )
   const unsentFileNotes = useMemo(() => fileNotes.filter((comment) => !comment.sentAt), [fileNotes])
   const canSendFileScope = showFileScope && Boolean(filePath)
-  const scopes = useMemo<NotesSendMenuScope<DiffComment>[]>(() => {
-    const allNotesScope = {
+  const scopes = useMemo<NotesSendMenuScope<ReviewNote>[]>(() => {
+    const allNotesScope: NotesSendMenuScope<ReviewNote> = {
       id: 'all',
       label: translate('auto.components.editor.DiffNotesSendMenu.8b87612461', 'All unsent notes'),
       notes: unsentNotes,
-      formatPrompt: formatDiffComments
+      formatPrompt: formatReviewNotes
     }
     if (!canSendFileScope) {
       return [allNotesScope]
@@ -73,7 +85,8 @@ export function DiffNotesSendMenu({
         id: 'file',
         label: translate('auto.components.editor.DiffNotesSendMenu.f1aa04b5cf', 'This file'),
         notes: unsentFileNotes,
-        formatPrompt: formatDiffComments
+        formatPrompt: (notes: readonly ReviewNote[]) =>
+          formatDiffComments(notes.filter((note): note is DiffComment => !isGeneralNote(note)))
       },
       allNotesScope
     ]

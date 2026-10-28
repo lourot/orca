@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import type { DiffComment } from '../../../../shared/diff-comment-types'
+import type { DiffComment, GeneralNote } from '../../../../shared/diff-comment-types'
+import { RUNTIME_CAPABILITIES } from '../../../../shared/protocol-version'
+import { WORKTREE_GENERAL_NOTES_RUNTIME_CAPABILITY } from '../../../../shared/worktree-runtime-capabilities'
 import type { Worktree } from '../../../../shared/worktree/types'
 import {
+  createCompatibleRuntimeStatusResponse,
   createCompatibleRuntimeStatusResponseIfNeeded,
   type RuntimeEnvironmentCallRequest
 } from '../../runtime/runtime-compatibility-test-fixture'
@@ -775,5 +778,94 @@ describe('worktree diff comment rollback convergence', () => {
     ])
     expect(updateMeta).not.toHaveBeenCalled()
     expect(store.getState().getDiffComments(WT)).toBe(comments)
+  })
+})
+
+describe('general notes', () => {
+  const REMOTE = { hostId: 'local', runtimeOwnerEnvironmentId: 'env-1' } as const
+  const general = (id: string, body = 'todo'): GeneralNote => ({
+    id,
+    worktreeId: WT,
+    body,
+    createdAt: 1000
+  })
+
+  function answerStatus(capabilities: readonly string[]): void {
+    runtimeEnvironmentTransportCall.mockImplementation((args: RuntimeEnvironmentCallRequest) => {
+      if (args.method !== 'status.get') {
+        return runtimeEnvironmentCall(args)
+      }
+      const status = createCompatibleRuntimeStatusResponse()
+      if (!status.ok) {
+        throw new Error('the fixture always answers ok')
+      }
+      return { ...status, result: { ...status.result, capabilities: [...capabilities] } }
+    })
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    clearRuntimeCompatibilityCacheForTests()
+    runtimeEnvironmentTransportCall.mockReset()
+    updateMeta.mockResolvedValue({})
+    runtimeEnvironmentCall.mockResolvedValue({
+      id: 'rpc-1',
+      ok: true,
+      result: { ok: true },
+      _meta: { runtimeId: 'remote-runtime' }
+    })
+  })
+
+  it('refuses to save to a host that would strip general notes, and rolls the note back', async () => {
+    answerStatus(
+      RUNTIME_CAPABILITIES.filter((c) => c !== WORKTREE_GENERAL_NOTES_RUNTIME_CAPABILITY)
+    )
+    const store = createTestStore()
+    seed(store, [], REMOTE)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const result = await store.getState().addGeneralNote(WT, 'Bump the SDK')
+
+    expect(result).toEqual({ error: expect.stringContaining('Update Orca on this host') })
+    expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
+    expect(store.getState().getGeneralNotes(WT)).toEqual([])
+  })
+
+  it('saves to a host that advertises general notes', async () => {
+    answerStatus(RUNTIME_CAPABILITIES)
+    const store = createTestStore()
+    seed(store, [], REMOTE)
+
+    const result = await store.getState().addGeneralNote(WT, '  Bump the SDK  ')
+
+    expect(result).toEqual({ note: expect.objectContaining({ body: 'Bump the SDK' }) })
+    expect(runtimeEnvironmentCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'worktree.set',
+        params: {
+          worktree: `id:${WT}`,
+          generalNotes: [expect.objectContaining({ body: 'Bump the SDK' })]
+        }
+      })
+    )
+  })
+
+  it('clears delivered notes of both kinds and keeps a general note edited mid-send', async () => {
+    const store = createTestStore()
+    const fileNote = makeComment({ id: 'c1' })
+    const delivered = general('g1')
+    const edited = general('g2', 'new body')
+    seed(store, [fileNote], { generalNotes: [delivered, edited] })
+
+    const ok = await store
+      .getState()
+      .clearDeliveredDiffComments(WT, [fileNote, delivered, general('g2', 'old body')])
+
+    expect(ok).toBe(true)
+    expect(store.getState().getDiffComments(WT)).toEqual([])
+    expect(store.getState().getGeneralNotes(WT)).toEqual([edited])
+    expect(updateMeta.mock.calls.map(([args]) => args.updates)).toEqual(
+      expect.arrayContaining([{ diffComments: [] }, { generalNotes: [edited] }])
+    )
   })
 })

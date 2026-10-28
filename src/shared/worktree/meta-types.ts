@@ -12,7 +12,7 @@ import type {
 } from './types'
 import type { TuiAgent } from '../tui-agent'
 import type { OrcaWorkspaceLayout } from '../global-settings-types'
-import type { DiffComment, MobileDiffReviewState } from '../diff-comment-types'
+import type { DiffComment, GeneralNote, MobileDiffReviewState } from '../diff-comment-types'
 import type { SmartTier } from '../sidebar-list/sort-stamps'
 import type { ExternalConversationLink } from '../external-conversation-link'
 
@@ -93,6 +93,7 @@ export type WorktreeMeta = {
   /** User-assigned grouping color, as a normalized `#rrggbb` hex. Null/absent means untagged. */
   colorTag?: string | null
   diffComments?: DiffComment[]
+  generalNotes?: GeneralNote[]
   /** Prior path-derived IDs let session GC/hydration retain sessions across folder renames. Removed with the worktree. */
   priorWorktreeIds?: string[]
   mobileDiffReview?: MobileDiffReviewState

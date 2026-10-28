@@ -196,6 +196,7 @@ export function createFolderWorkspaceMutationActions(
         }
         if (
           (updates.diffComments !== undefined && updated.diffComments === undefined) ||
+          (updates.generalNotes !== undefined && updated.generalNotes === undefined) ||
           (updates.linkedItems !== undefined && updated.linkedItems === undefined)
         ) {
           // Older hosts can strip optional fields; reconcile instead of reporting an unsaved edit.

@@ -10,7 +10,7 @@ import type { MigrationUnsupportedPtyEntry } from './agent-status-types'
 import type { FeatureInteractionTelemetryBucketState } from './feature-interactions'
 import type { CodexResetCreditAttemptLedger } from './codex-reset-credit-attempt-ledger'
 import type { NativeChatUpgradeTipAudience } from './native-chat/native-chat-upgrade-tip-audience'
-import type { DiffComment } from './diff-comment-types'
+import type { DiffComment, GeneralNote } from './diff-comment-types'
 import type { FolderWorkspace, WorkspaceKey } from './folder-workspace-types'
 import type { GlobalSettings } from './global-settings-types'
 import type { IssueInfo, PRInfo } from './github/pull-request-types'
@@ -66,6 +66,8 @@ export type PersistedState = {
    * Write-only projection: load hydrates FolderWorkspace.diffComments and deletes this key from Store state;
    * only buildStateToSave produces it. Never read Store.state.folderWorkspaceDiffComments outside load. */
   folderWorkspaceDiffComments?: Record<string, DiffComment[]>
+  /** Folder-workspace general notes, persisted like `folderWorkspaceDiffComments` and for the same reason. */
+  folderWorkspaceGeneralNotes?: Record<string, GeneralNote[]>
   /** Sparse-checkout presets keyed by repoId. */
   sparsePresetsByRepo: Record<string, SparsePreset[]>
   /** Never reuse issued workspace names: cwd-keyed agent state could leak from prior occupants. Keep compact watermark tiers

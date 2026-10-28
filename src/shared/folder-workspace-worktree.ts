@@ -104,6 +104,7 @@ export function folderWorkspaceToWorktree(folderWorkspace: FolderWorkspace): Wor
     workspaceStatus: folderWorkspace.workspaceStatus,
     colorTag: folderWorkspace.colorTag ?? null,
     diffComments: folderWorkspace.diffComments,
+    generalNotes: folderWorkspace.generalNotes,
     path: folderWorkspace.folderPath,
     head: '',
     branch: '',

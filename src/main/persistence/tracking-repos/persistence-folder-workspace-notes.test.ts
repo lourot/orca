@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os'
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import { folderWorkspaceKey } from '../../../shared/workspace-scope'
 import { folderWorkspaceToWorktree } from '../../../shared/folder-workspace-worktree'
+import { hostWorktreeTarget } from '../../../shared/worktree/host-qualified-identity'
 
 const { loadUserSshConfigMock, sshConfigHostsToTargetsMock } = vi.hoisted(() => ({
   loadUserSshConfigMock: vi.fn(),
@@ -417,5 +418,57 @@ describe('Store', () => {
     expect((readDataFile() as PersistedState).folderWorkspaceDiffComments).toEqual({
       'fw-1': [editedNote]
     })
+  })
+
+  // ── 8c. General notes (review notes not tied to a file) ──
+
+  function makeGeneralNote(id: string, body: string, workspaceId = 'fw-1') {
+    return { id, worktreeId: folderWorkspaceKey(workspaceId), body, createdAt: 100 }
+  }
+
+  it('keeps folder-workspace general notes across a reload and a previous-build rollback', async () => {
+    const store = await createStore()
+    const group = store.createProjectGroup({
+      name: 'Platform',
+      parentPath: '/workspace/platform',
+      createdFrom: 'folder-scan'
+    })
+    const workspace = store.createFolderWorkspace({ projectGroupId: group.id, name: 'Refund fix' })
+    const general = makeGeneralNote('general-1', 'Write the release note', workspace.id)
+    const fileNote = makeFolderNote('note-1', 'Review this paragraph', workspace.id)
+    store.updateFolderWorkspace(workspace.id, { diffComments: [fileNote], generalNotes: [general] })
+    store.flush()
+
+    const persisted = readDataFile() as PersistedState
+    expect(persisted.folderWorkspaceGeneralNotes).toEqual({ [workspace.id]: [general] })
+    expect(persisted.folderWorkspaces[0]).not.toHaveProperty('generalNotes')
+
+    // A build without general notes rebuilds folderWorkspaces[] field by field and keeps unknown
+    // top-level keys, so only the nested copy could ever be lost.
+    writeDataFile({
+      ...simulatePreviousBuildLoadAndFlush(persisted),
+      folderWorkspaces: persisted.folderWorkspaces.map(
+        ({ generalNotes: _dropped, ...rest }) => rest
+      )
+    })
+
+    const restored = await createStore()
+    expect(restored.getFolderWorkspace(workspace.id)?.generalNotes).toEqual([general])
+    expect(restored.getFolderWorkspace(workspace.id)?.diffComments).toEqual([fileNote])
+    expect(
+      folderWorkspaceToWorktree(restored.getFolderWorkspace(workspace.id)!).generalNotes
+    ).toEqual([general])
+  })
+
+  it('keeps worktree general notes when a later write carries only diffComments', async () => {
+    // The stock mobile app writes the whole diffComments list and knows nothing of general notes.
+    const store = await createStore()
+    const target = hostWorktreeTarget({ id: 'repo-1::/r/a', hostId: 'local' })
+    const general = makeGeneralNote('general-1', 'Bump the SDK', 'unused')
+    store.setWorktreeMeta(target, { generalNotes: [general] })
+
+    store.setWorktreeMeta(target, { diffComments: [] })
+
+    expect(store.getWorktreeMeta('repo-1::/r/a')?.generalNotes).toEqual([general])
   })
 })

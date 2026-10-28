@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { DiffCommentDeliverySnapshot } from '@/store/slices/diffComments'
+import { isGeneralNoteSnapshot, type ReviewNoteDeliverySnapshot } from '@/store/slices/diffComments'
 
 // Hold submitted notes out of later sends until delivery settles; restore on failure and let the owner remove delivered notes.
 const holds = new Map<unknown, number>()
@@ -73,7 +73,10 @@ export function useNotesInFlightVersion(): number {
 }
 
 /** A note's identity for delivery: an edit makes it a new pending note, as for its removal. */
-export function diffCommentSendKey(note: DiffCommentDeliverySnapshot): string {
+export function diffCommentSendKey(note: ReviewNoteDeliverySnapshot): string {
+  if (isGeneralNoteSnapshot(note)) {
+    return JSON.stringify([note.id, note.body, 'general'])
+  }
   return JSON.stringify([
     note.id,
     note.body,

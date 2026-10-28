@@ -33,6 +33,7 @@ export const ORCAD_MIGRATION_PATH_FIELDS: readonly {
   { at: 'folderWorkspaces[].diffComments[].worktreeId', kind: 'worktree-id' },
   { at: 'folderWorkspaces[].diffComments[].filePath', kind: 'relative' },
   { at: 'folderWorkspaces[].diffComments[].oldPath', kind: 'relative' },
+  { at: 'folderWorkspaces[].generalNotes[].worktreeId', kind: 'worktree-id' },
 
   { at: 'dormantState.worktreeMeta[].worktreeId', kind: 'worktree-id' },
   { at: 'dormantState.worktreeMeta[].meta.priorWorktreeIds[]', kind: 'worktree-id' },
@@ -40,6 +41,7 @@ export const ORCAD_MIGRATION_PATH_FIELDS: readonly {
   { at: 'dormantState.worktreeMeta[].meta.diffComments[].worktreeId', kind: 'worktree-id' },
   { at: 'dormantState.worktreeMeta[].meta.diffComments[].filePath', kind: 'relative' },
   { at: 'dormantState.worktreeMeta[].meta.diffComments[].oldPath', kind: 'relative' },
+  { at: 'dormantState.worktreeMeta[].meta.generalNotes[].worktreeId', kind: 'worktree-id' },
   { at: 'dormantState.worktreeMeta[].meta.mobileDiffReview.files{}.filePath', kind: 'relative' },
   { at: 'dormantState.worktreeMeta[].meta.mobileDiffReview.files{}.oldPath', kind: 'relative' },
   { at: 'dormantState.worktreeLineage[].worktreeId', kind: 'worktree-id' },

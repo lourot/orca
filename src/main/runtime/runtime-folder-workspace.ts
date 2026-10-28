@@ -76,6 +76,7 @@ export function mergeRuntimeFolderWorkspace(
     workspaceStatus: meta.workspaceStatus ?? DEFAULT_WORKSPACE_STATUS_ID,
     colorTag: meta.colorTag ?? null,
     diffComments: meta.diffComments,
+    generalNotes: meta.generalNotes,
     mobileDiffReview: meta.mobileDiffReview
   }
 }

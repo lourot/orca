@@ -16,8 +16,12 @@ export function SourceControlPanelReady(props: SourceControlPanelReadyProps) {
     bulkUnstagePaths,
     clearSelection,
     compareBaseRef,
+    closeGeneralNoteComposer,
     deleteDiffComment,
-    diffCommentCount,
+    generalNoteComposerOpen,
+    generalNotesForActive,
+    noteCount,
+    openGeneralNoteComposer,
     diffCommentsCopied,
     diffCommentsExpanded,
     diffCommentsForActive,
@@ -82,8 +86,9 @@ export function SourceControlPanelReady(props: SourceControlPanelReadyProps) {
           onChangeBaseRef={() => setBaseRefDialogOpen(true)}
           onRefreshBranchCompare={() => void refreshBranchCompare()}
           branchCompareRefreshDisabled={!branchSummary || branchSummary.status === 'loading'}
-          diffCommentCount={diffCommentCount}
+          diffCommentCount={noteCount}
           onExpandNotes={() => setDiffCommentsExpanded(true)}
+          onAddGeneralNote={openGeneralNoteComposer}
           branchSummary={branchSummary}
           branchLineTotal={branchLineTotal}
           compareBaseRef={compareBaseRef}
@@ -91,12 +96,17 @@ export function SourceControlPanelReady(props: SourceControlPanelReadyProps) {
           manualReviewUrl={manualReviewUrl}
         />
 
-        {activeWorktreeId && worktreePath && diffCommentCount > 0 && (
+        {/* Why: hidden with no notes and no open composer — an empty Notes shelf is pure chrome; the overflow menu's "Add note for the AI" opens it. */}
+        {activeWorktreeId && worktreePath && (noteCount > 0 || generalNoteComposerOpen) && (
           <SourceControlNotesShelf
             activeWorktreeId={activeWorktreeId}
             activeGroupId={activeGroupId}
             diffCommentsForActive={diffCommentsForActive}
-            diffCommentCount={diffCommentCount}
+            generalNotesForActive={generalNotesForActive}
+            noteCount={noteCount}
+            generalNoteComposerOpen={generalNoteComposerOpen}
+            openGeneralNoteComposer={openGeneralNoteComposer}
+            closeGeneralNoteComposer={closeGeneralNoteComposer}
             diffCommentsExpanded={diffCommentsExpanded}
             setDiffCommentsExpanded={setDiffCommentsExpanded}
             diffCommentsCopied={diffCommentsCopied}

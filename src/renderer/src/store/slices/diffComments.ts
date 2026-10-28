@@ -1,25 +1,35 @@
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../types'
-import type { DiffComment } from '../../../../shared/diff-comment-types'
+import type { DiffComment, GeneralNote } from '../../../../shared/diff-comment-types'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import { isMarkdownComment } from '@/lib/diff-comment-compat'
 import {
+  DIFF_COMMENT_NOTES,
   enqueueDiffCommentPersist,
-  mutateDiffComments,
-  normalizeDiffComment
+  GENERAL_NOTES,
+  mutateDiffComments
 } from './diff-comment-persistence'
+import { normalizeDiffComment } from './review-note-normalize'
 import {
   readDiffCommentsForChange,
   selectWorktreeDiffCommentsOrEmpty
 } from '../worktree-diff-comments-selector'
+import {
+  clearDeliveredGeneralNotes,
+  commitReviewNotes,
+  createGeneralNoteActions,
+  recordReviewNoteInteraction,
+  type GeneralNoteActions
+} from './general-note-actions'
 
-export type DiffCommentsSlice = {
+export type DiffCommentsSlice = GeneralNoteActions & {
   getDiffComments: (worktreeId: string | null | undefined) => DiffComment[]
   addDiffComment: (input: Omit<DiffComment, 'id' | 'createdAt'>) => Promise<DiffComment | null>
   updateDiffComment: (worktreeId: string, commentId: string, body: string) => Promise<boolean>
+  /** Removes delivered notes of both kinds; a note edited since its snapshot stays pending. */
   clearDeliveredDiffComments: (
     worktreeId: string,
-    comments: readonly DiffCommentDeliverySnapshot[]
+    notes: readonly ReviewNoteDeliverySnapshot[]
   ) => Promise<boolean>
   markDiffCommentsSent: (
     worktreeId: string,
@@ -38,12 +48,23 @@ export type DiffCommentsSlice = {
 export type DiffCommentsClearOptions = {
   // Why: markdown notes hidden by the Markdown Review Notes setting must survive a clear the user can't see them in.
   keepMarkdownNotes?: boolean
+  // Why opt-in: only a surface that lists general notes may clear them along with its own.
+  includeGeneralNotes?: boolean
 }
 
 export type DiffCommentDeliverySnapshot = Pick<
   DiffComment,
   'body' | 'filePath' | 'id' | 'lineNumber' | 'selectedText' | 'source' | 'startLine'
 >
+export type GeneralNoteDeliverySnapshot = Pick<GeneralNote, 'body' | 'id' | 'filePath'>
+export type ReviewNoteDeliverySnapshot = DiffCommentDeliverySnapshot | GeneralNoteDeliverySnapshot
+
+/** Same test as the shared `isGeneralNote`, for the delivery snapshots the send menu holds. */
+export function isGeneralNoteSnapshot(
+  note: ReviewNoteDeliverySnapshot
+): note is GeneralNoteDeliverySnapshot {
+  return note.filePath === undefined
+}
 
 function generateId(): string {
   return createBrowserUuid()
@@ -64,15 +85,6 @@ function deliverySnapshotMatches(
   )
 }
 
-// Why: best-effort telemetry runs only after the note is on disk, so a throw here must not report a failed save.
-function recordReviewNoteInteraction(get: () => AppState): void {
-  try {
-    get().recordFeatureInteraction?.('review-notes')
-  } catch (err) {
-    console.error('Failed to record review-notes interaction:', err)
-  }
-}
-
 export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffCommentsSlice> = (
   set,
   get
@@ -80,13 +92,18 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
   // Why the shared selector: rendered surfaces and actions must read the same twin's notes.
   getDiffComments: (worktreeId) => selectWorktreeDiffCommentsOrEmpty(get(), worktreeId),
 
+  ...createGeneralNoteActions(set, get),
+
   addDiffComment: async (input) => {
     const comment: DiffComment = normalizeDiffComment({
       ...input,
       id: generateId(),
       createdAt: Date.now()
     })
-    const result = mutateDiffComments(set, input.worktreeId, (existing) => [...existing, comment])
+    const result = mutateDiffComments(set, input.worktreeId, DIFF_COMMENT_NOTES, (existing) => [
+      ...existing,
+      comment
+    ])
     if (!result) {
       return null
     }
@@ -109,7 +126,7 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
     }
 
     // Missing notes return false to keep draft; unchanged body returns true to close editor without mutation.
-    const existing = readDiffCommentsForChange(get(), worktreeId, [commentId])
+    const existing = readDiffCommentsForChange(get(), worktreeId, [commentId], DIFF_COMMENT_NOTES)
     const existingIdx = existing.findIndex((c) => c.id === commentId)
     if (existingIdx === -1) {
       return false
@@ -121,6 +138,7 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
     const result = mutateDiffComments(
       set,
       worktreeId,
+      DIFF_COMMENT_NOTES,
       (current) => {
         const idx = current.findIndex((c) => c.id === commentId)
         if (idx === -1) {
@@ -149,14 +167,24 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
     }
   },
 
-  clearDeliveredDiffComments: async (worktreeId, comments) => {
+  clearDeliveredDiffComments: async (worktreeId, notes) => {
+    const generalCleared = clearDeliveredGeneralNotes(
+      set,
+      get,
+      worktreeId,
+      notes.filter(isGeneralNoteSnapshot)
+    )
+    const comments = notes.filter(
+      (note): note is DiffCommentDeliverySnapshot => !isGeneralNoteSnapshot(note)
+    )
     if (comments.length === 0) {
-      return true
+      return generalCleared
     }
     const snapshotsById = new Map(comments.map((comment) => [comment.id, comment]))
     const result = mutateDiffComments(
       set,
       worktreeId,
+      DIFF_COMMENT_NOTES,
       (existing) => {
         const next = existing.filter((comment) => {
           const snapshot = snapshotsById.get(comment.id)
@@ -168,7 +196,7 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
       snapshotsById.keys()
     )
     if (!result) {
-      return true
+      return generalCleared
     }
     try {
       await enqueueDiffCommentPersist(set, worktreeId, get, result)
@@ -177,7 +205,7 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
       return false
     }
     recordReviewNoteInteraction(get)
-    return true
+    return generalCleared
   },
 
   markDiffCommentsSent: async (worktreeId, commentIds, sentAt = Date.now()) => {
@@ -188,6 +216,7 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
     const result = mutateDiffComments(
       set,
       worktreeId,
+      DIFF_COMMENT_NOTES,
       (existing) => {
         let changed = false
         const next = existing.map((comment) => {
@@ -218,6 +247,7 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
     const result = mutateDiffComments(
       set,
       worktreeId,
+      DIFF_COMMENT_NOTES,
       (existing) => {
         const next = existing.filter((c) => c.id !== commentId)
         return next.length === existing.length ? null : next
@@ -236,16 +266,21 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
   },
 
   clearDiffComments: async (worktreeId, options) => {
-    const result = mutateDiffComments(set, worktreeId, (existing) => {
+    const generalCleared = options?.includeGeneralNotes
+      ? commitReviewNotes(set, get, worktreeId, GENERAL_NOTES, (existing) =>
+          existing.length === 0 ? null : []
+        )
+      : Promise.resolve('unchanged' as const)
+    const result = mutateDiffComments(set, worktreeId, DIFF_COMMENT_NOTES, (existing) => {
       const next = options?.keepMarkdownNotes ? existing.filter(isMarkdownComment) : []
       return next.length === existing.length ? null : next
     })
     if (!result) {
-      return true
+      return typeof (await generalCleared) === 'string'
     }
     try {
       await enqueueDiffCommentPersist(set, worktreeId, get, result)
-      return true
+      return typeof (await generalCleared) === 'string'
     } catch (err) {
       console.error('Failed to persist diff comments:', err)
       return false
@@ -253,7 +288,7 @@ export const createDiffCommentsSlice: StateCreator<AppState, [], [], DiffComment
   },
 
   clearDiffCommentsForFile: async (worktreeId, filePath, options) => {
-    const result = mutateDiffComments(set, worktreeId, (existing) => {
+    const result = mutateDiffComments(set, worktreeId, DIFF_COMMENT_NOTES, (existing) => {
       const next = existing.filter(
         (c) =>
           c.filePath !== filePath || (options?.keepMarkdownNotes === true && isMarkdownComment(c))

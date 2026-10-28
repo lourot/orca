@@ -2,7 +2,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ipcMain } from 'electron'
 import type { Store } from '../persistence'
-import type { DiffComment } from '../../shared/diff-comment-types'
+import type { DiffComment, GeneralNote } from '../../shared/diff-comment-types'
 import type { GitStatusResult } from '../../shared/git-status-types'
 import type { Repo } from '../../shared/repo-types'
 import type { WorktreeMeta } from '../../shared/worktree/meta-types'
@@ -121,12 +121,14 @@ function makeStore(
   options: {
     baseRef?: string
     diffComments?: DiffComment[]
+    generalNotes?: GeneralNote[]
     lastActivityAt?: number
     linkedIssue?: number | null
     repos?: Repo[]
   } = {}
 ): Store {
   const baseRef = Object.hasOwn(options, 'baseRef') ? options.baseRef : 'origin/main'
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the scan only reads these store members.
   return {
     getRepos: () => options.repos ?? [REPO],
     getWorktreeMeta: () => ({
@@ -134,7 +136,8 @@ function makeStore(
       linkedIssue: options.linkedIssue ?? null,
       lastActivityAt: options.lastActivityAt ?? NOW - 40 * 24 * 60 * 60 * 1000,
       baseRef,
-      diffComments: options.diffComments
+      diffComments: options.diffComments,
+      generalNotes: options.generalNotes
     }),
     getAllWorktreeMeta: () => ({}),
     getGitHubCache: () => ({
@@ -692,6 +695,33 @@ describe('workspace cleanup scan', () => {
         diffCommentCount: 1,
         newestDiffCommentAt: NOW - 1_000
       }
+    })
+  })
+
+  it('counts general notes with diff notes as cleanup context', async () => {
+    const result = await scanWorkspaceCleanup(
+      makeStore({
+        baseRef: undefined,
+        diffComments: [
+          {
+            id: 'comment-1',
+            worktreeId: 'repo-1::/repo-feature',
+            filePath: 'src/file.ts',
+            lineNumber: 12,
+            body: 'Follow up before deleting',
+            createdAt: NOW - 2_000,
+            side: 'modified'
+          }
+        ],
+        generalNotes: [
+          { id: 'g-1', worktreeId: 'repo-1::/repo-feature', body: 'Ship it', createdAt: NOW - 500 }
+        ]
+      })
+    )
+
+    expect(result.candidates[0]?.localContext).toMatchObject({
+      diffCommentCount: 2,
+      newestDiffCommentAt: NOW - 500
     })
   })
 

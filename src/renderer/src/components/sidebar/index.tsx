@@ -29,6 +29,7 @@ import { StartupWorktreeRefreshStatus } from './StartupWorktreeRefreshStatus'
 const SidebarAgentsList = lazyWithRetry(() => import('./SidebarAgentsList'))
 
 const WorktreeMetaDialog = lazyWithRetry(() => import('./WorktreeMetaDialog'))
+const GeneralNotesDialog = lazyWithRetry(() => import('./GeneralNotesDialog'))
 const RemoveFolderDialog = lazyWithRetry(() => import('./RemoveFolderDialog'))
 const SleepTwinWorkspaceDialog = lazyWithRetry(() => import('./SleepTwinWorkspaceDialog'))
 const WorktreeVisibilityDialog = lazyWithRetry(() => import('./WorktreeVisibilityDialog'))
@@ -255,6 +256,7 @@ function Sidebar({
       {/* Render dialogs outside the sidebar to avoid clipping; mount each flow only while its modal is active. */}
       <React.Suspense fallback={null}>
         {activeModal === 'edit-meta' ? <WorktreeMetaDialog /> : null}
+        {activeModal === 'general-notes' ? <GeneralNotesDialog /> : null}
         {activeModal === 'confirm-remove-folder' ? <RemoveFolderDialog /> : null}
         {activeModal === 'confirm-sleep-twin' ? <SleepTwinWorkspaceDialog /> : null}
         {activeModal === 'worktree-visibility' ? <WorktreeVisibilityDialog /> : null}

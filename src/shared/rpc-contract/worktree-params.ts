@@ -13,7 +13,11 @@ import {
 import { RUNTIME_NAVIGATION_TARGETS } from '../runtime-navigation'
 import { WorkspaceLinkedItemSchema } from '../workspace-linked-item-schema'
 import { WorkspaceAttachmentsSchema } from '../workspace-attachment-schema'
-import { DiffCommentSchema, MobileDiffReviewSchema } from '../diff-comment-schema'
+import {
+  DiffCommentSchema,
+  GeneralNoteSchema,
+  MobileDiffReviewSchema
+} from '../diff-comment-schema'
 import { TaskSourceContextSchema } from '../task-source-context-schema'
 import { isWorkspaceLinkedItemSourceContextMatch } from '../workspace-linked-item-source-context'
 
@@ -181,6 +185,7 @@ export const WorktreeSet = WorktreeSelector.extend({
   diffComments: z.array(DiffCommentSchema).optional().catch(undefined),
   // The list the writer started from; the host applies only its changes so other devices' notes survive.
   diffCommentsBase: z.array(DiffCommentSchema).optional().catch(undefined),
+  generalNotes: z.array(GeneralNoteSchema).optional().catch(undefined),
   mobileDiffReview: MobileDiffReviewSchema.optional().catch(undefined),
   parentWorktree: OptionalString,
   noParent: OptionalBoolean

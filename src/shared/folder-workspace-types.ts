@@ -1,7 +1,7 @@
 import type { ExecutionHostId } from './execution-host'
 import type { TaskSourceContext } from './task-source-context'
 import type { TuiAgent } from './tui-agent'
-import type { DiffComment } from './diff-comment-types'
+import type { DiffComment, GeneralNote } from './diff-comment-types'
 import type { SmartTier } from './sidebar-list/sort-stamps'
 import type { OrcadRetainedMarker } from './orcad-retained-marker'
 import type { ExternalConversationLink } from './external-conversation-link'
@@ -56,6 +56,7 @@ export type FolderWorkspace = {
   orcadRetained?: OrcadRetainedMarker
   /** See {@link WorktreeMeta.externalConversations}. */
   externalConversations?: ExternalConversationLink[]
+  generalNotes?: GeneralNote[]
 }
 
 export type FolderWorkspaceLinkedTask = WorkspaceLinkedItem

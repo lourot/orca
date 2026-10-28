@@ -133,30 +133,40 @@ export function buildWorkspaceCleanupCandidateFromError(
 }
 
 export function buildWorkspaceCleanupLocalContext(
-  worktree: Pick<Worktree, 'diffComments'>
+  worktree: Pick<Worktree, 'diffComments' | 'generalNotes'>
 ): WorkspaceCleanupCandidate['localContext'] {
   return {
     terminalTabCount: 0,
     cleanEditorTabCount: 0,
     browserTabCount: 0,
-    diffCommentCount: worktree.diffComments?.length ?? 0,
-    newestDiffCommentAt: getNewestWorkspaceCleanupDiffCommentAt(worktree.diffComments),
+    ...getWorkspaceCleanupNoteContext(worktree),
     retainedDoneAgentCount: 0
   }
 }
 
-export function getNewestWorkspaceCleanupDiffCommentAt(
-  diffComments: Worktree['diffComments'] | undefined
-): number | null {
-  if (!diffComments || diffComments.length === 0) {
-    return null
+/** Review notes of both kinds are unsent user prose, so both count in the cleanup row's note context. */
+export function getWorkspaceCleanupNoteContext(
+  worktree: Pick<Worktree, 'diffComments' | 'generalNotes'>
+): Pick<WorkspaceCleanupCandidate['localContext'], 'diffCommentCount' | 'newestDiffCommentAt'> {
+  const diffComments = worktree.diffComments ?? []
+  const generalNotes = worktree.generalNotes ?? []
+  return {
+    diffCommentCount: diffComments.length + generalNotes.length,
+    newestDiffCommentAt: getNewestWorkspaceCleanupNoteAt([diffComments, generalNotes])
   }
+}
+
+function getNewestWorkspaceCleanupNoteAt(
+  lists: readonly (readonly { createdAt?: number }[])[]
+): number | null {
   // Large persisted note arrays can exceed JavaScript's spread argument limit.
-  let newest = diffComments[0]?.createdAt ?? null
-  for (let index = 1; index < diffComments.length; index += 1) {
-    const createdAt = diffComments[index]?.createdAt
-    if (createdAt !== undefined && (newest === null || createdAt > newest)) {
-      newest = createdAt
+  let newest: number | null = null
+  for (const list of lists) {
+    for (const note of list) {
+      const createdAt = note?.createdAt
+      if (createdAt !== undefined && (newest === null || createdAt > newest)) {
+        newest = createdAt
+      }
     }
   }
   return newest

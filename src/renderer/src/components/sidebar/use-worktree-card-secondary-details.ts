@@ -92,9 +92,9 @@ export function useWorktreeCardSecondaryDetails({
   // Why: same visibility rule as the Source Control notes shelf, so the badge never counts a note the shelf hides.
   const markdownReviewNotesEnabled = isMarkdownReviewNotesEnabled(settings)
   const hoverUnsentReviewNoteCount =
-    worktree.diffComments?.filter(
+    (worktree.diffComments?.filter(
       (comment) => !comment.sentAt && (markdownReviewNotesEnabled || !isMarkdownComment(comment))
-    ).length ?? 0
+    ).length ?? 0) + (worktree.generalNotes?.filter((note) => !note.sentAt).length ?? 0)
   const metaIssue = showIssue ? hoverIssue : null
   const metaLinearIssue = showLinearIssue ? hoverLinearIssue : null
   const metaJiraIssue = showJiraIssue ? hoverJiraIssue : null

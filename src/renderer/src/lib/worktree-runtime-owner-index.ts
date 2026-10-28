@@ -14,7 +14,7 @@ type DetectedWorktreeListing = { worktrees: readonly WorktreeOwnerRecord[] }
 type RepoOwnerRecord = Pick<Repo, 'id' | 'connectionId' | 'executionHostId'>
 type FolderWorkspaceOwnerRecord = Pick<
   FolderWorkspace,
-  'id' | 'projectGroupId' | 'connectionId' | 'executionHostId' | 'diffComments'
+  'id' | 'projectGroupId' | 'connectionId' | 'executionHostId' | 'diffComments' | 'generalNotes'
 >
 type ProjectGroupOwnerRecord = Pick<ProjectGroup, 'id' | 'connectionId' | 'executionHostId'>
 

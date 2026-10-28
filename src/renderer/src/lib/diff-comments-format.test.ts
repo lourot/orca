@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import type { DiffComment } from '../../../shared/diff-comment-types'
+import type { DiffComment, GeneralNote } from '../../../shared/diff-comment-types'
 import type { DiffComparison } from '../../../shared/diff-comparison'
 import {
   DIFF_COMMENTS_LINE_NUMBER_NOTE,
   formatDiffComment,
-  formatDiffComments
+  formatDiffComments,
+  formatReviewNotes
 } from './diff-comments-format'
 
 const BRANCH_COMPARISON: DiffComparison = {
@@ -197,6 +198,28 @@ describe('formatDiffComments', () => {
   it('leaves a legacy-only prompt byte-identical', () => {
     expect(formatDiffComments([makeComment()])).toBe(
       ['File: src/app.ts', 'Line: 10', 'User comment: "Needs validation"'].join('\n')
+    )
+  })
+})
+
+describe('formatReviewNotes', () => {
+  const general: GeneralNote = { id: 'g-1', worktreeId: 'wt-1', body: 'Bump "sdk"', createdAt: 0 }
+  const GENERAL_BLOCK = 'Scope: workspace\nUser comment: "Bump \\"sdk\\""'
+  const ranged = makeComment({ id: 'c-2', reviewedComparison: BRANCH_COMPARISON })
+
+  it('renders file notes exactly as formatDiffComments and puts general notes first', () => {
+    const cases: [readonly (DiffComment | GeneralNote)[], string][] = [
+      [[makeComment()], formatDiffComments([makeComment()])],
+      [[ranged, makeComment()], formatDiffComments([ranged, makeComment()])],
+      [[general], GENERAL_BLOCK],
+      [[makeComment(), general], `${GENERAL_BLOCK}\n\n${formatDiffComment(makeComment())}`],
+      [
+        [ranged, general],
+        [DIFF_COMMENTS_LINE_NUMBER_NOTE, GENERAL_BLOCK, formatDiffComment(ranged)].join('\n\n')
+      ]
+    ]
+    expect(cases.map(([notes]) => formatReviewNotes(notes))).toEqual(
+      cases.map(([, expected]) => expected)
     )
   })
 })

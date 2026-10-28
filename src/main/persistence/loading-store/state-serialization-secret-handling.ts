@@ -5,7 +5,7 @@ import {
 import type { ProfileStateDomainReplacement } from './profile-state-authority'
 import { randomUUID } from 'node:crypto'
 import type { PersistedState } from '../../../shared/persisted-state-types'
-import { collectFolderWorkspaceDiffComments } from '../../folder-workspace-diff-comments'
+import { collectFolderWorkspaceNotes } from '../../folder-workspace-diff-comments'
 import {
   PROTECTED_SECRET_SLOT,
   sshPtyOwnerLeaseSecretSlot,
@@ -186,10 +186,15 @@ export class StateSerializationSecretHandlingOperations {
       // Override both spread keys to relocate notes without mutating in-memory workspace rows.
       // Undefined omits the map entirely when no notes exist.
       folderWorkspaces: (this.runtime.state.folderWorkspaces ?? []).map(
-        ({ diffComments: _relocated, ...rest }) => rest
+        ({ diffComments: _relocated, generalNotes: _relocatedGeneral, ...rest }) => rest
       ),
-      folderWorkspaceDiffComments: collectFolderWorkspaceDiffComments(
-        this.runtime.state.folderWorkspaces
+      folderWorkspaceDiffComments: collectFolderWorkspaceNotes(
+        this.runtime.state.folderWorkspaces,
+        'diffComments'
+      ),
+      folderWorkspaceGeneralNotes: collectFolderWorkspaceNotes(
+        this.runtime.state.folderWorkspaces,
+        'generalNotes'
       ),
       sshPtyConsumerRecoveries: (this.runtime.state.sshPtyConsumerRecoveries ?? []).map(
         (record) => ({

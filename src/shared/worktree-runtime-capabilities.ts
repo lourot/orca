@@ -40,6 +40,9 @@ export const WORKTREE_VISIBILITY_SOURCE_DEFAULTS_RUNTIME_CAPABILITY =
 // Capable clients wait for deletion and display removing rows. Legacy clients receive acceptance early, so hosts hide those rows to avoid showing them as normal workspaces.
 export const WORKTREE_BACKGROUND_REMOVAL_RUNTIME_CAPABILITY =
   'worktree.background-removal.v1' as const
+// Why: older hosts strip `generalNotes` from worktree.set and folderWorkspace.update yet answer
+// success, so a client must not save general notes to a host that does not advertise this.
+export const WORKTREE_GENERAL_NOTES_RUNTIME_CAPABILITY = 'worktree.general-notes.v1' as const
 
 // Hosts that record another owner's verified automation run on the workspaces it creates there.
 export const WORKTREE_CLIENT_AUTOMATION_PROVENANCE_RUNTIME_CAPABILITY =
@@ -63,5 +66,6 @@ export const WORKTREE_RUNTIME_CAPABILITIES = [
   WORKTREE_ARCHIVE_FAILURE_BLOCKING_RUNTIME_CAPABILITY,
   WORKTREE_VISIBILITY_DEFAULTS_RUNTIME_CAPABILITY,
   WORKTREE_VISIBILITY_SOURCE_DEFAULTS_RUNTIME_CAPABILITY,
-  WORKTREE_CLIENT_AUTOMATION_PROVENANCE_RUNTIME_CAPABILITY
+  WORKTREE_CLIENT_AUTOMATION_PROVENANCE_RUNTIME_CAPABILITY,
+  WORKTREE_GENERAL_NOTES_RUNTIME_CAPABILITY
 ] as const

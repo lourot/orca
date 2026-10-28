@@ -3,6 +3,7 @@ import { isPathInsideOrEqual } from '../../../shared/cross-platform-path'
 import { createProjectGroup } from '../../../shared/project-groups'
 import { createNestedProjectGroupResolver } from '../../project-groups/nested-repo-import'
 
+import type { FolderWorkspaceNoteField } from '../../folder-workspace-diff-comments'
 import type { StoreRuntimeState } from './store-runtime-state'
 
 type LoadedStateAdaptationOperationsRuntime = Pick<StoreRuntimeState, 'loadNeedsSave' | 'state'>
@@ -11,25 +12,34 @@ export class LoadedStateAdaptationOperations {
   constructor(private readonly runtime: LoadedStateAdaptationOperationsRuntime) {}
 
   hydrateFolderWorkspaceDiffComments(): void {
-    const stored = this.runtime.state.folderWorkspaceDiffComments
+    this.hydrateFolderWorkspaceNotes('folderWorkspaceDiffComments', 'diffComments')
+    this.hydrateFolderWorkspaceNotes('folderWorkspaceGeneralNotes', 'generalNotes')
+  }
+
+  private hydrateFolderWorkspaceNotes(
+    mapKey: 'folderWorkspaceDiffComments' | 'folderWorkspaceGeneralNotes',
+    field: FolderWorkspaceNoteField
+  ): void {
+    const stored = this.runtime.state[mapKey]
     let relocatedInline = false
     for (const workspace of this.runtime.state.folderWorkspaces ?? []) {
-      if (Array.isArray(workspace.diffComments) && workspace.diffComments.length > 0) {
+      const inline = workspace[field]
+      if (Array.isArray(inline) && inline.length > 0) {
         // Inline notes win after rollback writes; persist relocation even without further edits.
         relocatedInline = true
         continue
       }
-      const comments = stored?.[workspace.id]
+      const notes = stored?.[workspace.id]
       // Empty map entries must not erase intact inline notes.
-      if (Array.isArray(comments) && comments.length > 0) {
-        workspace.diffComments = comments
+      if (Array.isArray(notes) && notes.length > 0) {
+        Object.assign(workspace, { [field]: notes })
       }
     }
     if (relocatedInline) {
       this.runtime.loadNeedsSave = true
     }
     // This map is output-only; retaining it would create a stale second source of truth.
-    delete this.runtime.state.folderWorkspaceDiffComments
+    delete this.runtime.state[mapKey]
   }
 
   adaptFlatFolderScanProjectGroups(): boolean {

@@ -1,8 +1,10 @@
 import type { AppState } from '../types'
-import type { DiffComment } from '../../../../shared/diff-comment-types'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { FolderWorkspace } from '../../../../shared/folder-workspace-types'
-import { callRuntimeRpc } from '../../runtime/runtime-rpc-client'
+import {
+  assertRuntimeEnvironmentCapability,
+  callRuntimeRpc
+} from '../../runtime/runtime-rpc-client'
 import { runtimeTargetForWorkspaceOwner } from '@/lib/resolve-owner'
 import { toRuntimeWorktreeSelector } from '../../runtime/runtime-worktree-selector'
 import {
@@ -12,12 +14,31 @@ import {
 import { callHostRoute } from '@/runtime/host-route-call'
 import { hostRouteForAuthority } from '@/runtime/runtime-client-target'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
+import { translate } from '@/i18n/i18n'
+import { WORKTREE_GENERAL_NOTES_RUNTIME_CAPABILITY } from '../../../../shared/worktree-runtime-capabilities'
+import type { ReviewNoteField } from '../worktree-diff-comments-selector'
 
-/** Writes a workspace's whole review-note list to the host that owns it. */
+/** Refuses general notes for a server that would strip them and still answer success. */
+async function assertHostKeepsField(field: ReviewNoteField, environmentId: string): Promise<void> {
+  if (field === 'generalNotes') {
+    await assertRuntimeEnvironmentCapability(
+      environmentId,
+      WORKTREE_GENERAL_NOTES_RUNTIME_CAPABILITY,
+      translate(
+        'generalNotes.hostUpdateRequired',
+        'Update Orca on this host to save general notes.'
+      )
+    )
+  }
+}
+
+/** Writes one of a workspace's whole note lists to the host that owns it. */
 export async function writeDiffCommentsToHost(
   state: AppState,
   worktreeId: string,
-  diffComments: DiffComment[],
+  field: ReviewNoteField,
+  /** Already normalized by the note kind; sent as-is. */
+  notes: readonly unknown[],
   folderExecutionHostId?: ReturnType<typeof getExecutionHostIdForFolderWorkspace>,
   writeHostId?: ExecutionHostId
 ): Promise<void> {
@@ -30,6 +51,10 @@ export async function writeDiffCommentsToHost(
       scope.folderWorkspaceId,
       executionHostId
     )
+    if (runtimeEnvironmentId) {
+      await assertHostKeepsField(field, runtimeEnvironmentId)
+    }
+    const updates = { [field]: notes }
     const updated = runtimeEnvironmentId
       ? (
           await callHostRoute<{ folderWorkspace: FolderWorkspace | null }>(
@@ -39,15 +64,15 @@ export async function writeDiffCommentsToHost(
               at: 'local'
             }),
             'folderWorkspace.update',
-            { folderWorkspaceId: scope.folderWorkspaceId, updates: { diffComments } },
+            { folderWorkspaceId: scope.folderWorkspaceId, updates },
             { timeoutMs: 15_000 }
           )
         ).folderWorkspace
       : await window.api.folderWorkspaces.update({
           folderWorkspaceId: scope.folderWorkspaceId,
-          updates: { diffComments }
+          updates
         })
-    if (!updated?.diffComments) {
+    if (!updated?.[field]) {
       throw new Error('Failed to persist folder workspace review notes')
     }
     return
@@ -63,7 +88,7 @@ export async function writeDiffCommentsToHost(
     const meta = await window.api.worktrees.updateMeta({
       worktreeId,
       ...(writeHostId ? { executionHostId: writeHostId } : {}),
-      updates: { diffComments }
+      updates: { [field]: notes }
     })
     // Why: main answers null when it refuses or drops the write; reporting success would lose the notes.
     if (!meta) {
@@ -71,10 +96,13 @@ export async function writeDiffCommentsToHost(
     }
     return
   }
+  if (target.kind === 'environment') {
+    await assertHostKeepsField(field, target.environmentId)
+  }
   await callRuntimeRpc(
     target,
     'worktree.set',
-    { worktree: toRuntimeWorktreeSelector(worktreeId), diffComments },
+    { worktree: toRuntimeWorktreeSelector(worktreeId), [field]: notes },
     { timeoutMs: 15_000 }
   )
 }

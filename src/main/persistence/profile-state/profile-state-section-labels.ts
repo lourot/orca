@@ -13,6 +13,7 @@ function sectionLabel(domain: string, translate: ProfileStateSectionLabelTransla
     case 'folderWorkspaces':
       return translate('profileState.section.folderWorkspaces', 'Folder workspaces')
     case 'folderWorkspaceDiffComments':
+    case 'folderWorkspaceGeneralNotes':
       return translate('profileState.section.reviewComments', 'Review comments')
     case 'worktreeMeta':
     case 'worktreeMetaByIdentity':

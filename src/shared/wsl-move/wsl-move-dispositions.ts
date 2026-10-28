@@ -46,6 +46,9 @@ export const PERSISTED_STATE_DISPOSITIONS = {
   folderWorkspaceDiffComments: moveDisposition(7, {
     note: 'Rides in folderWorkspaces[].diffComments, its in-memory home (verified).'
   }),
+  folderWorkspaceGeneralNotes: moveDisposition(7, {
+    note: 'Rides in folderWorkspaces[].generalNotes, its in-memory home.'
+  }),
   sparsePresetsByRepo: moveDisposition(8),
   retiredWorktreeNamesByRepo: moveDisposition(9),
   retiredWorktreeNamesByNamespace: moveDisposition(10, {

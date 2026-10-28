@@ -16,6 +16,8 @@ import { findRepoRowForHostScopedWrite } from '../tracking-repos/repo-update-ope
 import type { WorkspaceAttachmentMutation } from '../../../shared/workspace-attachment-mutation'
 import { normalizeWorkspaceAttachmentUpdate } from '../../../shared/workspace-attachments'
 import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../../shared/sidebar-inputs-switch'
+import { FOLDER_WORKSPACE_NOTE_FIELDS } from '../../folder-workspace-diff-comments'
+import { applyWorkspaceColorTagUpdate } from '../../../shared/workspace-color-tag'
 
 export type FolderWorkspaceMutationOperations = {
   state: PersistedState
@@ -152,6 +154,7 @@ export class FolderWorkspacePersistenceOperations {
         | 'lastTerminalUseAt'
         | 'diffComments'
         | 'externalConversations'
+        | 'generalNotes'
       >
     > &
       WorkspaceAttachmentMutation
@@ -240,13 +243,7 @@ export class FolderWorkspacePersistenceOperations {
     if (updates.workspaceStatus !== undefined) {
       workspace.workspaceStatus = updates.workspaceStatus
     }
-    if (updates.colorTag !== undefined) {
-      if (updates.colorTag === null) {
-        delete workspace.colorTag
-      } else {
-        workspace.colorTag = updates.colorTag
-      }
-    }
+    applyWorkspaceColorTagUpdate(workspace, updates.colorTag)
     if (updates.createdWithAgent !== undefined) {
       workspace.createdWithAgent = updates.createdWithAgent
     }
@@ -267,8 +264,8 @@ export class FolderWorkspacePersistenceOperations {
     if (updates.lastTerminalUseAt !== undefined && Number.isFinite(updates.lastTerminalUseAt)) {
       workspace.lastTerminalUseAt = updates.lastTerminalUseAt
     }
-    if (updates.diffComments !== undefined) {
-      workspace.diffComments = updates.diffComments
+    for (const field of FOLDER_WORKSPACE_NOTE_FIELDS) {
+      Object.assign(workspace, updates[field] === undefined ? {} : { [field]: updates[field] })
     }
     if (updates.externalConversations !== undefined) {
       workspace.externalConversations = updates.externalConversations

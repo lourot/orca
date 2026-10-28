@@ -1,4 +1,4 @@
-import type { DiffComment } from './diff-comment-types'
+import { isGeneralNote, type DiffComment, type ReviewNote } from './diff-comment-types'
 import { formatDiffComparisonRange } from './diff-comparison'
 
 /** Emitted once per prompt, and only when some note carries a reviewed comparison. */
@@ -6,12 +6,16 @@ export const DIFF_COMMENTS_LINE_NUMBER_NOTE =
   'Note: line numbers refer to the post-change side of each diff.'
 
 // Keep the pasted review-note contract deterministic and quote-safe across clients/agents.
-export function formatDiffComment(c: DiffComment): string {
-  const escaped = c.body
+function escapeNoteBody(body: string): string {
+  return body
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
     .replace(/\r/g, '\\r')
     .replace(/\n/g, '\\n')
+}
+
+export function formatDiffComment(c: DiffComment): string {
+  const escaped = escapeNoteBody(c.body)
   const locationLabel =
     c.lineNumber === 0
       ? 'Scope: file'
@@ -39,4 +43,24 @@ export function formatDiffComments(comments: readonly DiffComment[]): string {
   return comments.some((c) => c.reviewedComparison)
     ? `${DIFF_COMMENTS_LINE_NUMBER_NOTE}\n\n${body}`
     : body
+}
+
+/** One note of either kind; a general note has no file, so it states its scope instead. */
+export function formatReviewNote(note: ReviewNote): string {
+  return isGeneralNote(note)
+    ? `Scope: workspace\nUser comment: "${escapeNoteBody(note.body)}"`
+    : formatDiffComment(note)
+}
+
+/**
+ * The Send notes prompt for notes of both kinds: general notes before file notes. With no general
+ * notes it is byte-identical to `formatDiffComments`.
+ */
+export function formatReviewNotes(notes: readonly ReviewNote[]): string {
+  const general = notes.filter(isGeneralNote)
+  const fileNotes = notes.filter((note): note is DiffComment => !isGeneralNote(note))
+  const header = fileNotes.some((c) => c.reviewedComparison) ? [DIFF_COMMENTS_LINE_NUMBER_NOTE] : []
+  return [...header, ...general.map(formatReviewNote), ...fileNotes.map(formatDiffComment)].join(
+    '\n\n'
+  )
 }

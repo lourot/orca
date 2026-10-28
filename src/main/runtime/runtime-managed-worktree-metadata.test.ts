@@ -43,6 +43,35 @@ describe('updateRuntimeManagedWorktreeMetadata', () => {
     )
   })
 
+  it('drops unset note lists so a write of one list never clears the other', async () => {
+    const worktree = {
+      id: 'repo-1::/workspace/app',
+      repoId: 'repo-1',
+      hostId: 'local',
+      path: '/workspace/app',
+      instanceId: 'instance-1'
+    } as unknown as ResolvedWorktree
+    const setWorktreeMeta = vi.fn()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the update only reads these store members.
+    const store = { getRepos: () => [], setWorktreeMeta } as unknown as RuntimeStore
+
+    await updateRuntimeManagedWorktreeMetadata({
+      selector: `id:${worktree.id}`,
+      updates: { diffComments: [], generalNotes: undefined },
+      store,
+      ports: {
+        resolveWorktree: vi.fn(async () => worktree),
+        validateParent: vi.fn(),
+        invalidateResolved: vi.fn(),
+        invalidateScan: vi.fn(),
+        notifyChanged: vi.fn(),
+        showWorktree: vi.fn(async () => worktree as unknown as Worktree)
+      }
+    })
+
+    expect(Object.keys(setWorktreeMeta.mock.calls[0]?.[1] ?? {})).toEqual(['diffComments'])
+  })
+
   describe('a folder workspace removed while its resolution was in flight (#22712)', () => {
     const folderRepo = { id: 'repo-1', path: '/workspace/app', displayName: 'app', kind: 'folder' }
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the update only reads id, repoId, hostId and instanceId.

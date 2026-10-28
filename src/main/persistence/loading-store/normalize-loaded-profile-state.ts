@@ -1,7 +1,7 @@
 import { normalizePersistedMobileClientTabSelections } from '../../runtime/client-session-tab-selection-persistence'
 import type { SshRemotePtyLease } from '../../../shared/ssh-types'
 import { normalizeFeatureInteractionTelemetryBuckets } from '../../../shared/feature-interactions'
-import { normalizeFolderWorkspaceDiffComments } from '../../folder-workspace-diff-comments'
+import { normalizeFolderWorkspaceNoteMap } from '../../folder-workspace-diff-comments'
 import { normalizeFolderWorkspaces } from '../../../shared/folder-workspaces'
 import { normalizeOrcadMigrationEvictedReceipts } from '../../../shared/orcad-migration/orcad-migration-evicted-receipts'
 import { normalizeOrcadMigrationImportReceipts } from '../../../shared/orcad-migration/orcad-migration-manifest-validation'
@@ -53,8 +53,11 @@ export function normalizeLoadedProfileState(
     projects: projectCatalog.projects,
     projectHostSetups: projectCatalog.projectHostSetups,
     folderWorkspaces: normalizeFolderWorkspaces(parsed.folderWorkspaces, normalizedProjectGroups),
-    folderWorkspaceDiffComments: normalizeFolderWorkspaceDiffComments(
+    folderWorkspaceDiffComments: normalizeFolderWorkspaceNoteMap<'diffComments'>(
       parsed.folderWorkspaceDiffComments
+    ),
+    folderWorkspaceGeneralNotes: normalizeFolderWorkspaceNoteMap<'generalNotes'>(
+      parsed.folderWorkspaceGeneralNotes
     ),
     // Rehydrate canonical aliases/shared references omitted by serialization; absence stays absent.
     ...(parsed.worktreeMetaByIdentity === undefined

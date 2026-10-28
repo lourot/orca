@@ -1,4 +1,4 @@
-import type { DiffComment } from '../../../shared/diff-comment-types'
+import type { DiffComment, GeneralNote } from '../../../shared/diff-comment-types'
 import { toRuntimeExecutionHostId, type ExecutionHostId } from '../../../shared/execution-host'
 import type { Worktree } from '../../../shared/worktree/types'
 import type { AppState } from './types'
@@ -11,6 +11,34 @@ import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import { selectWorktreesByRepo } from './workspace-record-selectors'
 
 const EMPTY_DIFF_COMMENTS = Object.freeze([]) as unknown as DiffComment[]
+const EMPTY_GENERAL_NOTES: readonly GeneralNote[] = Object.freeze([])
+
+/** The workspace record fields holding a note list; worktree rows and folder workspaces both have them. */
+export type ReviewNoteField = 'diffComments' | 'generalNotes'
+type ReviewNoteHolder = Partial<Pick<Worktree, ReviewNoteField>> | null | undefined
+
+/** One per-workspace note list. Both kinds share this module's twin and queue rules. */
+export type ReviewNoteKind<T> = {
+  field: ReviewNoteField
+  read: (holder: ReviewNoteHolder) => T[] | undefined
+}
+
+export const DIFF_COMMENT_KIND: ReviewNoteKind<DiffComment> = {
+  field: 'diffComments',
+  read: (holder) => holder?.diffComments
+}
+
+export const GENERAL_NOTE_KIND: ReviewNoteKind<GeneralNote> = {
+  field: 'generalNotes',
+  read: (holder) => holder?.generalNotes
+}
+
+function rowHoldsNotes(row: Worktree, ids: ReadonlySet<string> | undefined): boolean {
+  return Boolean(
+    ids?.size &&
+    (row.diffComments?.some((c) => ids.has(c.id)) || row.generalNotes?.some((n) => ids.has(n.id)))
+  )
+}
 
 type DiffCommentSelectorState = Pick<AppState, 'worktreesByRepo'> &
   Partial<
@@ -116,7 +144,7 @@ export function findDiffCommentRows(
     const hostId = diffCommentTwinHostId(twin)
     // A differently stamped row is not the selected host’s unlisted copy; named notes still identify it, while unstamped provenance remains unknown.
     const named = namedHostForOwnerRef(state, { workspaceId: worktreeId })
-    const holdsNamedNotes = rows.some((row) => row.diffComments?.some((c) => commentIds?.has(c.id)))
+    const holdsNamedNotes = rows.some((row) => rowHoldsNotes(row, commentIds))
     const owner = named
       ? findIndexedWorktreeOwnerForHost(selectWorktreesByRepo(state), worktreeId, named)
       : null
@@ -125,9 +153,7 @@ export function findDiffCommentRows(
     }
     return { twin, ...(hostId ? { hostId } : {}), worktrees: rows }
   }
-  const holders = commentIds?.size
-    ? rows.filter((row) => row.diffComments?.some((comment) => commentIds.has(comment.id)))
-    : []
+  const holders = rows.filter((row) => rowHoldsNotes(row, commentIds))
   if (holders.length > 0 && holders.every((row) => isTwin(row, twinOf(holders[0])))) {
     return pickTwin(holders[0])
   }
@@ -142,68 +168,79 @@ export function findDiffCommentRows(
 }
 
 /** The notes of those rows; the last duplicate wins, as in the id index the rest of the app reads. */
-export function diffCommentRowNotes(found: {
-  worktrees: readonly Worktree[]
-}): DiffComment[] | undefined {
-  return found.worktrees.at(-1)?.diffComments
+export function diffCommentRowNotes<T>(
+  found: { worktrees: readonly Worktree[] },
+  kind: ReviewNoteKind<T>
+): T[] | undefined {
+  return kind.read(found.worktrees.at(-1))
 }
 
 /** Queued saves follow rows holding the chain’s last list despite new host stamps; after external replacement, resolve the captured twin (or bare ID when never twinned) again. */
-export function readQueuedDiffComments(
+export function readQueuedDiffComments<T>(
   state: Pick<
     DiffCommentSelectorState,
     'worktreesByRepo' | 'activeWorktreeId' | 'activeWorkspaceExecutionHostId'
   >,
   worktreeId: string,
-  chain: { twin?: DiffCommentTwin; hostId?: ExecutionHostId; latest: DiffComment[] | undefined }
-): { list: DiffComment[] | undefined } | null {
+  kind: ReviewNoteKind<T>,
+  chain: { twin?: DiffCommentTwin; hostId?: ExecutionHostId; latest: unknown }
+): { list: T[] | undefined } | null {
   const rows = selectWorktreesByRepo(state)[getRepoIdFromWorktreeId(worktreeId)] ?? []
-  if (
-    chain.latest &&
-    rows.some((row) => row.id === worktreeId && row.diffComments === chain.latest)
-  ) {
-    return { list: chain.latest }
+  const holder = chain.latest
+    ? rows.find((row) => row.id === worktreeId && kind.read(row) === chain.latest)
+    : undefined
+  if (holder) {
+    return { list: kind.read(holder) }
   }
   const found = findDiffCommentRows(
     state,
     worktreeId,
     chain.twin ? { twin: chain.twin, hostId: chain.hostId } : {}
   )
-  return found ? { list: diffCommentRowNotes(found) } : null
+  return found ? { list: diffCommentRowNotes(found, kind) } : null
 }
 
 /** The list a change naming these notes would edit; see {@link findDiffCommentRows}. */
-export function readDiffCommentsForChange(
+export function readDiffCommentsForChange<T>(
   state: DiffCommentSelectorState,
   worktreeId: string,
-  commentIds: Iterable<string>
-): DiffComment[] {
+  commentIds: Iterable<string>,
+  kind: ReviewNoteKind<T>
+): T[] {
   const scope = parseWorkspaceKey(worktreeId)
   if (scope?.type === 'folder') {
-    return findFolderWorkspaceOwner(state, scope.folderWorkspaceId)?.diffComments ?? []
+    return kind.read(findFolderWorkspaceOwner(state, scope.folderWorkspaceId)) ?? []
   }
   const found = findDiffCommentRows(state, worktreeId, { commentIds: new Set(commentIds) })
-  return (found && diffCommentRowNotes(found)) ?? []
+  return (found && diffCommentRowNotes(found, kind)) ?? []
 }
 
-export function selectWorktreeDiffComments(
+function selectWorktreeReviewNotes<T>(
   state: DiffCommentSelectorState,
-  worktreeId: string | null | undefined
-): DiffComment[] | undefined {
+  worktreeId: string | null | undefined,
+  kind: ReviewNoteKind<T>
+): T[] | undefined {
   if (!worktreeId) {
     return undefined
   }
   const scope = parseWorkspaceKey(worktreeId)
   if (scope?.type === 'folder') {
-    return findFolderWorkspaceOwner(state, scope.folderWorkspaceId)?.diffComments
+    return kind.read(findFolderWorkspaceOwner(state, scope.folderWorkspaceId))
   }
   // Open twins need their own notes (unnamed writes refuse); scan only the open bucket per store write, using the cached ID index elsewhere.
   const open = namedHostForOwnerRef(state, { workspaceId: worktreeId })
     ? findDiffCommentRows(state, worktreeId)
     : null
   return open
-    ? diffCommentRowNotes(open)
-    : getIndexedWorktreeById(selectWorktreesByRepo(state), worktreeId)?.diffComments
+    ? diffCommentRowNotes(open, kind)
+    : kind.read(getIndexedWorktreeById(selectWorktreesByRepo(state), worktreeId))
+}
+
+export function selectWorktreeDiffComments(
+  state: DiffCommentSelectorState,
+  worktreeId: string | null | undefined
+): DiffComment[] | undefined {
+  return selectWorktreeReviewNotes(state, worktreeId, DIFF_COMMENT_KIND)
 }
 
 export function selectWorktreeDiffCommentsOrEmpty(
@@ -211,4 +248,11 @@ export function selectWorktreeDiffCommentsOrEmpty(
   worktreeId: string | null | undefined
 ): DiffComment[] {
   return selectWorktreeDiffComments(state, worktreeId) ?? EMPTY_DIFF_COMMENTS
+}
+
+export function selectWorktreeGeneralNotesOrEmpty(
+  state: Parameters<typeof selectWorktreeDiffComments>[0],
+  worktreeId: string | null | undefined
+): readonly GeneralNote[] {
+  return selectWorktreeReviewNotes(state, worktreeId, GENERAL_NOTE_KIND) ?? EMPTY_GENERAL_NOTES
 }

@@ -14,7 +14,10 @@ vi.mock('@/store', () => ({
 }))
 
 vi.mock('@/store/worktree-diff-comments-selector', () => ({
-  selectWorktreeDiffCommentsOrEmpty: () => []
+  DIFF_COMMENT_KIND: {},
+  GENERAL_NOTE_KIND: {},
+  selectWorktreeDiffCommentsOrEmpty: () => [],
+  selectWorktreeGeneralNotesOrEmpty: () => []
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({

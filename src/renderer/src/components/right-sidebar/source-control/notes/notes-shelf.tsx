@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, ChevronDown, Copy, MessageSquare, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Check, ChevronDown, Copy, MessageSquare, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
 import { DiffNotesSendMenu } from '@/components/editor/DiffNotesSendMenu'
 import {
   DropdownMenu,
@@ -10,15 +10,20 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
-import type { DiffComment } from '../../../../../../shared/diff-comment-types'
+import type { DiffComment, GeneralNote } from '../../../../../../shared/diff-comment-types'
 import type { PendingDiffCommentsClear } from './diff-comments-clear-dialog-state'
 import { DiffCommentsInlineList } from './diff-comments-list'
+import { GeneralNotesSection } from './general-notes-section'
 
 export function SourceControlNotesShelf({
   activeWorktreeId,
   activeGroupId,
   diffCommentsForActive,
-  diffCommentCount,
+  generalNotesForActive,
+  noteCount,
+  generalNoteComposerOpen,
+  openGeneralNoteComposer,
+  closeGeneralNoteComposer,
   diffCommentsExpanded,
   setDiffCommentsExpanded,
   diffCommentsCopied,
@@ -30,7 +35,12 @@ export function SourceControlNotesShelf({
   activeWorktreeId: string
   activeGroupId: string | null | undefined
   diffCommentsForActive: DiffComment[]
-  diffCommentCount: number
+  generalNotesForActive: readonly GeneralNote[]
+  /** File notes plus general notes. */
+  noteCount: number
+  generalNoteComposerOpen: boolean
+  openGeneralNoteComposer: () => void
+  closeGeneralNoteComposer: () => void
   diffCommentsExpanded: boolean
   setDiffCommentsExpanded: React.Dispatch<React.SetStateAction<boolean>>
   diffCommentsCopied: boolean
@@ -66,21 +76,39 @@ export function SourceControlNotesShelf({
           <span>
             {translate('auto.components.right.sidebar.SourceControl.cc474e0b8c', 'Notes')}
           </span>
-          {diffCommentCount > 0 && (
+          {noteCount > 0 && (
             <span className="text-[11px] leading-none text-muted-foreground tabular-nums">
-              {diffCommentCount}
+              {noteCount}
             </span>
           )}
         </button>
         <div className="ml-1 flex shrink-0 items-center gap-1.5">
+          <TooltipProvider delayDuration={400}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  onClick={openGeneralNoteComposer}
+                  aria-label={translate('generalNotes.add', 'Add note for the AI')}
+                >
+                  <Plus className="size-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={6}>
+                {translate('generalNotes.add', 'Add note for the AI')}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <DiffNotesSendMenu
             worktreeId={activeWorktreeId}
             groupId={activeGroupId ?? activeWorktreeId}
             comments={diffCommentsForActive}
+            generalNotes={generalNotesForActive}
             triggerClassName="size-6"
             respondToOpenRequest
           />
-          {diffCommentCount > 0 && (
+          {noteCount > 0 && (
             <TooltipProvider delayDuration={400}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -137,9 +165,9 @@ export function SourceControlNotesShelf({
             <DropdownMenuContent align="end" className="min-w-[180px]">
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                disabled={diffCommentCount === 0}
+                disabled={noteCount === 0}
                 onSelect={() => {
-                  if (!activeWorktreeId || diffCommentCount === 0) {
+                  if (!activeWorktreeId || noteCount === 0) {
                     return
                   }
                   setPendingDiffCommentsClear({ kind: 'all', worktreeId: activeWorktreeId })
@@ -156,18 +184,28 @@ export function SourceControlNotesShelf({
         </div>
       </div>
       {diffCommentsExpanded && (
-        <DiffCommentsInlineList
-          comments={diffCommentsForActive}
-          onDelete={(id) => void deleteDiffComment(activeWorktreeId, id)}
-          onOpen={(comment) => handleOpenComment(comment)}
-          onClearFile={(filePath) =>
-            setPendingDiffCommentsClear({
-              kind: 'file',
-              worktreeId: activeWorktreeId,
-              filePath
-            })
-          }
-        />
+        <div className="bg-muted/20">
+          <GeneralNotesSection
+            worktreeId={activeWorktreeId}
+            composerOpen={generalNoteComposerOpen}
+            onComposerClose={closeGeneralNoteComposer}
+          />
+          {/* Why: the "hover a line" hint only helps when there are no notes of either kind. */}
+          {(diffCommentsForActive.length > 0 || (noteCount === 0 && !generalNoteComposerOpen)) && (
+            <DiffCommentsInlineList
+              comments={diffCommentsForActive}
+              onDelete={(id) => void deleteDiffComment(activeWorktreeId, id)}
+              onOpen={(comment) => handleOpenComment(comment)}
+              onClearFile={(filePath) =>
+                setPendingDiffCommentsClear({
+                  kind: 'file',
+                  worktreeId: activeWorktreeId,
+                  filePath
+                })
+              }
+            />
+          )}
+        </div>
       )}
     </div>
   )
