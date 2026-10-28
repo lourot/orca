@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { planCommitMessageGeneration, planAgentBinary } from './commit-message-plan'
+import { OPENCODE_TEXT_ONLY_RUN_ARGS as TEXT_ONLY } from './opencode-text-only-agent'
 
 describe('planCommitMessageGeneration', () => {
   it('keeps extension-provided Pi models available in generated Git text plans', () => {
@@ -90,8 +91,7 @@ describe('planCommitMessageGeneration', () => {
           'run',
           '--model',
           'opencode/gpt-5.4-mini',
-          '--agent',
-          'build',
+          ...TEXT_ONLY,
           '--format',
           'json',
           '--variant',
@@ -123,8 +123,7 @@ describe('planCommitMessageGeneration', () => {
           'run',
           '--model',
           'opencode/gpt-5.4-mini',
-          '--agent',
-          'build',
+          ...TEXT_ONLY,
           '--format',
           'json'
         ],
@@ -420,7 +419,7 @@ describe('planCommitMessageGeneration', () => {
     expect(result).toMatchObject({
       ok: true,
       plan: {
-        args: ['run', '--model', 'opencode/gpt-5.5', '--agent', 'build', '--format', 'json'],
+        args: ['run', '--model', 'opencode/gpt-5.5', ...TEXT_ONLY, '--format', 'json'],
         stdinPayload: 'PROMPT'
       }
     })
@@ -435,7 +434,7 @@ describe('planCommitMessageGeneration', () => {
     expect(result).toMatchObject({
       ok: true,
       plan: {
-        args: ['run', '-m', 'opencode/gpt-5.5', '--agent', 'build', '--format', 'json']
+        args: ['run', '-m', 'opencode/gpt-5.5', ...TEXT_ONLY, '--format', 'json']
       }
     })
   })
@@ -482,8 +481,7 @@ describe('planCommitMessageGeneration', () => {
           'run',
           '--model',
           'opencode/gpt-5.4-mini',
-          '--agent',
-          'build',
+          ...TEXT_ONLY,
           '--format',
           'json',
           '--share'
@@ -506,7 +504,7 @@ describe('planCommitMessageGeneration', () => {
     expect(result).toMatchObject({
       ok: true,
       plan: {
-        args: ['run', '--model', 'opencode/first', '--agent', 'build', '--format', 'json']
+        args: ['run', '--model', 'opencode/first', ...TEXT_ONLY, '--format', 'json']
       }
     })
   })
@@ -546,8 +544,7 @@ describe('planCommitMessageGeneration', () => {
           '--log-level',
           'DEBUG',
           'run',
-          '--agent',
-          'build',
+          ...TEXT_ONLY,
           '--format',
           'json'
         ]
@@ -577,8 +574,7 @@ describe('planCommitMessageGeneration', () => {
           'run',
           '--model',
           'opencode/gpt-5.4-mini',
-          '--agent',
-          'build',
+          ...TEXT_ONLY,
           '--format',
           'json'
         ]
@@ -601,7 +597,7 @@ describe('planCommitMessageGeneration', () => {
       ok: true,
       plan: {
         binary: 'opencode',
-        args: ['run', '--model', 'opencode/from-recipe', '--agent', 'build', '--format', 'json']
+        args: ['run', '--model', 'opencode/from-recipe', ...TEXT_ONLY, '--format', 'json']
       }
     })
   })

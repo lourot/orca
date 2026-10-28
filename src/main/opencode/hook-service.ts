@@ -43,7 +43,10 @@ import { OpenCodeDirGcLifecycle } from './overlay-dir-gc-lifecycle'
 export { getOpenCode2PluginSource, getOpenCodeFamilyPluginSource, getOpenCodePluginSource }
 
 import { writeCanonicalOpenCodePluginAtomically } from '../../shared/opencode-plugin-atomic-write'
-import { writeOpenCodePluginConfig } from './opencode-plugin-config-writer'
+import {
+  writeOpenCodePluginConfig,
+  writeOpenCodeTextOnlyAgent
+} from './opencode-plugin-config-writer'
 
 type OpenCodeHookVariant = {
   pluginFileName: string
@@ -295,6 +298,8 @@ export class OpenCodeHookService {
 
   private writePluginToConfigDir(configDir: string): void {
     this.writePluginToDirectory(configDir, 'canonical')
+    // Why canonical only: OpenCode's shared background service reads this dir, not Orca's overlays.
+    writeOpenCodeTextOnlyAgent(configDir)
   }
 
   private writePluginToDirectory(configDir: string, ownership: 'canonical' | 'overlay'): void {

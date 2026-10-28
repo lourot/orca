@@ -578,7 +578,7 @@ describe('buildArgs (OpenCode)', () => {
       '--model',
       'opencode/deepseek-v4-flash-free',
       '--agent',
-      'build',
+      'orca-text-only',
       '--format',
       'json'
     ])
@@ -599,7 +599,7 @@ describe('buildArgs (OpenCode)', () => {
       '--model',
       'opencode/gpt-5.4-mini',
       '--agent',
-      'build',
+      'orca-text-only',
       '--format',
       'json',
       '--variant',
@@ -632,7 +632,7 @@ describe('buildArgs (OpenCode 2)', () => {
       '--model',
       'opencode/deepseek-v4-flash-free',
       '--agent',
-      'build',
+      'orca-text-only',
       '--format',
       'json'
     ])
@@ -653,7 +653,7 @@ describe('buildArgs (OpenCode 2)', () => {
       '--model',
       'opencode/gpt-5.4-mini#high',
       '--agent',
-      'build',
+      'orca-text-only',
       '--format',
       'json'
     ])

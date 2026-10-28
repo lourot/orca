@@ -1,5 +1,9 @@
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  OPENCODE_TEXT_ONLY_AGENT_FILE,
+  OPENCODE_TEXT_ONLY_AGENT_SOURCE
+} from '../../shared/opencode-text-only-agent'
 import {
   isInstalledOpenCodePluginCurrent,
   isOverlayOpenCodePluginCurrent
@@ -12,6 +16,21 @@ import {
   writeOpenCodeTuiPlugin,
   writeOpenCodeTuiPluginDirectory
 } from '../../shared/opencode-tui-plugin-install'
+
+/** Installs the tool-less agent text generation runs as; while missing, each run pays a --standalone retry. */
+export function writeOpenCodeTextOnlyAgent(configDir: string): void {
+  const agentDir = join(configDir, 'agent')
+  const agentPath = join(agentDir, OPENCODE_TEXT_ONLY_AGENT_FILE)
+  try {
+    if (readFileSync(agentPath, 'utf8') === OPENCODE_TEXT_ONLY_AGENT_SOURCE) {
+      return
+    }
+  } catch {
+    // Missing or unreadable: (re)write it below.
+  }
+  mkdirSync(agentDir, { recursive: true })
+  writeCanonicalOpenCodePluginAtomically(agentPath, OPENCODE_TEXT_ONLY_AGENT_SOURCE)
+}
 
 export function writeOpenCodePluginConfig(options: {
   configDir: string

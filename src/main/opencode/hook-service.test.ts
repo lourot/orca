@@ -30,6 +30,7 @@ import {
   getOpenCodePluginSource
 } from './hook-service'
 import { resolveOpenCodeConfigDirectory } from '../../shared/opencode-config-directory'
+import { OPENCODE_TEXT_ONLY_AGENT_SOURCE } from '../../shared/opencode-text-only-agent'
 
 beforeEach(() => {
   vi.stubEnv('ORCA_OPENCODE_PLUGIN_API', 'v2')
@@ -132,10 +133,14 @@ describe('OpenCodeHookService buildPtyEnv / clearPty round-trip', () => {
       'orca-opencode-status-tui',
       'tui.js'
     )
+    const textOnlyAgent = join(resolveOpenCodeConfigDirectory(), 'agent', 'orca-text-only.md')
+    expect(readFileSync(textOnlyAgent, 'utf8')).toBe(OPENCODE_TEXT_ONLY_AGENT_SOURCE)
     const past = new Date('2020-01-01T00:00:00Z')
     utimesSync(tuiEntry, past, past)
+    utimesSync(textOnlyAgent, past, past)
     service.buildPtyEnv(daemonSessionId)
     expect(statSync(tuiEntry).mtimeMs).toBe(past.getTime())
+    expect(statSync(textOnlyAgent).mtimeMs).toBe(past.getTime())
   })
 
   // OpenCode 2 reloads on mtime changes, resetting status mid-turn.

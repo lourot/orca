@@ -11,7 +11,10 @@ import {
   type CommitMessagePlan
 } from '../../shared/commit-message-plan'
 import type { ResolvedSourceControlAiGenerationParams } from '../../shared/source-control-ai'
-import { openCodeVariantRetryPlan } from '../../shared/opencode-generation-command'
+import {
+  openCodeTextOnlyStandaloneRetryPlan,
+  openCodeVariantRetryPlan
+} from '../../shared/opencode-generation-command'
 import { runLocalPlanForAgent } from './source-control-local-generation'
 import { emptyResultFailure } from './source-control-agent-failure'
 import { runRemoteSourceControlPlan } from './source-control-remote-generation'
@@ -82,12 +85,27 @@ export async function runGenerationRequest(input: {
     },
     failedExit: (outcome) => (outcome.success ? undefined : outcome.failureOutput)
   })
+  let lastPlan = plan
   if (
     input.operation !== 'jira-issue-summary' &&
     !result.success &&
     input.params.agentId === 'opencode'
   ) {
     const retry = openCodeVariantRetryPlan(plan, result.failureOutput?.stderr ?? '')
+    if (retry) {
+      lastPlan = retry
+      result = await execute(retry)
+    }
+  }
+  if (
+    !result.success &&
+    (input.params.agentId === 'opencode' || input.params.agentId === 'opencode2')
+  ) {
+    const failure = result.failureOutput
+    const retry = openCodeTextOnlyStandaloneRetryPlan(
+      lastPlan,
+      `${failure?.stdout ?? ''}\n${failure?.stderr ?? ''}`
+    )
     if (retry) {
       result = await execute(retry)
     }

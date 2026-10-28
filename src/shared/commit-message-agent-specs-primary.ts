@@ -6,6 +6,7 @@ import type {
   ThinkingLevel
 } from './commit-message-agent-spec'
 import { CLAUDE_MODEL_LIST_ARGS, CLAUDE_MODEL_LIST_STDIN } from './claude-model-list-probe'
+import { OPENCODE_TEXT_ONLY_RUN_ARGS } from './opencode-text-only-agent'
 
 type PrimaryAgentSpecDeps = {
   CLAUDE_THINKING_LEVELS: ThinkingLevel[]
@@ -158,8 +159,7 @@ export function buildPrimaryCommitMessageAgentSpecs({
       buildArgs: ({ model, thinkingLevel }) => [
         'run',
         ...(model && model !== 'default' ? ['--model', model] : []),
-        '--agent',
-        'build',
+        ...OPENCODE_TEXT_ONLY_RUN_ARGS,
         '--format',
         'json',
         ...(thinkingLevel ? ['--variant', thinkingLevel] : [])
@@ -187,8 +187,7 @@ export function buildPrimaryCommitMessageAgentSpecs({
         ...(model && model !== 'default'
           ? ['--model', thinkingLevel ? `${model}#${thinkingLevel}` : model]
           : []),
-        '--agent',
-        'build',
+        ...OPENCODE_TEXT_ONLY_RUN_ARGS,
         '--format',
         'json'
       ],

@@ -1,5 +1,28 @@
 import { findOptionOccurrence } from './command-option-occurrence'
 import type { CommitMessagePlan } from './commit-message-plan'
+import {
+  OPENCODE_TEXT_ONLY_AGENT,
+  OPENCODE_TEXT_ONLY_CONFIG_CONTENT
+} from './opencode-text-only-agent'
+
+/** Reruns on a private server that reads the text-only agent inline, when the background service lacks its file. */
+export function openCodeTextOnlyStandaloneRetryPlan(
+  plan: CommitMessagePlan,
+  output: string
+): CommitMessagePlan | null {
+  const runIndex = plan.args.indexOf('run')
+  // Why loose: --format json reports it inside a JSON string, so the quotes arrive escaped.
+  const missing = output.includes('Agent not found') && output.includes(OPENCODE_TEXT_ONLY_AGENT)
+  if (runIndex === -1 || !missing) {
+    return null
+  }
+  return {
+    ...plan,
+    args: [...plan.args.slice(0, runIndex + 1), '--standalone', ...plan.args.slice(runIndex + 1)],
+    // Why: plain `opencode run` joins the shared background service, which never sees this env.
+    env: { OPENCODE_CONFIG_CONTENT: OPENCODE_TEXT_ONLY_CONFIG_CONTENT, ...plan.env }
+  }
+}
 
 export function mergeOpenCodeGenerationArgs(
   agentId: string,
