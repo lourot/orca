@@ -23,12 +23,15 @@ import { stopNestedWorktreeCardBubble } from './header-event-guards'
 import type { WorktreeItemRow } from '../listing/renderable-rows'
 import { forwardOptionPressToCardSurface, getWorktreeOptionId } from './option-dom'
 import type { WorktreeRowDragState } from '../drag/row-state'
+import type { WorktreeBaseDivergence } from '../listing/use-worktree-base-divergence'
 
 export type WorktreeItemRowContext = {
   settings: AppState['settings']
   groupBy: WorktreeGroupBy
   /** Worktrees with uncommitted changes, as of the last local sweep. */
   dirtyWorktreeIds: ReadonlySet<string>
+  /** Commits ahead of/behind the base ref, as of the last local sweep. */
+  baseDivergenceByWorktreeId: ReadonlyMap<string, WorktreeBaseDivergence>
   folderBackedProjectGroupIds: ReadonlySet<string>
   groupKeyByRowKey: ReadonlyMap<string, string>
   groupIndexByRowKey: ReadonlyMap<string, number>
@@ -192,6 +195,7 @@ export function renderWorktreeItemRow(
         nativeDragEnabled={false}
         showWorkspaceStatusDot
         hasUncommittedChanges={ctx.dirtyWorktreeIds.has(itemRow.worktree.id)}
+        baseDivergence={ctx.baseDivergenceByWorktreeId.get(itemRow.worktree.id)}
         isLineageDropTarget={Boolean(isLineageDropTarget)}
         contentIndent={cardContentIndent}
         flushSurface

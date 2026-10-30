@@ -67,6 +67,8 @@ export const gitApi = {
   }) => ipcRenderer.invoke('git:diff', args),
   branchCompare: (args: { worktreePath: string; baseRef: string; connectionId?: string }) =>
     ipcRenderer.invoke('git:branchCompare', args),
+  baseDivergence: (args: { worktreePath: string; baseRef: string; connectionId?: string }) =>
+    ipcRenderer.invoke('git:baseDivergence', args),
   commitCompare: (args: { worktreePath: string; commitId: string; connectionId?: string }) =>
     ipcRenderer.invoke('git:commitCompare', args),
   upstreamStatus: (args: {

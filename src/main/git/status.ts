@@ -27,6 +27,7 @@ export {
 export { resolveGitDir } from './source-control/resolve-git-dir'
 export { getDiff } from './source-control/file-diff'
 export { getBranchCompare } from './source-control/branch-compare'
+export { getBaseDivergence } from './source-control/base-divergence'
 export { getBranchDiff } from './source-control/branch-diff'
 export { getCommitCompare } from './source-control/commit-compare'
 export { getCommitDiff } from './source-control/commit-diff'

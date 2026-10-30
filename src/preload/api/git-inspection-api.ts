@@ -1,4 +1,5 @@
 import type {
+  GitBaseDivergence,
   GitBranchCompareResult,
   GitCommitCompareResult,
   GitDiffResult
@@ -82,6 +83,12 @@ export type GitInspectionApi = {
     connectionId?: string
     admissionTier?: 'interactive' | 'status' | 'background'
   }) => Promise<GitBranchCompareResult>
+  /** Local only: the sidebar's base-divergence sweep skips remote worktrees. */
+  baseDivergence: (args: {
+    worktreePath: string
+    baseRef: string
+    connectionId?: string
+  }) => Promise<GitBaseDivergence | null>
   commitCompare: (args: {
     worktreePath: string
     commitId: string

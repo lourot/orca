@@ -138,6 +138,8 @@ export function createGitApi(): NonNullable<Partial<PreloadApi>['git']> {
         ...(admissionTier ? { admissionTier } : {})
       })
     },
+    // Why: no runtime RPC carries this; the sidebar sweep that calls it is local-only.
+    baseDivergence: async () => null,
     commitCompare: async ({ worktreePath, commitId }) => {
       const worktree = await resolveRuntimeWorktreeByPath(worktreePath)
       return callRuntimeResult('git.commitCompare', {

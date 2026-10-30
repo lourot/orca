@@ -4,6 +4,7 @@ import { GitMerge } from 'lucide-react'
 import { DetachedHeadBadge } from '@/components/DetachedHeadBadge'
 import { RepoBadgeMark } from '@/components/repo/RepoBadgeLabel'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import CacheTimer from './CacheTimer'
 import { WorktreeHostContextBadge } from './WorktreeHostContextBadge'
 import { conflictOperationLabel } from './WorktreeCardHelpers'
@@ -11,6 +12,52 @@ import { TruncatedSidebarLabel } from './truncated-sidebar-label'
 import { getDirectoryName } from './worktree-card-model'
 import type { WorktreeCardPresentation } from './worktree-card-presentation'
 import type { WorktreeCardController } from './use-worktree-card-controller'
+import type { WorktreeBaseDivergence } from './worktree-list/listing/use-worktree-base-divergence'
+import {
+  formatAheadOfTitle,
+  formatBehindOfTitle
+} from '../right-sidebar/source-control/panel/branch-context-stats'
+
+// Why the modified token: same yellow as the uncommitted-changes dot, so drift reads as git state.
+function WorktreeCardBaseDivergence({
+  divergence,
+  tooltipEnabled
+}: {
+  divergence: WorktreeBaseDivergence
+  tooltipEnabled: boolean
+}): React.JSX.Element {
+  const { ahead, behind, baseRef } = divergence
+  const description = [
+    behind > 0 ? formatBehindOfTitle(behind, baseRef) : null,
+    ahead > 0 ? formatAheadOfTitle(ahead, baseRef) : null
+  ]
+    .filter(Boolean)
+    .join(', ')
+  const counts = (
+    <span
+      className="shrink-0 font-mono text-[11px] font-bold leading-none text-[color:var(--git-decoration-modified)] tabular-nums"
+      data-worktree-card-base-divergence=""
+    >
+      <span aria-hidden="true">
+        {[behind > 0 ? `↓${behind}` : null, ahead > 0 ? `↑${ahead}` : null]
+          .filter(Boolean)
+          .join(' ')}
+      </span>
+      <span className="sr-only">{description}</span>
+    </span>
+  )
+  if (!tooltipEnabled) {
+    return counts
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{counts}</TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8}>
+        {description}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
 
 export function WorktreeCardMetaRow({
   card,
@@ -29,7 +76,8 @@ export function WorktreeCardMetaRow({
     detachedHeadDisplay,
     conflictOperation,
     cacheStartedAt,
-    cacheTtlMs
+    cacheTtlMs,
+    baseDivergence
   } = card
   const {
     showRepoBadgeInMetaRow,
@@ -40,6 +88,7 @@ export function WorktreeCardMetaRow({
     showBranch,
     showDetachedHeadInMetaRow,
     showConflictOperationBadge,
+    showBaseDivergence,
     showMetaRowDetails,
     detailsAndPorts
   } = presentation
@@ -87,6 +136,14 @@ export function WorktreeCardMetaRow({
             className="h-[16px]"
           />
         ) : null}
+
+        {showBaseDivergence && baseDivergence && (
+          // Why: with hover details the meta row is the details popover's trigger; don't stack a tooltip.
+          <WorktreeCardBaseDivergence
+            divergence={baseDivergence}
+            tooltipEnabled={!hasHoverDetails}
+          />
+        )}
 
         {showConflictOperationBadge && (
           <Badge

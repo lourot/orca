@@ -29,6 +29,8 @@ export type GitBranchCompareResult = {
   entries: GitBranchChangeEntry[]
 }
 
+export type GitBaseDivergence = { ahead: number; behind: number }
+
 export type GitCommitCompareSummary = {
   commitOid: string
   parentOid: string | null

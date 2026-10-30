@@ -43,7 +43,8 @@ const WorktreeCard = React.memo(function WorktreeCard({
   affiliateListMode = false,
   statusPrDisplay = null,
   showWorkspaceStatusDot = false,
-  hasUncommittedChanges
+  hasUncommittedChanges,
+  baseDivergence
 }: WorktreeCardProps): React.JSX.Element {
   const card = useWorktreeCardController({
     worktree,
@@ -81,7 +82,8 @@ const WorktreeCard = React.memo(function WorktreeCard({
     affiliateListMode,
     statusPrDisplay,
     showWorkspaceStatusDot,
-    hasUncommittedChanges
+    hasUncommittedChanges,
+    baseDivergence
   })
 
   return <WorktreeCardSurface card={card} />

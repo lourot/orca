@@ -1,9 +1,10 @@
 import { ipcMain } from 'electron'
 import type {
+  GitBaseDivergence,
   GitBranchCompareResult,
   GitCommitCompareResult
 } from '../../../../shared/git-diff-compare-types'
-import { getBranchCompare, getCommitCompare } from '../../../git/status'
+import { getBaseDivergence, getBranchCompare, getCommitCompare } from '../../../git/status'
 import { resolveRegisteredWorktreePath } from '../../registered-worktree-roots-cache'
 import { getLocalGitOptionsForRegisteredWorktree } from '../../local-worktree-runtime-options'
 import { validateFullGitObjectId } from '../filesystem-path-containment'
@@ -40,6 +41,26 @@ export function registerGitRemoteCompareHandlers(context: FilesystemHandlerConte
       return getBranchCompare(worktreePath, args.baseRef, {
         ...gitOptions,
         ...(args.admissionTier ? { admissionTier: args.admissionTier } : {})
+      })
+    }
+  )
+
+  ipcMain.handle(
+    'git:baseDivergence',
+    async (
+      _event,
+      args: { worktreePath: string; baseRef: string; connectionId?: string }
+    ): Promise<GitBaseDivergence | null> => {
+      requireReachableGitRoute(getConnectionExecutionHostId(args.connectionId))
+      const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
+      const gitOptions = getLocalGitOptionsForRegisteredWorktree(
+        store,
+        args.worktreePath,
+        worktreePath
+      )
+      return getBaseDivergence(worktreePath, args.baseRef, {
+        ...gitOptions,
+        admissionTier: 'background'
       })
     }
   )

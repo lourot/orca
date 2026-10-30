@@ -87,7 +87,8 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
     canUnlinkReview,
     handleUnlinkReview,
     detailsHoverControl,
-    showDeleteQuickAction
+    showDeleteQuickAction,
+    baseDivergence
   } = card
 
   // Why: pinned trees mix repos, so ordinary rows lead with the project chip; cross-repo children keep the regular project badge.
@@ -111,7 +112,9 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
   // Why: rebases already surface in source control, so dense cards skip the persistent rebase chip.
   const showConflictOperationBadge =
     !!conflictOperation && conflictOperation !== 'unknown' && conflictOperation !== 'rebase'
-  const hasMetadataBadge = showConflictOperationBadge
+  const showBaseDivergence =
+    !isFolder && !!baseDivergence && (baseDivergence.ahead > 0 || baseDivergence.behind > 0)
+  const hasMetadataBadge = showConflictOperationBadge || showBaseDivergence
   const showUnreadQuickAction = !affiliateListMode && showStatus && !newCardStyle
   // Why: the slot owns the unread/status lane; legacy keeps the bell toggle, the new card keeps the glyph passive.
   const showCombinedStatusSlot = showStatus
@@ -127,6 +130,7 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
     showIdentityInNewCard ||
     showDetachedHeadInMetaRow ||
     showConflictOperationBadge ||
+    showBaseDivergence ||
     cacheStartedAt != null ||
     showMetaRowDetails
   )
@@ -276,6 +280,7 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
     showDetachedHeadInMetaRow,
     showBranch,
     showConflictOperationBadge,
+    showBaseDivergence,
     showUnreadQuickAction,
     showCombinedStatusSlot,
     showTitleRowPrimary,

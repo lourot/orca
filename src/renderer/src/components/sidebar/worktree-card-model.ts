@@ -4,6 +4,7 @@ import type React from 'react'
 import type { Repo } from '../../../../shared/repo-types'
 import type { WorkspaceStatus, Worktree } from '../../../../shared/worktree/types'
 import type { WorktreeCardPrDisplay } from './worktree-card-pr-display'
+import type { WorktreeBaseDivergence } from './worktree-list/listing/use-worktree-base-divergence'
 import { translate } from '@/i18n/i18n'
 
 export type WorktreeRenameRequest = {
@@ -62,6 +63,8 @@ export type WorktreeCardProps = {
   // Deliberately undefined-able and NOT defaulted: undefined means this render site has no
   // sweep data, which is not the same as "probed clean" — it renders no indicator at all.
   hasUncommittedChanges?: boolean
+  // Undefined when this render site has no sweep data or the worktree was not probed.
+  baseDivergence?: WorktreeBaseDivergence
 }
 
 type DefaultedWorktreeCardProp =

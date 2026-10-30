@@ -2,7 +2,7 @@ import type { GitBranchCompareSummary } from '../../../../../../shared/git-diff-
 import type { WorktreeGitIdentityDisplay } from '../../../../../../shared/worktree/git-identity-display'
 import { translate } from '@/i18n/i18n'
 
-function formatAheadOfTitle(count: number, ref: string): string {
+export function formatAheadOfTitle(count: number, ref: string): string {
   return translate(
     'auto.components.right.sidebar.SourceControl.compareBaseCommitsAhead',
     '{{count}} commits ahead of {{ref}}',
@@ -10,7 +10,7 @@ function formatAheadOfTitle(count: number, ref: string): string {
   )
 }
 
-function formatBehindOfTitle(count: number, ref: string): string {
+export function formatBehindOfTitle(count: number, ref: string): string {
   return translate(
     'auto.components.right.sidebar.SourceControl.compareBaseCommitsBehind',
     '{{count}} commits behind {{ref}}',
