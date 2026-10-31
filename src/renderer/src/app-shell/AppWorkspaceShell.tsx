@@ -25,6 +25,7 @@ const ActivityPrototypePage = lazy(() => import('../components/activity/Activity
 const Settings = lazy(() => import('../components/settings/Settings'))
 const SkillsPage = lazy(() => import('../components/skills/SkillsPage'))
 const ArtifactsPage = lazy(() => import('../components/artifacts/ArtifactsPage'))
+const MessagesPage = lazy(() => import('../components/messages/MessagesPage'))
 const WorkspaceSpacePage = lazy(() => import('../components/workspace-space/WorkspaceSpacePage'))
 const MobilePage = lazy(() => import('../components/mobile/MobilePage'))
 const Terminal = lazy(() => import('../components/Terminal'))
@@ -74,6 +75,7 @@ function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element 
       {activeView === 'settings' ? <Settings /> : null}
       {activeView === 'skills' ? <SkillsPage /> : null}
       {activeView === 'artifacts' ? <ArtifactsPage /> : null}
+      {activeView === 'messages' ? <MessagesPage /> : null}
       {activeView === 'tasks' ? <TaskPage /> : null}
       {activeView === 'automations' ? <AutomationsPage /> : null}
       {activeView === 'activity' ? <ActivityPrototypePage /> : null}
@@ -164,10 +166,11 @@ export function AppWorkspaceShell(props: {
               )
             ) : null}
             <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
-              {/* Automations/artifacts own their headers; another titlebar would leave an empty stripe. */}
+              {/* Automations/artifacts/messages own their headers; another titlebar would leave an empty stripe. */}
               {layout.stackedSidebarOpen &&
               layout.activeView !== 'automations' &&
-              layout.activeView !== 'artifacts' ? (
+              layout.activeView !== 'artifacts' &&
+              layout.activeView !== 'messages' ? (
                 <div className="titlebar">{titlebarMainStrip}</div>
               ) : null}
               <div className="relative flex flex-1 min-w-0 min-h-0 overflow-hidden">

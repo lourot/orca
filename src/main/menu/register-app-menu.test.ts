@@ -53,6 +53,7 @@ function buildMenuOptions() {
     getAppearanceState: vi.fn(() => ({
       showTasksButton: true,
       showAutomationsButton: true,
+      showMessagesButton: true,
       showMobileButton: true,
       showTitlebarAppName: true,
       statusBarVisible: true
@@ -545,6 +546,7 @@ describe('registerAppMenu', () => {
     options.getAppearanceState.mockReturnValue({
       showTasksButton: false,
       showAutomationsButton: false,
+      showMessagesButton: true,
       showMobileButton: true,
       showTitlebarAppName: true,
       statusBarVisible: true

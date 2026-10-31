@@ -96,6 +96,19 @@ export function createUiViewActions(set: UISliceSet, get: UISliceGet): Partial<U
         activeView: state.previousViewBeforeArtifacts,
         worktreeNavHistoryIndex: rewindHistoryIndexPastView(state, 'artifacts')
       })),
+    openMessagesPage: () => {
+      get().recordViewVisit('messages')
+      set((state) => ({
+        activeView: 'messages',
+        previousViewBeforeMessages:
+          state.activeView === 'messages' ? state.previousViewBeforeMessages : state.activeView
+      }))
+    },
+    closeMessagesPage: () =>
+      set((state) => ({
+        activeView: state.previousViewBeforeMessages,
+        worktreeNavHistoryIndex: rewindHistoryIndexPastView(state, 'messages')
+      })),
     openMobilePage: () =>
       set((state) => ({
         activeView: 'mobile',

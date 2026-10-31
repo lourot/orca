@@ -15,6 +15,7 @@ import { createAppWindowMenu } from './app-menu-window'
 export type AppearanceMenuState = {
   showTasksButton: boolean
   showAutomationsButton: boolean
+  showMessagesButton: boolean
   showMobileButton: boolean
   showTitlebarAppName: boolean
   statusBarVisible: boolean
@@ -225,6 +226,12 @@ function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
         type: 'checkbox',
         checked: appearance.showAutomationsButton,
         click: () => onToggleAppearance('showAutomationsButton')
+      },
+      {
+        label: translateMain('menu.showMessagesButton', 'Show Messages Button'),
+        type: 'checkbox',
+        checked: appearance.showMessagesButton,
+        click: () => onToggleAppearance('showMessagesButton')
       },
       {
         label: translateMain('menu.showMobileButton', 'Show Orca Mobile Button'),

@@ -154,6 +154,7 @@ export function buildDefaultSettings(args: {
     showTitlebarAppName: true,
     showTasksButton: true,
     showAutomationsButton: true,
+    showMessagesButton: true,
     expandProjectOnAutomationStart: true,
     artifactsEnabled: true,
     artifactSharingEnabled: false,
