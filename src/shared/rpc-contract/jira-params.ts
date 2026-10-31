@@ -1,6 +1,11 @@
 import { JiraIssueListFiltersParam } from './jira-quick-filter-params'
 import { z } from 'zod'
 import {
+  JIRA_JQL_GENERATION_INSTRUCTION_MAX_LENGTH,
+  JIRA_JQL_GENERATION_JQL_MAX_LENGTH,
+  JIRA_JQL_GENERATION_MAX_STATUS_NAMES
+} from '../jira/jira-jql-generation'
+import {
   OptionalFiniteNumber,
   OptionalPlainString,
   OptionalString,
@@ -138,4 +143,17 @@ export const GenerateIssueSummary = CancelGenerateIssueSummary.extend({
   description: z.string().trim().min(1).max(32_000),
   projectName: z.string().max(255).optional(),
   issueTypeName: z.string().max(255).optional()
+})
+
+export const CancelGenerateJql = z.object({
+  siteId: requiredString('Site ID is required'),
+  requestId: z.string().trim().min(1).max(128)
+})
+
+export const GenerateJql = CancelGenerateJql.extend({
+  instruction: z.string().trim().min(1).max(JIRA_JQL_GENERATION_INSTRUCTION_MAX_LENGTH),
+  baseJql: z.string().max(JIRA_JQL_GENERATION_JQL_MAX_LENGTH).optional(),
+  projectKey: z.string().max(255).optional(),
+  statusNames: z.array(z.string().max(255)).max(JIRA_JQL_GENERATION_MAX_STATUS_NAMES).optional(),
+  rejectionReason: z.string().max(2_000).optional()
 })

@@ -9,8 +9,10 @@ import {
   AssignableUsers,
   GenerateIssueSummary,
   CancelGenerateIssueSummary,
+  CancelGenerateJql,
   Connect,
   CreateIssue,
+  GenerateJql,
   IssueComment,
   IssueKey,
   IssueUpdate,
@@ -48,7 +50,7 @@ function generationOwner(context: Pick<RpcContext, 'pairedDeviceId' | 'caller'>)
   if (context.caller?.kind === 'local-cli') {
     return 'local-cli'
   }
-  throw new Error('A title generation request needs an authenticated connection.')
+  throw new Error('A Jira generation request needs an authenticated connection.')
 }
 
 export const JIRA_METHODS = [
@@ -66,6 +68,20 @@ export const JIRA_METHODS = [
     params: CancelGenerateIssueSummary,
     handler: (params, context) =>
       context.runtime.jiraCancelGenerateIssueSummary(params, generationOwner(context))
+  }),
+  defineMethod({
+    name: 'jira.generateJql',
+    permission: 'workspace',
+    params: GenerateJql,
+    handler: (params, context) =>
+      context.runtime.jiraGenerateJql(params, generationOwner(context), context.signal)
+  }),
+  defineMethod({
+    name: 'jira.cancelGenerateJql',
+    permission: 'workspace',
+    params: CancelGenerateJql,
+    handler: (params, context) =>
+      context.runtime.jiraCancelGenerateJql(params, generationOwner(context))
   }),
   defineMethod({
     name: 'jira.connect',

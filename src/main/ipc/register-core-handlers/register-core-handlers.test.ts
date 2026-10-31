@@ -52,6 +52,7 @@ const {
   registerLinearHandlersMock,
   registerJiraHandlersMock,
   registerJiraIssueSummaryGenerationHandlersMock,
+  registerJiraJqlGenerationHandlersMock,
   registerDictationCleanupHandlersMock,
   registerBitbucketHandlersMock,
   registerGitLabHandlersMock,
@@ -124,6 +125,7 @@ const {
   registerLinearHandlersMock: vi.fn(),
   registerJiraHandlersMock: vi.fn(),
   registerJiraIssueSummaryGenerationHandlersMock: vi.fn(),
+  registerJiraJqlGenerationHandlersMock: vi.fn(),
   registerDictationCleanupHandlersMock: vi.fn(),
   registerBitbucketHandlersMock: vi.fn(),
   registerGitLabHandlersMock: vi.fn(),
@@ -424,6 +426,10 @@ vi.mock('../jira/issue-summary-generation', () => ({
   registerJiraIssueSummaryGenerationHandlers: registerJiraIssueSummaryGenerationHandlersMock
 }))
 
+vi.mock('../jira/jql-generation', () => ({
+  registerJiraJqlGenerationHandlers: registerJiraJqlGenerationHandlersMock
+}))
+
 vi.mock('../dictation-cleanup', () => ({
   registerDictationCleanupHandlers: registerDictationCleanupHandlersMock
 }))
@@ -511,6 +517,7 @@ describe('registerCoreHandlers', () => {
     registerLinearHandlersMock.mockReset()
     registerJiraHandlersMock.mockReset()
     registerJiraIssueSummaryGenerationHandlersMock.mockReset()
+    registerJiraJqlGenerationHandlersMock.mockReset()
     registerDictationCleanupHandlersMock.mockReset()
     registerBitbucketHandlersMock.mockReset()
     registerGitLabHandlersMock.mockReset()
@@ -618,6 +625,7 @@ describe('registerCoreHandlers', () => {
     expect(registerLinearHandlersMock).toHaveBeenCalled()
     expect(registerJiraHandlersMock).toHaveBeenCalled()
     expect(registerJiraIssueSummaryGenerationHandlersMock).toHaveBeenCalledWith(store, undefined)
+    expect(registerJiraJqlGenerationHandlersMock).toHaveBeenCalledWith(store, undefined)
     expect(registerDictationCleanupHandlersMock).toHaveBeenCalledWith(store, undefined)
     expect(registerBitbucketHandlersMock).toHaveBeenCalled()
     expect(registerGitLabHandlersMock).toHaveBeenCalledWith(store)

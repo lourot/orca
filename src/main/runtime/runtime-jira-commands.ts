@@ -8,6 +8,11 @@ import {
   type JiraIssueSummaryGenerationHost
 } from '../text-generation/jira-issue-summary-requests'
 import type {
+  JiraJqlGenerationCancellation,
+  JiraJqlGenerationRequest
+} from '../../shared/jira/jira-jql-generation'
+import { cancelJiraJqlRequest, generateJiraJqlRequest } from '../text-generation/jira-jql-requests'
+import type {
   JiraConnectArgs,
   JiraCreateIssueArgs,
   JiraIssueFilter,
@@ -53,6 +58,15 @@ export class RuntimeJiraCommands {
     owner: string
   ): { ok: true } {
     cancelJiraIssueSummaryRequest(owner, args)
+    return { ok: true }
+  }
+
+  jiraGenerateJql(args: JiraJqlGenerationRequest, owner: string, signal?: AbortSignal) {
+    return generateJiraJqlRequest(this.host, owner, args, signal)
+  }
+
+  jiraCancelGenerateJql(args: JiraJqlGenerationCancellation, owner: string): { ok: true } {
+    cancelJiraJqlRequest(owner, args)
     return { ok: true }
   }
 

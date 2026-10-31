@@ -57,6 +57,14 @@ export function createWebJiraApi(): PreloadApi['jira'] {
       )
     }),
     cancelGenerateIssueSummary: () => Promise.resolve(),
+    generateJql: async () => ({
+      success: false,
+      error: translate(
+        'jira.jqlPrompt.webUnavailable',
+        'Generating JQL is unavailable in the web client.'
+      )
+    }),
+    cancelGenerateJql: () => Promise.resolve(),
     updateIssue: (args) => jiraCall('updateIssue', args),
     addIssueComment: (args) => jiraCall('addIssueComment', args),
     issueComments: (args) => readJiraPayload('issueCommentsStream', 'issueComments', args),

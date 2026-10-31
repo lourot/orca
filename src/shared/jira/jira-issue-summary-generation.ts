@@ -24,7 +24,8 @@ export type JiraIssueSummaryGenerationResult =
   | { success: true; summary: string; agentLabel?: string }
   | ({ success: false; canceled?: boolean } & TextGenerationFailureFields)
 
-function escapeJiraPromptTagValue(value: string): string {
+/** Escapes a value placed inside a prompt's data tag so it cannot close or open tags. */
+export function escapeJiraPromptTagValue(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 

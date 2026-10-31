@@ -1,6 +1,7 @@
 import { JIRA_IMAGE_CAPABILITY } from './jira-attachment-image'
 
 export const JIRA_ISSUE_SUMMARY_RUNTIME_CAPABILITY = 'jira.issue-summary-generation.v1' as const
+export const JIRA_JQL_GENERATION_RUNTIME_CAPABILITY = 'jira.jql-generation.v1' as const
 export const JIRA_USER_FIELDS_RUNTIME_CAPABILITY = 'jira.user-fields.v1' as const
 export const JIRA_TRANSITION_FIELDS_RUNTIME_CAPABILITY = 'jira.transition-fields.v1' as const
 export const JIRA_CURRENT_SPRINT_RUNTIME_CAPABILITY = 'jira.current-sprint.v1' as const
@@ -10,5 +11,6 @@ export const JIRA_USER_FIELDS_UPDATE_REQUIRED_MESSAGE =
 export const JIRA_DETAIL_RUNTIME_CAPABILITIES = [
   JIRA_USER_FIELDS_RUNTIME_CAPABILITY,
   JIRA_IMAGE_CAPABILITY,
-  JIRA_ISSUE_SUMMARY_RUNTIME_CAPABILITY
+  JIRA_ISSUE_SUMMARY_RUNTIME_CAPABILITY,
+  JIRA_JQL_GENERATION_RUNTIME_CAPABILITY
 ] as const

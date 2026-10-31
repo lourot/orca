@@ -49,6 +49,7 @@ export type TextGenerationOperation =
   | 'pull-request-fields'
   | 'branch-name'
   | 'jira-issue-summary'
+  | 'jira-jql'
   | 'conversation-name'
   | 'dictation-cleanup'
 

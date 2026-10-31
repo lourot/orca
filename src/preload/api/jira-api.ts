@@ -6,6 +6,11 @@ import type {
   JiraIssueSummaryGenerationResult
 } from '../../shared/jira/jira-issue-summary-generation'
 import type {
+  JiraJqlGenerationCancellation,
+  JiraJqlGenerationRequest,
+  JiraJqlGenerationResult
+} from '../../shared/jira/jira-jql-generation'
+import type {
   JiraComment,
   JiraConnectionStatus,
   JiraCreateField,
@@ -69,6 +74,8 @@ export type JiraApi = {
     args: JiraIssueSummaryGenerationRequest
   ) => Promise<JiraIssueSummaryGenerationResult>
   cancelGenerateIssueSummary: (args: JiraIssueSummaryGenerationCancellation) => Promise<void>
+  generateJql: (args: JiraJqlGenerationRequest) => Promise<JiraJqlGenerationResult>
+  cancelGenerateJql: (args: JiraJqlGenerationCancellation) => Promise<void>
   updateIssue: (args: {
     key: string
     updates: JiraIssueUpdate

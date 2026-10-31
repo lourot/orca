@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { shouldSuppressEnterSubmit } from '@/lib/new-workspace-enter-guard'
 import { JiraProjectPicker } from '@/components/jira-project-picker'
 import { matchesJiraProject } from '../../../../../shared/jira/jira-project-reference'
+import { TaskPageJiraJqlPromptPopover } from './JqlPromptPopover'
 export function TaskPageJiraFilters({
   model
 }: {
@@ -266,6 +267,7 @@ export function TaskPageJiraFilters({
             </button>
           ) : null}
         </div>
+        {jiraHasWorkspace ? null : <TaskPageJiraJqlPromptPopover model={model} />}
       </div>
     </div>
   )

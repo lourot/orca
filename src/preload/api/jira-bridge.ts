@@ -3,6 +3,10 @@ import type {
   JiraIssueSummaryGenerationRequest,
   JiraIssueSummaryGenerationCancellation
 } from '../../shared/jira/jira-issue-summary-generation'
+import type {
+  JiraJqlGenerationCancellation,
+  JiraJqlGenerationRequest
+} from '../../shared/jira/jira-jql-generation'
 import { ipcRenderer } from 'electron'
 import type { JiraIssueListFilters, JiraProjectStatusOrder } from '../../shared/jira/jira-types'
 import type { PreloadApi } from '../api-types'
@@ -61,6 +65,10 @@ export const jiraApi = {
     ipcRenderer.invoke('jira:generateIssueSummary', args),
   cancelGenerateIssueSummary: (args: JiraIssueSummaryGenerationCancellation): Promise<void> =>
     ipcRenderer.invoke('jira:cancelGenerateIssueSummary', args),
+
+  generateJql: (args: JiraJqlGenerationRequest) => ipcRenderer.invoke('jira:generateJql', args),
+  cancelGenerateJql: (args: JiraJqlGenerationCancellation): Promise<void> =>
+    ipcRenderer.invoke('jira:cancelGenerateJql', args),
 
   updateIssue: (args: {
     key: string
