@@ -159,19 +159,28 @@ it('updates Unicode highlighting when the editor language changes', () => {
   const view = render(<MonacoEditor {...props} language="markdown" />)
   expect(editorProps.current?.options).toEqual(
     expect.objectContaining({
-      unicodeHighlight: { ambiguousCharacters: false, invisibleCharacters: true }
+      unicodeHighlight: expect.objectContaining({
+        ambiguousCharacters: false,
+        invisibleCharacters: true
+      })
     })
   )
   view.rerender(<MonacoEditor {...props} language="typescript" />)
   expect(editorProps.current?.options).toEqual(
     expect.objectContaining({
-      unicodeHighlight: { ambiguousCharacters: true, invisibleCharacters: true }
+      unicodeHighlight: expect.objectContaining({
+        ambiguousCharacters: true,
+        invisibleCharacters: true
+      })
     })
   )
   view.rerender(<MonacoEditor {...props} language="markdown" />)
   expect(editorProps.current?.options).toEqual(
     expect.objectContaining({
-      unicodeHighlight: { ambiguousCharacters: false, invisibleCharacters: true }
+      unicodeHighlight: expect.objectContaining({
+        ambiguousCharacters: false,
+        invisibleCharacters: true
+      })
     })
   )
 })

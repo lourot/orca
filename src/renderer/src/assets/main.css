@@ -3409,3 +3409,9 @@ html.native-shell .app-layout {
     animation: none;
   }
 }
+
+/* Rendered whitespace in a muted green that reads on light and dark editor themes. Set on
+   .lines-content: Monaco draws the dots in an overlay beside .view-lines, not inside it. */
+.monaco-editor .lines-content {
+  --vscode-editorWhitespace-foreground: #507050;
+}
