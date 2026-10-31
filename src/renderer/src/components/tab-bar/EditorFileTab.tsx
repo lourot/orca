@@ -319,8 +319,8 @@ export default function EditorFileTab({
           />
         ) : (
           <span
-            className={`${TAB_LABEL_WIDTH_CLASSES}${isPreviewTab ? ' italic' : ''}${isMissingFileMutation ? ' line-through' : ''}`}
-            style={tabStatusColor ? { color: tabStatusColor } : undefined}
+            className={`${TAB_LABEL_WIDTH_CLASSES}${isPreviewTab ? ' italic' : ''}${isMissingFileMutation ? ' line-through' : ''}${file.isDirty ? ' text-destructive' : ''}`}
+            style={tabStatusColor && !file.isDirty ? { color: tabStatusColor } : undefined}
             onDoubleClick={(e) => {
               if (isPreviewTab && onMakePermanent) {
                 e.stopPropagation()
@@ -355,7 +355,7 @@ export default function EditorFileTab({
       {/* Share one dot/close slot so autosave cannot change tab width. */}
       <div className="relative flex items-center justify-center w-4 h-4 shrink-0">
         {file.isDirty && (
-          <span className="absolute size-1.5 rounded-full bg-foreground/60 group-hover:hidden group-focus-within:hidden" />
+          <span className="absolute size-1.5 rounded-full bg-destructive group-hover:hidden group-focus-within:hidden" />
         )}
         {!isPinned && (
           <EditorFileTabCloseButton
