@@ -21,6 +21,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { callBacklog } from '@/lib/backlog-task-source'
+import { useAppStore } from '@/store'
 import { RuntimeRpcCallError } from '@/runtime/runtime-rpc-result'
 import {
   BacklogTaskFieldInputs,
@@ -56,8 +57,19 @@ export function BacklogTaskEditor({
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   const [status, setStatus] = useState(task?.status ?? statuses[0])
+  const settings = useAppStore((state) => state.settings)
   const [loadedDraft] = useState(() => backlogFieldDraft(task))
-  const [draft, setDraft] = useState(loadedDraft)
+  // Defaults go into the draft, not the baseline, so a create sends them as edits.
+  const [draft, setDraft] = useState(() =>
+    task
+      ? loadedDraft
+      : {
+          ...loadedDraft,
+          priority: settings?.backlogNewTaskPriority?.trim() ?? '',
+          assignees: settings?.backlogNewTaskAssignees ?? '',
+          labels: settings?.backlogNewTaskLabels ?? ''
+        }
+  )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // A save the host refused before writing: shown, but the user may retry right away.
@@ -198,6 +210,7 @@ export function BacklogTaskEditor({
           {editFields ? (
             <BacklogTaskFieldInputs
               draft={draft}
+              priorityClearable={!loadedDraft.priority}
               priorities={priorities}
               types={types}
               disabled={saving}

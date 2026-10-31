@@ -80,15 +80,20 @@ function configured(value: string, options: string[]): string {
   return options.find((option) => option.toLowerCase() === value.toLowerCase()) ?? value
 }
 
-/** Inputs for priority, type, due date, people, labels and relations. */
+/**
+ * Inputs for priority, type, due date, people, labels and relations. `priorityClearable` is true
+ * when the loaded task has no priority, so choosing None leaves it unset.
+ */
 export function BacklogTaskFieldInputs({
   draft,
+  priorityClearable,
   priorities,
   types,
   disabled,
   onChange
 }: {
   draft: BacklogFieldDraft
+  priorityClearable: boolean
   priorities: string[]
   types: string[]
   disabled: boolean
@@ -131,10 +136,10 @@ export function BacklogTaskFieldInputs({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {/* Backlog.md cannot clear a priority, so "None" exists only while none is set. */}
-              {draft.priority ? null : (
+              {/* Backlog.md cannot clear a priority, so "None" exists only while none is stored. */}
+              {priorityClearable ? (
                 <SelectItem value={NONE}>{translate('backlog.none', 'None')}</SelectItem>
-              )}
+              ) : null}
               {choices(draft.priority, priorities).map((entry) => (
                 <SelectItem key={entry} value={entry}>
                   {entry}

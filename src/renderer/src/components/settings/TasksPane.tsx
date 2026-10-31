@@ -11,6 +11,7 @@ import { JiraIcon } from '@/components/icons/JiraIcon'
 import { LinearIcon } from '@/components/icons/LinearIcon'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store'
+import { BacklogNewTaskDefaultsStep } from './BacklogNewTaskDefaultsStep'
 import { SearchableSetting } from './SearchableSetting'
 import { SettingsSubsectionHeader } from './SettingsFormControls'
 import { CodeHostSetupSteps, JiraSetupSteps } from './TaskSourceSimpleSetup'
@@ -220,17 +221,24 @@ export function TasksPane({ settings, updateSettings }: TasksPaneProps): React.J
                 onToggleVisible={() => toggleProvider(provider)}
               >
                 {provider === 'backlog' ? (
-                  <TaskSourceShowInTasksStep
-                    index={1}
-                    providerLabel={meta.label}
-                    visible={visible}
-                    canHide={canHide}
-                    onToggleVisible={() => toggleProvider(provider)}
-                    description={translate(
-                      'backlog.setupDescription',
-                      'Select a project in Tasks → Backlog.md. Its configuration and CLI are checked on the execution host.'
-                    )}
-                  />
+                  <ol className="divide-y divide-border/50">
+                    <TaskSourceShowInTasksStep
+                      index={1}
+                      providerLabel={meta.label}
+                      visible={visible}
+                      canHide={canHide}
+                      onToggleVisible={() => toggleProvider(provider)}
+                      description={translate(
+                        'backlog.setupDescription',
+                        'Select a project in Tasks → Backlog.md. Its configuration and CLI are checked on the execution host.'
+                      )}
+                    />
+                    <BacklogNewTaskDefaultsStep
+                      index={2}
+                      settings={settings}
+                      updateSettings={updateSettings}
+                    />
+                  </ol>
                 ) : provider === 'linear' ? (
                   <TaskSourceLinearSetup
                     connected={readiness.connected}

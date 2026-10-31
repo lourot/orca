@@ -16,7 +16,9 @@ const mocks = vi.hoisted(
   (): {
     openModal: ReturnType<typeof vi.fn>
     updateSettings: ReturnType<typeof vi.fn>
-    settings: { defaultBacklogProject: string | null }
+    settings: { defaultBacklogProject: string | null } & Partial<
+      Record<'backlogNewTaskPriority' | 'backlogNewTaskAssignees' | 'backlogNewTaskLabels', string>
+    >
     repos: Repo[]
     projectHostSetups: []
     runtimeStatusByEnvironmentId: Map<string, RuntimeEnvironmentStatus>
@@ -305,6 +307,31 @@ describe('Backlog Tasks UI', () => {
       })
     )
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+  it('sends the configured new-task defaults with a create', async () => {
+    mocks.settings = {
+      defaultBacklogProject: null,
+      backlogNewTaskPriority: 'low',
+      backlogNewTaskAssignees: '@alice',
+      backlogNewTaskLabels: 'work, repo:orca'
+    }
+    render(<BacklogTasks />)
+    await screen.findByRole('button', { name: /OPS-007/ })
+    fireEvent.click(screen.getByRole('button', { name: 'New task' }))
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Defaults' } })
+    vi.mocked(callBacklog).mockResolvedValueOnce({ saved: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    await waitFor(() =>
+      expect(callBacklog).toHaveBeenCalledWith(expect.anything(), {
+        kind: 'create',
+        title: 'Defaults',
+        description: '',
+        status: 'Inbox',
+        priority: 'low',
+        assignees: ['@alice'],
+        labels: ['work', 'repo:orca']
+      })
+    )
   })
   it.each(['RPC timeout', 'SSH disconnected'])(
     'prevents resubmission after an ambiguous create: %s',
