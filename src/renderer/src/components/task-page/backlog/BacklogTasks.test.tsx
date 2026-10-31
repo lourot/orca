@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { BacklogTasks } from './BacklogTasks'
 import { callBacklog } from '@/lib/backlog-task-source'
+import { getRepoWorkspaceCreationTargetHint } from '@/lib/project-host-workspace-target'
 import type * as BacklogSource from '@/lib/backlog-task-source'
 import type { Repo } from '../../../../../shared/repo-types'
 import type { RuntimeEnvironmentStatus } from '../../../../../shared/runtime-host-status'
@@ -17,12 +18,14 @@ const mocks = vi.hoisted(
     updateSettings: ReturnType<typeof vi.fn>
     settings: { defaultBacklogProject: string | null }
     repos: Repo[]
+    projectHostSetups: []
     runtimeStatusByEnvironmentId: Map<string, RuntimeEnvironmentStatus>
   } => ({
     openModal: vi.fn(),
     updateSettings: vi.fn(),
     settings: { defaultBacklogProject: null },
     runtimeStatusByEnvironmentId: new Map<string, RuntimeEnvironmentStatus>(),
+    projectHostSetups: [],
     repos: [
       {
         id: 'folder',
@@ -112,6 +115,27 @@ describe('Backlog Tasks UI', () => {
         initialRepoId: 'folder',
         taskSourceContext: expect.objectContaining({ provider: 'backlog', hostId: 'local' }),
         backlogTaskPrompt: expect.stringContaining('OPS-007')
+      })
+    )
+  })
+  it('targets the project named by a repo: label instead of the board project', async () => {
+    const orca: Repo = { ...mocks.repos[0], id: 'orca', path: '/orca', displayName: 'orca' }
+    mocks.repos = [...mocks.repos, orca]
+    render(<BacklogTasks />)
+    const row = await screen.findByRole('button', { name: /OPS-007/ })
+    vi.mocked(callBacklog).mockResolvedValueOnce(
+      detail({ status: 'Review', body: 'Details', labels: ['work', 'repo:orca'] })
+    )
+    fireEvent.click(row)
+    await screen.findByText('Details')
+    fireEvent.click(screen.getByRole('button', { name: 'Start workspace' }))
+    // The composer seeds from the task source (the board) unless given an explicit target.
+    expect(mocks.openModal).toHaveBeenCalledWith(
+      'new-workspace-composer',
+      expect.objectContaining({
+        initialRepoId: 'orca',
+        initialWorkspaceTarget: getRepoWorkspaceCreationTargetHint(orca, []),
+        taskSourceContext: expect.objectContaining({ repoId: 'folder' })
       })
     )
   })

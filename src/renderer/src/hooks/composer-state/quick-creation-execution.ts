@@ -94,7 +94,6 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
     ): Promise<void> => {
       assertBacklogLaunchTarget(
         taskSourceContext,
-        repoId,
         workspaceRunContext?.hostId ?? selectedRepoExecutionHostId
       )
       const prepared = await prepareQuickSubmit(

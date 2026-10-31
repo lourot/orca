@@ -72,33 +72,59 @@ export async function callBacklog(repo: Repo, operation: BacklogOperation): Prom
   )
 }
 
-/** Pairs CLI workflow instructions with contained task/source data for a reviewable composer draft. */
+/** Picks the project named by the task's first resolvable `repo:<name>` label on the board's host, else the board's own. */
+export function resolveBacklogLaunchRepo(
+  task: Pick<BacklogTask, 'labels'>,
+  boardRepo: Repo,
+  repos: readonly Repo[]
+): Repo {
+  const hostId = getRepoExecutionHostId(boardRepo)
+  for (const label of task.labels) {
+    const name = label.startsWith('repo:') ? label.slice('repo:'.length).trim() : ''
+    const match =
+      name &&
+      repos.find(
+        (candidate) =>
+          candidate.displayName === name && getRepoExecutionHostId(candidate) === hostId
+      )
+    if (match) {
+      return match
+    }
+  }
+  return boardRepo
+}
+
+/** Pairs board-located CLI workflow instructions with contained task data for a reviewable composer draft. */
 export function buildBacklogTaskPrompt(
   task: Pick<BacklogTask, 'id' | 'title' | 'body'>,
   context: TaskSourceContext
 ): string {
+  const boardPath =
+    context.providerIdentity?.provider === 'backlog' ? context.providerIdentity.projectPath : ''
   return [
-    `Work on Backlog.md task ${task.id}. Read the current task with the project Backlog CLI and follow the project workflow. Do not hand-edit task Markdown.`,
+    [
+      `Pick up and work on task ${task.id} from the Backlog.md task board in \`${boardPath}\`.`,
+      'That board directory may be a different repository from this workspace: make the code changes in this workspace, and run the Backlog CLI only from the board directory.',
+      'Before starting, read the board directory’s AGENTS.md or CLAUDE.md and follow its task workflow: which Backlog CLI to run, claiming the task, recording progress, and moving it to Done or releasing it when you finish. If you have a skill for picking up board tasks, use it.',
+      'Read the current task with that CLI rather than relying on the copy below. Do not hand-edit task Markdown.'
+    ].join(' '),
     buildContainedLinkedContextBlock({
       provider: 'backlog',
       version: 1,
-      renderedText: `Project: ${context.projectId}\nHost: ${context.hostId}\nSource checkout: ${context.providerIdentity?.provider === 'backlog' ? context.providerIdentity.projectPath : ''}\nTask: ${task.id}\nTitle: ${task.title}\n\n${task.body}`
+      renderedText: `Project: ${context.projectId}\nHost: ${context.hostId}\nBoard checkout: ${boardPath}\nTask: ${task.id}\nTitle: ${task.title}\n\n${task.body}`
     })
   ].join('\n\n')
 }
 
-/** Rejects Backlog launches after repo ID or host changes; other task providers are unaffected. */
+/** Rejects Backlog launches on another host, where the board path does not resolve; any project there is fine. */
 export function assertBacklogLaunchTarget(
   context: TaskSourceContext | null,
-  repoId: string,
   hostId: ExecutionHostId | null
 ): void {
   if (context?.provider !== 'backlog') {
     return
   }
-  if (context.repoId !== repoId || context.hostId !== hostId) {
-    throw new Error(
-      'Select the Backlog task’s original project and execution host before launching.'
-    )
+  if (context.hostId !== hostId) {
+    throw new Error('Select a project on the Backlog task’s execution host before launching.')
   }
 }

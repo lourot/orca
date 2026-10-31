@@ -18,11 +18,13 @@ import {
   backlogRepoKey,
   buildBacklogTaskPrompt,
   callBacklog,
+  resolveBacklogLaunchRepo,
   supportsBacklog,
   supportsBacklogFieldEdits
 } from '@/lib/backlog-task-source'
 import { buildExecutionHostRegistry } from '../../../../../shared/execution-host-registry'
 import { getRepoExecutionHostId } from '../../../../../shared/execution-host'
+import { getRepoWorkspaceCreationTargetHint } from '@/lib/project-host-workspace-target'
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
 import { BacklogTaskEditor } from './BacklogTaskEditor'
 import { BacklogTaskFields } from './BacklogTaskFields'
@@ -194,8 +196,14 @@ function BacklogProjectTasks({
     if (!context) {
       return
     }
+    const launchRepo = resolveBacklogLaunchRepo(task, repo, state.repos)
     openModal('new-workspace-composer', {
-      initialRepoId: repo.id,
+      initialRepoId: launchRepo.id,
+      // Why: the composer otherwise seeds its target from the task source, i.e. the board's project.
+      initialWorkspaceTarget:
+        launchRepo === repo
+          ? undefined
+          : getRepoWorkspaceCreationTargetHint(launchRepo, state.projectHostSetups),
       prefilledName: `${task.id} ${task.title}`,
       taskSourceContext: context,
       backlogTaskPrompt: buildBacklogTaskPrompt(task, context),

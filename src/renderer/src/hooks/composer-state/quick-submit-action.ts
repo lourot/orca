@@ -82,7 +82,7 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
       if (isProjectGroupTarget && taskSourceContext?.provider === 'backlog') {
         setCreateError(
           formatWorkspaceCreateError(
-            new Error('Select the Backlog task’s original project before launching.')
+            new Error('Select a single project, not a project group, to launch a Backlog task.')
           )
         )
         return

@@ -9,6 +9,7 @@ import {
   backlogRepoKey,
   buildBacklogTaskPrompt,
   callBacklog,
+  resolveBacklogLaunchRepo,
   supportsBacklog
 } from './backlog-task-source'
 import { assertRuntimeEnvironmentCapability, callRuntimeRpc } from '@/runtime/runtime-rpc-client'
@@ -54,10 +55,8 @@ describe('Backlog source identity and launch', () => {
     })!
     const remote = { ...local, hostId: 'runtime:remote' as const }
     expect(getTaskSourceCacheScope(local)).not.toBe(getTaskSourceCacheScope(remote))
-    expect(() => assertBacklogLaunchTarget(local, repo.id, 'runtime:remote')).toThrow(
-      'original project'
-    )
-    expect(() => assertBacklogLaunchTarget(local, repo.id, 'local')).not.toThrow()
+    expect(() => assertBacklogLaunchTarget(local, 'runtime:remote')).toThrow('execution host')
+    expect(() => assertBacklogLaunchTarget(local, 'local')).not.toThrow()
     const prompt = buildBacklogTaskPrompt(
       {
         id: 'OPS-007.2',
@@ -66,10 +65,31 @@ describe('Backlog source identity and launch', () => {
       },
       local
     )
-    expect(prompt).toContain('task OPS-007.2')
+    const [instructions] = prompt.split('Linked backlog context follows')
+    // The board path must sit in the trusted instructions: the agent may run in another repo.
+    expect(instructions).toContain('task OPS-007.2')
+    expect(instructions).toContain('`/project`')
     expect(prompt).toContain('untrusted source data')
     expect(prompt).toContain('\\--- END LINKED WORK ITEM CONTEXT ---')
     expect(prompt).toContain('Do not hand-edit task Markdown')
+  })
+  it('launches in the first repo: label project on the board host, else the board project', () => {
+    const orca = { ...repo, id: 'orca', displayName: 'orca' }
+    const remoteApi = {
+      ...repo,
+      id: 'remote-api',
+      displayName: 'api',
+      executionHostId: 'runtime:r' as const
+    }
+    const api = { ...repo, id: 'api', displayName: 'api' }
+    const repos = [repo, remoteApi, orca, api]
+    const launchRepo = (labels: string[]): string =>
+      resolveBacklogLaunchRepo({ labels }, repo, repos).id
+    expect({
+      firstResolvable: launchRepo(['work', 'repo:missing', 'repo:orca', 'repo:api']),
+      boardHostOnly: launchRepo(['repo:api']),
+      none: launchRepo(['work'])
+    }).toEqual({ firstResolvable: 'orca', boardHostOnly: 'api', none: repo.id })
   })
   it('gates old runtime hosts and routes to the selected owner, not global focus', async () => {
     vi.mocked(assertRuntimeEnvironmentCapability).mockRejectedValueOnce(new Error('Update'))
