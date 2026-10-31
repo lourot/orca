@@ -91,6 +91,17 @@ async function executeOperation(
   if (task?.hasStatusHook) {
     throw new Error('This task has an onStatusChange hook. Edit it with the Backlog CLI directly.')
   }
+  // Why: agents edit tasks through the CLI too; writing stale editor fields would undo their change.
+  if (
+    operation.kind === 'edit' &&
+    task &&
+    operation.base &&
+    (operation.base.title !== task.title ||
+      operation.base.description !== task.description ||
+      operation.base.status !== task.status)
+  ) {
+    throw new Error('This task changed since you opened it. Refresh and edit it again.')
+  }
   if (
     !operation.title.trim() ||
     (!project.statuses.includes(operation.status) && operation.status !== task?.status)

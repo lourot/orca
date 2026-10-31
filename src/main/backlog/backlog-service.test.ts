@@ -5,7 +5,7 @@ import path from 'node:path'
 import { executeBacklogOperation } from './backlog-service'
 import { backlogMutationArgs } from './backlog-cli'
 import * as backlogCli from './backlog-cli'
-import { BacklogOperation } from '../../shared/backlog-types'
+import { BACKLOG_CLI_VERSION, BacklogOperation } from '../../shared/backlog-types'
 import { runProcess } from '@orca/process-host'
 
 const roots: string[] = []
@@ -52,7 +52,7 @@ describe('Backlog project operations', () => {
       })
       expect(list).toHaveProperty(
         'mutationUnavailable',
-        expect.stringContaining('backlog.md@1.48.0')
+        expect.stringContaining(`backlog.md@${BACKLOG_CLI_VERSION}`)
       )
       const detail = await executeBacklogOperation(root, { kind: 'read', id: 'OPS-007.2' })
       expect(detail).toMatchObject({
@@ -149,7 +149,9 @@ describe('Backlog project operations', () => {
   it('refuses mutations without the CLI or with executable hooks/autocommit', async () => {
     const root = await fixture()
     const create = { kind: 'create', title: 'Task', description: '', status: 'Inbox' } as const
-    await expect(executeBacklogOperation(root, create)).rejects.toThrow('Install backlog.md@1.48.0')
+    await expect(executeBacklogOperation(root, create)).rejects.toThrow(
+      `Install backlog.md@${BACKLOG_CLI_VERSION}`
+    )
     await writeFile(
       path.join(root, 'backlog.config.yml'),
       'project_name: Sample\nbacklog_directory: backlog\nauto_commit: true\n'
@@ -157,6 +159,26 @@ describe('Backlog project operations', () => {
     await expect(executeBacklogOperation(root, create)).rejects.toThrow(
       'Disable Backlog autoCommit'
     )
+  })
+  it('refuses an edit whose fields changed on disk since the editor loaded them', async () => {
+    const root = await fixture()
+    await task(root, 'OPS-1')
+    const loaded = { title: 'Unicode café: task', description: 'Line one\nLine two' }
+    const edit = { kind: 'edit', id: 'OPS-1', ...loaded, title: 'Renamed' } as const
+    await expect(
+      executeBacklogOperation(root, {
+        ...edit,
+        status: 'In review',
+        base: { ...loaded, status: 'Inbox' }
+      })
+    ).rejects.toThrow('changed since you opened it')
+    await expect(
+      executeBacklogOperation(root, {
+        ...edit,
+        status: 'In review',
+        base: { ...loaded, status: 'In review' }
+      })
+    ).rejects.toThrow(`Install backlog.md@${BACKLOG_CLI_VERSION}`)
   })
   it('rejects padded-ID collisions and hidden CLI configuration effects', async () => {
     const root = await fixture()
@@ -223,7 +245,7 @@ describe('Backlog project operations', () => {
   })
 })
 
-// Set to a public backlog.md@1.48.0 package installation; all writes stay in the fixture copy.
+// Set to an installed backlog.md package at BACKLOG_CLI_VERSION; all writes stay in the fixture copy.
 it.skipIf(!process.env.ORCA_BACKLOG_TEST_PACKAGE)(
   'creates and edits through the real pinned CLI without losing other task sections',
   async () => {
@@ -310,7 +332,7 @@ it.skipIf(!process.env.ORCA_BACKLOG_TEST_PACKAGE)(
       args: [path.join(root, 'node_modules/backlog.md/cli.js'), '--version'],
       cwd: root
     })
-    expect(version.stdout.trim()).toBe('1.48.0')
+    expect(version.stdout.trim()).toBe(BACKLOG_CLI_VERSION)
     expect(await readFile(path.join(root, 'backlog.config.yml'), 'utf8')).toContain(
       'auto_commit: false'
     )

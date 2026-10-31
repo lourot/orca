@@ -13,7 +13,7 @@ archived/completed files and tasks on other Git branches are not merged into thi
 
 ## Create and edit
 
-Install **`backlog.md@1.48.0` as a pinned project dependency** on the execution host.
+Install **`backlog.md@1.55.3` as a pinned project dependency** on the execution host.
 Orca invokes that project's `node_modules/backlog.md/cli.js` directly, with separate
 arguments, a timeout and bounded output. It never invokes `npx`, downloads packages,
 uses a global CLI or writes task Markdown itself. Other CLI versions remain read-only
@@ -46,23 +46,21 @@ from a different checkout. No synthetic GitHub issue number or hosted issue URL 
 
 ## Boundaries and compatibility
 
-Filesystem reads and CLI writes run on the selected execution host. Direct SSH requests
-negotiate `backlog.capabilities` before dispatch; disconnected/older relays never fall
-back to local files. Paired runtimes advertise `tasks.backlog.v1`; older runtimes do not
-receive Backlog calls. Native mobile has its own provider allowlist and does not expose
+Filesystem reads and CLI writes run on the selected execution host. SSH projects are
+refused, never read from local files: the SSH relay that would run the CLI was removed
+(#27215). Paired runtimes advertise `tasks.backlog.v1`; older runtimes do not receive
+Backlog calls. Native mobile has its own provider allowlist and does not expose
 this source or its mutation RPC. Desktop/web renderers are the supported UI surface.
 
 Runtime `backlog.execute` accepts a registered `repoId`, resolves its path on that runtime,
 and routes to its execution host; a caller-supplied `repoPath` is not used. Runtime
 transport authentication runs before dispatch, and mobile-scoped devices cannot call
-this method. The SSH relay's separate `backlog.execute` accepts the resolved `repoPath`
-from the trusted host client. Like relay filesystem and process RPCs, it operates with
-the host user's authority, not a per-project sandbox. `session.registerRoot` is a
-compatibility no-op, not authorization. A relay-only root allowlist would not restrict
-the same client's existing filesystem or shell access.
+this method. It operates with the host user's authority, not a per-project sandbox.
 
 Task/config paths cannot escape the project or use symlinks. Package-manager links are
-accepted only when the resolved CLI package stays inside the project. Reads are bounded
+accepted only when the resolved CLI package stays inside the project. `cli.js` is a shim
+that runs a native binary found by Node module lookup, which also searches parent folders;
+every native package it could load must be the pinned version inside the project. Reads are bounded
 to 128 KiB per task, 16 MiB of task content, 10,000 directory entries and 100 rows per page.
 The adapter refuses oversized or duplicate-ID data instead of silently returning an
 incomplete board. These checks are not a sandbox for an untrusted project dependency:
@@ -74,12 +72,16 @@ The command and storage contract was checked against Backlog.md `v1.48.0`, commi
 `da0784d41ad3807fdc34e5501afe3fa950deff94` in
 [MrLesk/Backlog.md](https://github.com/MrLesk/Backlog.md/tree/da0784d41ad3807fdc34e5501afe3fa950deff94):
 `CLI-INSTRUCTIONS.md`, `ADVANCED-CONFIG.md`, config discovery, task metadata and
-create/edit command definitions. Its license is MIT, Copyright (c) 2025 Backlog.md.
+create/edit command definitions. For `v1.55.3` (commit
+`0cf4fdbc70020327f4366a29d3f405f83d180301`), `parseConfig` still reads `auto_commit`,
+`remote_operations`, `check_active_branches` and `onStatusChange` line by line; only list
+keys (`statuses`, `labels`, ...) moved to a stricter parser. The real-CLI test below
+passes against `v1.55.3`. Its license is MIT, Copyright (c) 2025 Backlog.md.
 The adapter invokes the installed CLI; it does not vendor Backlog.md implementation.
 
 `src/main/backlog/backlog-service.test.ts` covers filesystem/argument boundaries and has
 an opt-in real-CLI integration test. Set `ORCA_BACKLOG_TEST_PACKAGE` to an installed
-`backlog.md@1.48.0` package directory; the test copies that package and its native sibling
+`backlog.md@1.55.3` package directory; the test copies that package and its native sibling
 to a temporary project before running create/edit. It does not modify the original
 installation. It also exercises a title-only edit of a legacy multiline description.
 Parser regressions cover whitespace-delimited config keys inside YAML literals and
@@ -89,7 +91,7 @@ on unsupported metadata syntax rather than discarding unknown fields.
 Host-routing and renderer tests cover ownership, capability refusal, source identity,
 browsing, saves and opening the workspace composer. Execution has a 45-second overall
 response deadline (including scanning), with a 30-second CLI limit and abort signaling;
-SSH execution and renderer RPC ceilings are 55 and 65 seconds respectively. A timeout
+the renderer RPC ceiling is 65 seconds. A timeout
 is not proof that writes stopped. Any unconfirmed save locks that editor, and closing
 it keeps create/edit disabled until an explicit refresh succeeds. Inspect the refreshed
 tasks before a new attempt; this is not persistent deduplication across page reloads.

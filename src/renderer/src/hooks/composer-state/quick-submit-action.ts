@@ -17,6 +17,7 @@ import type { ComposerModel } from './composer-model'
 
 type QuickSubmitActionInput = Pick<
   ComposerModel,
+  | 'agentPrompt'
   | 'effectiveLinkedPR'
   | 'executeQuickCreation'
   | 'fallbackCreatureName'
@@ -47,6 +48,7 @@ type QuickSubmitActionInput = Pick<
 /** Exposes guarded quick submission with pending-creation reuse and UI error/creating state settlement. */
 export function useQuickSubmitAction(input: QuickSubmitActionInput) {
   const {
+    agentPrompt,
     effectiveLinkedPR,
     executeQuickCreation,
     fallbackCreatureName,
@@ -172,6 +174,7 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
             initialRepoId: repoId,
             linkedWorkItem,
             taskSourceContext,
+            backlogTaskPrompt: agentPrompt,
             telemetrySource
           })
       })
@@ -208,6 +211,7 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
       }
     },
     [
+      agentPrompt,
       effectiveLinkedPR,
       executeQuickCreation,
       fallbackCreatureName,

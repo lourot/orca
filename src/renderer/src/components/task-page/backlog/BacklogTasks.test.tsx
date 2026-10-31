@@ -128,7 +128,8 @@ describe('Backlog Tasks UI', () => {
           id: 'OPS-007',
           title: 'New title',
           description: 'Description',
-          status
+          status,
+          base: { title: 'Task title', description: 'Description', status: 'Legacy' }
         })
       )
     }

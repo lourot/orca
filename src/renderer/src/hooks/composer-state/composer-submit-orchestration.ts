@@ -124,6 +124,7 @@ export function useComposerSubmitOrchestration(
     telemetrySource: target.composerTargetStore.telemetrySource
   })
   const quickSubmitAction = useQuickSubmitAction({
+    agentPrompt: target.sourceContextState.agentPrompt,
     effectiveLinkedPR: target.derivedComposerState.effectiveLinkedPR,
     executeQuickCreation: quickCreationExecution.executeQuickCreation,
     fallbackCreatureName: target.derivedComposerState.fallbackCreatureName,

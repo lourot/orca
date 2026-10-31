@@ -20,6 +20,7 @@ export const HOST_OPERATION_OWNERSHIP = {
   aiVault: 'host',
   artifacts: 'host',
   automation: 'host',
+  backlog: 'host',
   browser: 'host',
   clipboard: 'host',
   computer: 'host',

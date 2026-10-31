@@ -28,9 +28,9 @@ const repo: Repo = {
 beforeEach(() => vi.resetAllMocks())
 
 describe('Backlog source identity and launch', () => {
-  it('requires an explicit runtime capability without changing local and SSH support', () => {
+  it('supports local projects, runtime projects only when advertised, and never SSH', () => {
     expect(supportsBacklog(repo, new Map())).toBe(true)
-    expect(supportsBacklog({ ...repo, executionHostId: 'ssh:server' }, new Map())).toBe(true)
+    expect(supportsBacklog({ ...repo, executionHostId: 'ssh:server' }, new Map())).toBe(false)
     const remote = { ...repo, executionHostId: 'runtime:remote' as const }
     expect(supportsBacklog(remote, new Map())).toBe(false)
     expect(supportsBacklog(remote, new Map([['runtime:remote', { capabilities: [] }]]))).toBe(false)

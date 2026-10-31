@@ -92,7 +92,11 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
       options?: QuickSubmitOptions,
       handoff?: ComposerCreateHandoff
     ): Promise<void> => {
-      assertBacklogLaunchTarget(taskSourceContext, repoId, selectedRepoExecutionHostId)
+      assertBacklogLaunchTarget(
+        taskSourceContext,
+        repoId,
+        workspaceRunContext?.hostId ?? selectedRepoExecutionHostId
+      )
       const prepared = await prepareQuickSubmit(
         smartGitHubResolution,
         requestedAgent,
@@ -130,7 +134,10 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
 
       const { prompt: quickPrompt, draftPrompt: quickDraftPrompt } =
         taskSourceContext?.provider === 'backlog'
-          ? { prompt: '', draftPrompt: agentPrompt || null }
+          ? {
+              prompt: '',
+              draftPrompt: [trimmedNote, agentPrompt].filter(Boolean).join('\n\n') || null
+            }
           : resolveQuickCreateLinkedWorkItemPrompt(promptLinkedWorkItem, trimmedNote)
 
       const {

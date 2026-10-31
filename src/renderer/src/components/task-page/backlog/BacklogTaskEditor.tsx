@@ -54,7 +54,14 @@ export function BacklogTaskEditor({
       const fields = { title, description, status }
       const reply = await callBacklog(
         repo,
-        task ? { kind: 'edit', id: task.id, ...fields } : { kind: 'create', ...fields }
+        task
+          ? {
+              kind: 'edit',
+              id: task.id,
+              ...fields,
+              base: { title: task.title, description: task.description, status: task.status }
+            }
+          : { kind: 'create', ...fields }
       )
       if (!('saved' in reply)) {
         throw new Error('Backlog CLI did not confirm the save. Refresh before retrying.')

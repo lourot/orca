@@ -125,7 +125,7 @@ export async function loadBacklogProject(repoPath: string) {
   }
   const configText = await readBacklogFile(await containedBacklogPath(root, configPath), 32768)
   const config = Config.parse(parse(configText))
-  // Backlog 1.48 reads these keys line-by-line, including indented lines.
+  // Backlog 1.48-1.55 reads these keys line-by-line, including indented lines.
   const cliEntries = configText.split('\n').flatMap((line) => {
     const trimmed = line.trim()
     const colon = trimmed.indexOf(':')

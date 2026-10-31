@@ -1,7 +1,8 @@
 import { cp, mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { runProcess } from '../../src/shared/child-process/run-process'
+import { runProcess } from '@orca/process-host'
+import { BACKLOG_CLI_VERSION } from '../../src/shared/backlog-types'
 import { test as base, expect } from './helpers/orca-app'
 
 const test = base.extend({
@@ -30,10 +31,12 @@ test('Backlog list, read, CLI create/edit, error recovery and launch composer', 
 }, testInfo) => {
   const source = process.env.ORCA_BACKLOG_TEST_PACKAGE
   if (!source) {
-    throw new Error('Set ORCA_BACKLOG_TEST_PACKAGE to a pinned backlog.md@1.48.0 installation')
+    throw new Error(
+      `Set ORCA_BACKLOG_TEST_PACKAGE to a pinned backlog.md@${BACKLOG_CLI_VERSION} installation`
+    )
   }
   const manifest = JSON.parse(await readFile(path.join(source, 'package.json'), 'utf8'))
-  expect(manifest.version).toBe('1.48.0')
+  expect(manifest.version).toBe(BACKLOG_CLI_VERSION)
   const nativePackage = `backlog.md-${process.platform === 'win32' ? 'windows' : process.platform}-${process.arch}`
   for (const name of ['backlog.md', nativePackage]) {
     await cp(path.join(path.dirname(source), name), path.join(testRepoPath, 'node_modules', name), {

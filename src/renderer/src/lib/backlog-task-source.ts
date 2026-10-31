@@ -13,12 +13,15 @@ import type { TaskSourceContext } from '../../../shared/task-source-context'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { ExecutionHostRegistryEntry } from '../../../shared/execution-host-registry'
 
-/** Requires advertised support for runtime hosts; local and SSH support is checked when executing. */
+/** Local projects are supported, runtime projects when advertised; SSH projects are not (no relay). */
 export function supportsBacklog(
   repo: Repo,
   hosts: ReadonlyMap<ExecutionHostId, Pick<ExecutionHostRegistryEntry, 'capabilities'>>
 ): boolean {
   const hostId = getRepoExecutionHostId(repo)
+  if (hostId.startsWith('ssh:')) {
+    return false
+  }
   return (
     !hostId.startsWith('runtime:') ||
     Boolean(hosts.get(hostId)?.capabilities?.includes(BACKLOG_TASKS_CAPABILITY))
@@ -30,7 +33,7 @@ export function backlogRepoKey(repo: Repo): string {
   return JSON.stringify([getRepoExecutionHostId(repo), repo.id, repo.path])
 }
 
-/** Uses the owning runtime (local runtime routes SSH), checks runtime capability, and validates the reply. */
+/** Uses the owning runtime (the local one for local projects), checks its capability, and validates the reply. */
 export async function callBacklog(repo: Repo, operation: BacklogOperation): Promise<BacklogReply> {
   const host = parseExecutionHostId(getRepoExecutionHostId(repo))
   const target =

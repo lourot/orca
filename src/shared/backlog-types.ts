@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const BACKLOG_CLI_VERSION = '1.48.0'
+export const BACKLOG_CLI_VERSION = '1.55.3'
 // Execution includes scanning and the 30-second CLI; transports leave room for cleanup.
 export const BACKLOG_OPERATION_TIMEOUT_MS = 45000
 export const BACKLOG_RPC_TIMEOUT_MS = 65000
@@ -32,7 +32,9 @@ export const BacklogOperation = z.discriminatedUnion('kind', [
     id: TaskId,
     title: Text.min(1).max(1024),
     description: Text,
-    status: z.string().min(1).max(200)
+    status: z.string().min(1).max(200),
+    // The fields as the editor loaded them; optional so older clients keep their behaviour.
+    base: z.object({ title: Text, description: Text, status: z.string().max(200) }).optional()
   })
 ])
 export type BacklogOperation = z.infer<typeof BacklogOperation>
