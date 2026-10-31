@@ -1,3 +1,4 @@
+import type { JiraIssueListMeta } from '../../../shared/jira/jira-issue-list-limit'
 import { useTaskPageJiraQuickFilters } from './task-page/jira/use-task-page-jira-quick-filters'
 import type { JiraStatusCatalogItem } from './task-page/jira/task-page-jira-status-catalog'
 import { useTaskPageJiraSavedFilters } from './use-task-page-jira-saved-filters'
@@ -59,6 +60,9 @@ export function useTaskPageJiraListState(model: TaskPageLinearViewStateModel) {
     selectedJiraSiteId
   )
   const [jiraIssues, setJiraIssues] = useState<JiraIssue[]>([])
+  const [jiraIssueListMeta, setJiraIssueListMeta] = useState<JiraIssueListMeta>({
+    truncated: false
+  })
   const [jiraLoading, setJiraLoading] = useState(false)
   const [jiraError, setJiraError] = useState<TaskPageJiraLoadError | null>(null)
   const [jiraErrorDetailsOpen, setJiraErrorDetailsOpen] = useState(false)
@@ -216,6 +220,8 @@ export function useTaskPageJiraListState(model: TaskPageLinearViewStateModel) {
     ...jiraProjectScope,
     jiraIssues,
     setJiraIssues,
+    jiraIssueListMeta,
+    setJiraIssueListMeta,
     jiraLoading,
     setJiraLoading,
     jiraError,

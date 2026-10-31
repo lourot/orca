@@ -15,13 +15,19 @@ import { cancelJiraJqlRequest, generateJiraJqlRequest } from '../text-generation
 import type {
   JiraConnectArgs,
   JiraCreateIssueArgs,
+  JiraIssue,
   JiraIssueFilter,
   JiraIssueListFilters,
   JiraIssueUpdate,
   JiraSiteSelection
 } from '../../shared/jira/jira-types'
 import type { JiraMediaFormat } from '../../shared/jira/jira-attachment-image'
-import { JIRA_REMOTE_ISSUE_LIST_MAX } from '../../shared/jira/jira-issue-list-limit'
+import {
+  JIRA_ISSUE_LIST_MAX,
+  JIRA_REMOTE_ISSUE_LIST_MAX_BYTES,
+  trimJiraIssueListToBytes,
+  type JiraIssueListResult
+} from '../../shared/jira/jira-issue-list-limit'
 import { connect, disconnect, getStatus, selectSite, testConnection } from '../jira/client'
 import { listFavouriteFilters } from '../jira/favourite-filters'
 import {
@@ -34,11 +40,11 @@ import {
   listAssignableUsers,
   listCreateFields,
   listIssueTypes,
-  listIssues,
+  listIssuesWithMeta,
   listPriorities,
   listProjects,
   listTransitions,
-  searchIssues,
+  searchIssuesWithMeta,
   searchUsers,
   updateIssue
 } from '../jira/issues'
@@ -96,36 +102,46 @@ export class RuntimeJiraCommands {
     return testConnection(siteId)
   }
 
-  jiraSearchIssues(
+  async jiraSearchIssues(
     jql: string,
     limit = 30,
     siteId?: JiraSiteSelection,
     signal?: AbortSignal,
-    strict = false
-  ): ReturnType<typeof searchIssues> {
-    return searchIssues(
-      jql,
-      Math.min(Math.max(1, limit), JIRA_REMOTE_ISSUE_LIST_MAX),
-      siteId,
-      signal,
-      strict
+    strict = false,
+    includeMeta = false
+  ): Promise<JiraIssue[] | JiraIssueListResult> {
+    const result = trimJiraIssueListToBytes(
+      await searchIssuesWithMeta(
+        jql,
+        Math.min(Math.max(1, limit), JIRA_ISSUE_LIST_MAX),
+        siteId,
+        signal,
+        strict
+      ),
+      JIRA_REMOTE_ISSUE_LIST_MAX_BYTES
     )
+    return includeMeta ? result : result.issues
   }
 
-  jiraListIssues(
+  async jiraListIssues(
     filter?: JiraIssueFilter,
     limit = 30,
     siteId?: JiraSiteSelection,
     strict = false,
-    filters?: JiraIssueListFilters
-  ): ReturnType<typeof listIssues> {
-    return listIssues(
-      filter,
-      Math.min(Math.max(1, limit), JIRA_REMOTE_ISSUE_LIST_MAX),
-      siteId,
-      strict,
-      filters
+    filters?: JiraIssueListFilters,
+    includeMeta = false
+  ): Promise<JiraIssue[] | JiraIssueListResult> {
+    const result = trimJiraIssueListToBytes(
+      await listIssuesWithMeta(
+        filter,
+        Math.min(Math.max(1, limit), JIRA_ISSUE_LIST_MAX),
+        siteId,
+        strict,
+        filters
+      ),
+      JIRA_REMOTE_ISSUE_LIST_MAX_BYTES
     )
+    return includeMeta ? result : result.issues
   }
 
   jiraCreateIssue(args: JiraCreateIssueArgs): ReturnType<typeof createIssue> {

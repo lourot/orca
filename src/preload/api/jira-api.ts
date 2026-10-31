@@ -1,4 +1,5 @@
 import type { JiraMediaFormat } from '../../shared/jira/jira-attachment-image'
+import type { JiraIssueListResult } from '../../shared/jira/jira-issue-list-limit'
 import type { JiraFavouriteFilterList } from '../../shared/jira/jira-favourite-filters'
 import type {
   JiraIssueSummaryGenerationRequest,
@@ -49,6 +50,12 @@ export type JiraApi = {
     siteId?: JiraSiteSelection
     requestId?: string
   }) => Promise<JiraIssue[]>
+  searchIssuesWithMeta: (args: {
+    jql: string
+    limit?: number
+    siteId?: JiraSiteSelection
+    requestId?: string
+  }) => Promise<JiraIssueListResult>
   cancelSearchIssues: (args: { requestId: string }) => Promise<void>
   listIssues: (args?: {
     filter?: JiraIssueFilter
@@ -56,6 +63,12 @@ export type JiraApi = {
     siteId?: JiraSiteSelection
     filters?: JiraIssueListFilters
   }) => Promise<JiraIssue[]>
+  listIssuesWithMeta: (args?: {
+    filter?: JiraIssueFilter
+    limit?: number
+    siteId?: JiraSiteSelection
+    filters?: JiraIssueListFilters
+  }) => Promise<JiraIssueListResult>
   getIssue: (args: {
     key: string
     siteId?: string

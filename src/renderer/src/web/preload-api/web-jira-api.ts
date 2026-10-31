@@ -1,5 +1,12 @@
 import type { PreloadApi } from '../../../../preload/api-types'
 import { translate } from '@/i18n/i18n'
+import {
+  JIRA_ISSUE_LIST_CLIENT_TIMEOUT_MS,
+  JIRA_ISSUE_LIST_MAX,
+  toJiraIssueListResult,
+  type JiraIssueListResult
+} from '../../../../shared/jira/jira-issue-list-limit'
+import type { JiraIssue } from '../../../../shared/jira/jira-types'
 import { readRuntimeJiraPayload } from '../../runtime/runtime-jira-payload-stream'
 import { RuntimeRpcCallError } from '../../runtime/runtime-rpc-result'
 import { callRuntimeResult } from './web-runtime-calls'
@@ -42,8 +49,26 @@ export function createWebJiraApi(): PreloadApi['jira'] {
     testConnection: (args) => jiraCall('testConnection', args),
     // Why: requestId keys desktop-only IPC cancellation; the server has no cancel method.
     searchIssues: ({ requestId: _requestId, ...args }) => jiraCall('searchIssues', args),
+    searchIssuesWithMeta: async ({ requestId: _requestId, ...args }) =>
+      toJiraIssueListResult(
+        await jiraCall<JiraIssue[] | JiraIssueListResult>(
+          'searchIssues',
+          { ...args, includeMeta: true },
+          JIRA_ISSUE_LIST_CLIENT_TIMEOUT_MS
+        ),
+        args.limit ?? JIRA_ISSUE_LIST_MAX
+      ),
     cancelSearchIssues: () => Promise.resolve(),
     listIssues: (args) => jiraCall('listIssues', args),
+    listIssuesWithMeta: async (args) =>
+      toJiraIssueListResult(
+        await jiraCall<JiraIssue[] | JiraIssueListResult>(
+          'listIssues',
+          { ...args, includeMeta: true },
+          JIRA_ISSUE_LIST_CLIENT_TIMEOUT_MS
+        ),
+        args?.limit ?? JIRA_ISSUE_LIST_MAX
+      ),
     getIssue: (args) => readJiraPayload('getIssueStream', 'getIssue', args),
     lookupIssueSummary: ({ requestId: _requestId, ...args }) =>
       jiraCall('lookupIssueSummary', args),

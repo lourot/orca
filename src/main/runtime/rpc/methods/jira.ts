@@ -4,6 +4,7 @@ import {
 } from '../../../../shared/jira/jira-payload-stream'
 import { defineMethod, defineStreamingMethod, type RpcContext } from '../core'
 import { JIRA_ATTACHMENT_IMAGE_METHODS } from './jira-attachment-image'
+import { JIRA_ISSUE_LIST_METHODS } from './jira-issue-list-methods'
 import { JiraFavouriteFilterParams } from '../../../../shared/rpc-contract/jira-favourite-filter-params'
 import {
   AssignableUsers,
@@ -16,11 +17,9 @@ import {
   IssueComment,
   IssueKey,
   IssueUpdate,
-  ListIssues,
   ProjectIssueTypeFields,
   ProjectIssueTypes,
   ProjectStatusOrder,
-  SearchIssues,
   SelectSite,
   SiteSelection,
   UserSearch
@@ -55,6 +54,7 @@ function generationOwner(context: Pick<RpcContext, 'pairedDeviceId' | 'caller'>)
 
 export const JIRA_METHODS = [
   ...JIRA_ATTACHMENT_IMAGE_METHODS,
+  ...JIRA_ISSUE_LIST_METHODS,
   defineMethod({
     name: 'jira.generateIssueSummary',
     permission: 'workspace',
@@ -124,26 +124,6 @@ export const JIRA_METHODS = [
     permission: 'workspace',
     params: SiteSelection,
     handler: async (params, { runtime }) => runtime.jiraTestConnection(params?.siteId)
-  }),
-  defineMethod({
-    name: 'jira.searchIssues',
-    permission: 'workspace',
-    params: SearchIssues,
-    handler: async (params, { runtime, signal }) =>
-      runtime.jiraSearchIssues(params.jql, params.limit, params.siteId, signal, params.strict)
-  }),
-  defineMethod({
-    name: 'jira.listIssues',
-    permission: 'workspace',
-    params: ListIssues,
-    handler: async (params, { runtime }) =>
-      runtime.jiraListIssues(
-        params?.filter,
-        params?.limit,
-        params?.siteId,
-        params?.strict,
-        params?.filters
-      )
   }),
   defineMethod({
     name: 'jira.getIssue',

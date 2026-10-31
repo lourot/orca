@@ -28,6 +28,13 @@ function findOrderBy(jql: string): number {
   return -1
 }
 
+/** The query without its ORDER BY clause, for requests where order is meaningless (counts). */
+export function stripJiraJqlOrderBy(jql: string): string {
+  const trimmed = jql.trim()
+  const orderByIndex = findOrderBy(trimmed)
+  return orderByIndex < 0 ? trimmed : trimmed.slice(0, orderByIndex).trim()
+}
+
 export function appendJiraJqlPredicate(jql: string, predicate: string): string {
   const trimmed = jql.trim()
   const orderByIndex = findOrderBy(trimmed)

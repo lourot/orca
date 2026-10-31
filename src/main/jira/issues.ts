@@ -1,5 +1,10 @@
 export { mapJiraIssue } from './jira-issue-mapping'
-export { listIssues, searchIssues } from './jira-issue-search'
+export {
+  listIssues,
+  listIssuesWithMeta,
+  searchIssues,
+  searchIssuesWithMeta
+} from './jira-issue-search'
 export { getIssue, getIssueSummary } from './jira-issue-read'
 export { addIssueComment, createIssue, updateIssue } from './jira-issue-mutations'
 export { getIssueComments } from './jira-issue-comments'

@@ -4,7 +4,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
   JIRA_ISSUE_LIST_MAX,
-  JIRA_REMOTE_ISSUE_LIST_MAX
+  type JiraIssueListResult
 } from '../../../shared/jira/jira-issue-list-limit'
 import type { JiraIssue } from '../../../shared/jira/jira-types'
 import type { JiraSavedFilterState } from '../../../shared/jira/jira-saved-filters'
@@ -26,8 +26,14 @@ vi.mock('@/runtime/runtime-rpc-client', () => ({
   callRuntimeRpc: runtime.rpc
 }))
 vi.mock('@/runtime/runtime-jira-client', () => ({
-  jiraListIssuesForTarget: runtime.list,
-  jiraSearchIssues: runtime.search,
+  jiraListIssueListForTarget: async (...args: unknown[]) => ({
+    issues: await runtime.list(...args),
+    truncated: false
+  }),
+  jiraSearchIssueList: async (...args: unknown[]) => ({
+    issues: await runtime.search(...args),
+    truncated: false
+  }),
   jiraGetProjectStatusOrder: runtime.statusOrder
 }))
 
@@ -47,7 +53,7 @@ const issue: JiraIssue = {
 const issues = [issue]
 const selectedStatuses: string[] = []
 const noop = () => {}
-const suspendedRead = new Promise<JiraIssue[]>(() => {})
+const suspendedRead = new Promise<JiraIssueListResult>(() => {})
 
 function useTaskPageFixture(store: ReturnType<typeof createTestStore>, remote: boolean) {
   const renders = useRef(0)
@@ -93,6 +99,7 @@ function useTaskPageFixture(store: ReturnType<typeof createTestStore>, remote: b
     setJiraStatusCatalog,
     setJiraProjectStatusOrder: noop,
     setJiraIssues,
+    setJiraIssueListMeta: noop,
     setJiraLoading,
     jiraSearchInput,
     appliedJiraSearch,
@@ -104,7 +111,8 @@ function useTaskPageFixture(store: ReturnType<typeof createTestStore>, remote: b
     selectedJiraStatuses: selectedStatuses,
     jiraQuickFiltersLoading: false,
     displayedJiraIssues: jiraIssues,
-    listJiraIssues: store.getState().listJiraIssues,
+    listJiraIssueList: store.getState().listJiraIssueList,
+    searchJiraIssueList: store.getState().searchJiraIssueList,
     searchJiraIssues: store.getState().searchJiraIssues
   }
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: All fields read by the real Jira effects are supplied; unrelated provider pipeline stages are omitted.
@@ -143,7 +151,7 @@ it.each([
   'settles $cache Jira results after $failure and keeps query/refresh working',
   async (testCase) => {
     const store = createTestStore()
-    const limit = testCase.remote ? JIRA_REMOTE_ISSUE_LIST_MAX : JIRA_ISSUE_LIST_MAX
+    const limit = JIRA_ISSUE_LIST_MAX
     store.setState({ jiraStatus: { connected: true, viewer: null, selectedSiteId: 'site-1' } })
     await store.getState().listJiraIssues('assigned', limit)
     if (testCase.cache === 'stale') {
@@ -157,8 +165,8 @@ it.each([
       }))
     }
     runtime.list.mockClear()
-    const originalList = store.getState().listJiraIssues
-    const originalSearch = store.getState().searchJiraIssues
+    const originalList = store.getState().listJiraIssueList
+    const originalSearch = store.getState().searchJiraIssueList
     const list = vi.fn<typeof originalList>((...args) =>
       // Stop a regression from hanging the runner while preserving its excess-call evidence.
       list.mock.calls.length > 8 ? suspendedRead : originalList(...args)
@@ -166,7 +174,7 @@ it.each([
     const search = vi.fn<typeof originalSearch>((...args) =>
       search.mock.calls.length > 8 ? suspendedRead : originalSearch(...args)
     )
-    store.setState({ listJiraIssues: list, searchJiraIssues: search })
+    store.setState({ listJiraIssueList: list, searchJiraIssueList: search })
 
     const { result, rerender } = renderHook(() => useTaskPageFixture(store, testCase.remote))
     await waitFor(() => expect(result.current.jiraSavedFiltersLoading).toBe(false))
@@ -207,12 +215,12 @@ it('recovers from a failed owner read and restores the active exact JQL on retry
     filters: [{ id: 'restored', name: 'Restored', jql: 'filter = 12345' }],
     activeFilterId: 'restored'
   }
-  const originalList = store.getState().listJiraIssues
+  const originalList = store.getState().listJiraIssueList
   const list = vi.fn<typeof originalList>((...args) =>
     list.mock.calls.length > 8 ? suspendedRead : originalList(...args)
   )
-  const search = vi.fn(store.getState().searchJiraIssues)
-  store.setState({ listJiraIssues: list, searchJiraIssues: search })
+  const search = vi.fn(store.getState().searchJiraIssueList)
+  store.setState({ listJiraIssueList: list, searchJiraIssueList: search })
   const { result } = renderHook(() => useTaskPageFixture(store, true))
   await waitFor(() => expect(result.current.jiraSavedFiltersLoading).toBe(false))
   await act(async () => {})
@@ -224,7 +232,7 @@ it('recovers from a failed owner read and restores the active exact JQL on retry
   await waitFor(() => expect(result.current.jiraLoading).toBe(false))
   expect(result.current.jiraSavedFiltersError).toBeNull()
   expect(result.current.appliedJiraSearch).toBe('filter = 12345')
-  expect(search).toHaveBeenCalledExactlyOnceWith('filter = 12345', JIRA_REMOTE_ISSUE_LIST_MAX, {
+  expect(search).toHaveBeenCalledExactlyOnceWith('filter = 12345', JIRA_ISSUE_LIST_MAX, {
     sourceContext: null,
     force: false
   })

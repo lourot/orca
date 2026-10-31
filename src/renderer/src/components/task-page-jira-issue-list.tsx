@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { ArrowRight, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { VirtualizedList } from '@/components/virtualized-list'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
@@ -13,6 +13,9 @@ import { jiraListColumnVisibility, type JiraListColumn } from './jira-list-colum
 import { JiraIssueCell, JiraPriorityText, unassignedLabel } from './task-page-jira-issue-cells'
 import type { JiraIssue, JiraProjectStatusOrder } from '../../../shared/jira/jira-types'
 import { openAppHttpLink } from '@/lib/app-http-link-open'
+
+// Why: the measured height of one issue row, so the scrollbar does not jump before rows are measured.
+const JIRA_ISSUE_ROW_HEIGHT_PX = 56
 
 export type TaskPageJiraIssueSection = {
   key: string
@@ -29,6 +32,8 @@ type TaskPageJiraIssueListProps = {
   issues: JiraIssue[]
   onOpenIssue: (issue: JiraIssue) => void
   onStartWorkspace: (issue: JiraIssue) => void
+  /** The scroller that hosts the list; without it the list renders unwindowed. */
+  scrollElement?: HTMLDivElement | null
   selectedIssue: JiraIssue | null
   showSiteContext: boolean
   statusDirection?: 'asc' | 'desc'
@@ -271,6 +276,20 @@ function JiraIssueRow({
   )
 }
 
+type JiraIssueListRow =
+  | { kind: 'section'; section: TaskPageJiraIssueSection; open: boolean }
+  | { kind: 'issue'; issue: JiraIssue }
+
+function jiraIssueRowKey(issue: JiraIssue): string {
+  return `${issue.siteId ?? 'site'}:${issue.id || issue.key}`
+}
+
+function getListRowKey(row: JiraIssueListRow): string {
+  return row.kind === 'section'
+    ? `section:${row.section.key}`
+    : `issue:${jiraIssueRowKey(row.issue)}`
+}
+
 export function TaskPageJiraIssueList({
   getIssueWorkspaces,
   onOpenWorkspace,
@@ -280,6 +299,7 @@ export function TaskPageJiraIssueList({
   issues,
   onOpenIssue,
   onStartWorkspace,
+  scrollElement = null,
   selectedIssue,
   showSiteContext,
   statusDirection = 'asc',
@@ -290,66 +310,80 @@ export function TaskPageJiraIssueList({
     () => groupJiraIssuesByStatus(issues, statusOrder, statusDirection),
     [issues, statusDirection, statusOrder]
   )
+  // Why: a 1000-issue list rendered in full costs about a second; flat rows let it be windowed.
+  const rows = useMemo(
+    () =>
+      sections.flatMap((section): JiraIssueListRow[] => {
+        const open = !collapsedGroups.has(section.key)
+        const header: JiraIssueListRow = { kind: 'section', section, open }
+        return open
+          ? [header, ...section.issues.map((issue): JiraIssueListRow => ({ kind: 'issue', issue }))]
+          : [header]
+      }),
+    [collapsedGroups, sections]
+  )
+  const toggleSection = (key: string): void => {
+    setCollapsedGroups((current) => {
+      const next = new Set(current)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+  const selectedRow = rows.find(
+    (row) => row.kind === 'issue' && isSelectedIssue(row.issue, selectedIssue)
+  )
 
   return (
-    <div className="divide-y divide-border/50">
-      {sections.map((section) => {
-        const open = !collapsedGroups.has(section.key)
-        return (
-          <Collapsible
-            key={section.key}
-            open={open}
-            onOpenChange={(nextOpen) => {
-              setCollapsedGroups((current) => {
-                const next = new Set(current)
-                if (nextOpen) {
-                  next.delete(section.key)
-                } else {
-                  next.add(section.key)
-                }
-                return next
-              })
-            }}
-          >
-            <CollapsibleTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-9 w-full justify-start rounded-none bg-muted/35 px-3 text-left font-normal transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
-              >
-                {open ? (
-                  <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
-                )}
-                <span className="min-w-0 truncate text-[13px] font-medium text-foreground">
-                  {section.label}
-                </span>
-                <span className="shrink-0 text-[11px] text-muted-foreground">
-                  {section.issues.length}
-                </span>
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="divide-y divide-border/50 border-t border-border/50">
-              {section.issues.map((issue) => (
-                <JiraIssueRow
-                  getIssueWorkspaces={getIssueWorkspaces}
-                  onOpenWorkspace={onOpenWorkspace}
-                  columns={columns}
-                  key={`${issue.siteId ?? 'site'}:${issue.id || issue.key}`}
-                  formatUpdatedAt={formatUpdatedAt}
-                  getStatusTone={getStatusTone}
-                  issue={issue}
-                  onOpenIssue={onOpenIssue}
-                  onStartWorkspace={onStartWorkspace}
-                  selected={isSelectedIssue(issue, selectedIssue)}
-                  showSiteContext={showSiteContext}
-                />
-              ))}
-            </CollapsibleContent>
-          </Collapsible>
+    <VirtualizedList
+      rows={rows}
+      getRowKey={getListRowKey}
+      scrollElement={scrollElement}
+      estimateRowHeightPx={JIRA_ISSUE_ROW_HEIGHT_PX}
+      activeRowKey={selectedRow ? getListRowKey(selectedRow) : undefined}
+      renderRow={(row) =>
+        row.kind === 'section' ? (
+          <div key={getListRowKey(row)} className="border-b border-border/50 bg-muted/35">
+            <Button
+              type="button"
+              variant="ghost"
+              aria-expanded={row.open}
+              onClick={() => toggleSection(row.section.key)}
+              className="h-9 w-full justify-start text-left"
+            >
+              {row.open ? (
+                <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
+              )}
+              <span className="min-w-0 truncate text-[13px] font-medium text-foreground">
+                {row.section.label}
+              </span>
+              <span className="shrink-0 text-[11px] text-muted-foreground">
+                {row.section.issues.length}
+              </span>
+            </Button>
+          </div>
+        ) : (
+          <div key={getListRowKey(row)} className="border-b border-border/50">
+            <JiraIssueRow
+              getIssueWorkspaces={getIssueWorkspaces}
+              onOpenWorkspace={onOpenWorkspace}
+              columns={columns}
+              formatUpdatedAt={formatUpdatedAt}
+              getStatusTone={getStatusTone}
+              issue={row.issue}
+              onOpenIssue={onOpenIssue}
+              onStartWorkspace={onStartWorkspace}
+              selected={isSelectedIssue(row.issue, selectedIssue)}
+              showSiteContext={showSiteContext}
+            />
+          </div>
         )
-      })}
-    </div>
+      }
+    />
   )
 }

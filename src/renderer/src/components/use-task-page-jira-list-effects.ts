@@ -15,7 +15,9 @@ import {
 } from '@/components/task-page/jira/task-page-jira-status-order'
 import { createTaskPageJiraLoadFailureState } from '@/components/task-page/jira/task-page-jira-load-state'
 import { searchTaskPageJiraIssues } from '@/components/task-page/jira/task-page-jira-search'
-import { jiraIssueListMaxFor } from '../../../shared/jira/jira-issue-list-limit'
+import { JIRA_ISSUE_LIST_MAX } from '../../../shared/jira/jira-issue-list-limit'
+import { createJiraListMetaRecorder } from './task-page/jira/task-page-jira-list-meta-recorder'
+import { assertJiraFavouriteOnSite } from './task-page/jira/task-page-jira-favourite-site'
 import { useTaskSearchDebouncedApply } from './task-page/use-task-search-debounced-apply'
 import { readLinkedJiraIssues } from './task-page/jira/task-page-jira-linked-issues'
 import { ipcOrRuntimeTargetForHostId } from '@/runtime/runtime-client-target'
@@ -29,7 +31,8 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
     linkedJiraIssueRefsSignature,
     setTaskResumeState,
     searchJiraIssues,
-    listJiraIssues,
+    searchJiraIssueList,
+    listJiraIssueList,
     jiraConnected,
     selectedJiraSiteId,
     taskSource,
@@ -42,6 +45,7 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
     selectedJiraIssueFallback,
     setSelectedJiraIssueFallback,
     setJiraIssues,
+    setJiraIssueListMeta,
     setJiraLoading,
     setJiraError,
     setJiraErrorDetailsOpen,
@@ -105,27 +109,21 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
     setJiraJqlRejection(null)
     setJiraErrorDetailsOpen(false)
     const trimmed = jiraRemoteSearch.trim()
+    const listMeta = createJiraListMetaRecorder()
     const savedFilter = jiraSavedFilters.find((filter) => filter.id === jiraActiveSavedFilterId)
     const exactSavedJql = savedFilter?.jql === trimmed
     const searchWithinLimit = async (query: string) => {
-      if (
-        favourite &&
-        (!jiraTaskSourceContext ||
-          selectedJiraSiteId !== favourite.siteId ||
-          (jiraProjectFilter && jiraProjectFilter.siteId !== favourite.siteId))
-      ) {
-        throw new Error(
-          translate(
-            'jira.favourites.siteMismatch',
-            'Choose a project from the favourite’s Jira site, or clear the project filter.'
-          )
-        )
-      }
+      assertJiraFavouriteOnSite(
+        favourite,
+        !!jiraTaskSourceContext,
+        selectedJiraSiteId,
+        jiraProjectFilter
+      )
       if (!isRuntimeProviderSearchQueryWithinLimit(query)) {
         queryTooLong = true
         throw new Error('Query exceeds the request limit.')
       }
-      return searchJiraIssues(query, jiraIssueListMaxFor(statusOrderOwner), {
+      return searchJiraIssueList(query, JIRA_ISSUE_LIST_MAX, {
         sourceContext: jiraTaskSourceContext,
         ...(favourite
           ? { siteId: favourite.siteId }
@@ -133,7 +131,7 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
             ? { siteId: jiraProjectFilter.siteId }
             : {}),
         force
-      })
+      }).then(listMeta.record)
     }
     const request = jiraHasWorkspace
       ? readLinkedJiraIssues(linkedJiraIssueRefs, searchJiraIssues, jiraTaskSourceContext, force)
@@ -159,7 +157,7 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
                 jiraProjectFilter
               )
             ).then((issues) => ({ issues, jqlRejection: null, error: null }))
-          : listJiraIssues(activeJiraPreset, jiraIssueListMaxFor(statusOrderOwner), {
+          : listJiraIssueList(activeJiraPreset, JIRA_ISSUE_LIST_MAX, {
               sourceContext: jiraTaskSourceContext,
               force,
               ...(selectedJiraStatuses.length || jiraCurrentSprint
@@ -170,7 +168,9 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
                     }
                   }
                 : {})
-            }).then((issues) => ({ issues, jqlRejection: null, error: null }))
+            })
+              .then(listMeta.record)
+              .then((issues) => ({ issues, jqlRejection: null, error: null }))
     void request
       .then((result) => {
         const { issues, jqlRejection } = result
@@ -190,6 +190,7 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
           })
         }
         setJiraIssues(issues)
+        setJiraIssueListMeta(listMeta.meta())
         setJiraJqlRejection(jqlRejection)
         setJiraLoading(false)
         const projectScope = getSingleJiraProjectScope(issues)
@@ -219,6 +220,7 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
         }
         const failureState = createTaskPageJiraLoadFailureState(err)
         setJiraIssues(failureState.issues)
+        setJiraIssueListMeta({ truncated: false })
         setJiraError(
           queryTooLong
             ? {

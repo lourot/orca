@@ -107,12 +107,14 @@ describe('jira RPC methods', () => {
       30,
       'all',
       undefined,
+      undefined,
       undefined
     )
     expect(runtime.jiraListIssues).toHaveBeenCalledWith(
       'assigned',
       20,
       'site-1',
+      undefined,
       undefined,
       undefined
     )
@@ -308,15 +310,28 @@ it('forwards strict reads and optional status filters while accepting older requ
         filter: 'all',
         siteId: 'site-1',
         strict: true,
-        filters: { statuses: ['In Progress'] }
+        filters: { statuses: ['In Progress'] },
+        includeMeta: true
       })
     )
   ).toMatchObject({ ok: true })
-  expect(jiraListIssues).toHaveBeenLastCalledWith('all', undefined, 'site-1', true, {
-    statuses: ['In Progress']
-  })
+  expect(jiraListIssues).toHaveBeenLastCalledWith(
+    'all',
+    undefined,
+    'site-1',
+    true,
+    { statuses: ['In Progress'] },
+    true
+  )
   await dispatcher.dispatch(makeRequest('jira.listIssues', { filter: 'all' }))
-  expect(jiraListIssues).toHaveBeenLastCalledWith('all', undefined, undefined, undefined, undefined)
+  expect(jiraListIssues).toHaveBeenLastCalledWith(
+    'all',
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined
+  )
 })
 
 describe('Jira title generation RPC', () => {

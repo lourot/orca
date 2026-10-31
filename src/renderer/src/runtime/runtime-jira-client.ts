@@ -1,7 +1,3 @@
-import {
-  JIRA_STATUS_FILTER_RUNTIME_CAPABILITY,
-  JIRA_STATUS_FILTER_UPDATE_REQUIRED
-} from '../../../shared/jira/jira-quick-filters'
 import type {
   JiraAuthType,
   JiraComment,
@@ -22,7 +18,13 @@ import type {
 } from '../../../shared/jira/jira-types'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { searchLocalJiraIssues } from './local-jira-search-cancellation'
-import { assertRuntimeEnvironmentCapability, callRuntimeRpc } from './runtime-rpc-client'
+import { callRuntimeRpc } from './runtime-rpc-client'
+import { assertJiraListFilterCapabilities } from './runtime-jira-issue-list-client'
+export {
+  jiraListIssueListForTarget,
+  jiraSearchIssueList,
+  jiraSearchIssueListForTarget
+} from './runtime-jira-issue-list-client'
 import { clearJiraImageCache } from './runtime-jira-image-cache'
 import { isRuntimeProviderSearchQueryWithinLimit } from './runtime-provider-search-bounds'
 import { getJiraRuntimeTarget, type RuntimeJiraSettings } from './runtime-jira-target'
@@ -45,7 +47,6 @@ export {
   jiraListPrioritiesForTarget,
   jiraListTransitionsForTarget
 } from './runtime-jira-detail-client'
-import { JIRA_CURRENT_SPRINT_RUNTIME_CAPABILITY } from '../../../shared/jira/jira-detail-capabilities'
 export { jiraLookupIssueSummary, jiraReadStatus } from './runtime-jira-summary-client'
 export {
   jiraCreateIssue,
@@ -167,21 +168,7 @@ export async function jiraListIssuesForTarget(
 ): Promise<JiraIssue[]> {
   const args = { filter, limit, siteId: siteId ?? undefined, ...(filters ? { filters } : {}) }
   if (target.kind === 'environment') {
-    if (filters?.currentSprint) {
-      await assertRuntimeEnvironmentCapability(
-        target.environmentId,
-        JIRA_CURRENT_SPRINT_RUNTIME_CAPABILITY,
-        'Update the remote Orca server to filter preset issues by current sprint.'
-      )
-    }
-    if (filters?.statuses?.length) {
-      await assertRuntimeEnvironmentCapability(
-        target.environmentId,
-        JIRA_STATUS_FILTER_RUNTIME_CAPABILITY,
-        JIRA_STATUS_FILTER_UPDATE_REQUIRED,
-        15_000
-      )
-    }
+    await assertJiraListFilterCapabilities(target.environmentId, filters)
     return callRuntimeRpc<JiraIssue[]>(target, 'jira.listIssues', args, { timeoutMs: 30_000 })
   }
   return window.api.jira.listIssues(args)

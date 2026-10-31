@@ -39,10 +39,18 @@ vi.mock('@/runtime/runtime-jira-client', () => ({
   jiraListIssueTypes: vi.fn(),
   jiraListIssues: (...args: unknown[]) => jiraListIssues(...args),
   jiraListIssuesForTarget: (...args: unknown[]) => jiraListIssues(...args),
+  jiraListIssueListForTarget: async (...args: unknown[]) => ({
+    issues: await jiraListIssues(...args),
+    truncated: false
+  }),
   jiraReadStatus: (...args: unknown[]) => jiraReadStatus(...args),
   jiraListPriorities: vi.fn(),
   jiraListProjects: vi.fn(),
   jiraSearchIssues: (...args: unknown[]) => jiraSearchIssues(...args),
+  jiraSearchIssueList: async (...args: unknown[]) => ({
+    issues: await jiraSearchIssues(...args),
+    truncated: false
+  }),
   jiraSelectSite: (...args: unknown[]) => jiraSelectSite(...args),
   jiraStatus: (...args: unknown[]) => jiraStatus(...args),
   jiraTestConnection: (...args: unknown[]) => jiraTestConnection(...args),

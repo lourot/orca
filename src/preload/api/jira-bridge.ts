@@ -32,6 +32,12 @@ export const jiraApi = {
 
   searchIssues: (args: { jql: string; limit?: number; siteId?: string; requestId?: string }) =>
     ipcRenderer.invoke('jira:searchIssues', args),
+  searchIssuesWithMeta: (args: {
+    jql: string
+    limit?: number
+    siteId?: string
+    requestId?: string
+  }) => ipcRenderer.invoke('jira:searchIssues', { ...args, includeMeta: true }),
   cancelSearchIssues: (args: { requestId: string }): Promise<void> =>
     ipcRenderer.invoke('jira:cancelSearchIssues', args),
 
@@ -41,6 +47,12 @@ export const jiraApi = {
     limit?: number
     siteId?: string
   }) => ipcRenderer.invoke('jira:listIssues', args),
+  listIssuesWithMeta: (args?: {
+    filter?: 'assigned' | 'reported' | 'all' | 'done'
+    filters?: JiraIssueListFilters
+    limit?: number
+    siteId?: string
+  }) => ipcRenderer.invoke('jira:listIssues', { ...args, includeMeta: true }),
 
   getIssue: (args: { key: string; siteId?: string; mediaFormat?: JiraMediaFormat }) =>
     ipcRenderer.invoke('jira:getIssue', args),

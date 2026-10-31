@@ -77,6 +77,10 @@ function useStatusOrderFixture(focusedEnvironmentId: string) {
     setTaskResumeState: vi.fn(),
     searchJiraIssues: vi.fn(),
     listJiraIssues,
+    listJiraIssueList: async (...args: unknown[]) => ({
+      issues: await listJiraIssues(...args),
+      truncated: false
+    }),
     jiraConnected: true,
     selectedJiraSiteId: issue.siteId,
     taskSource: 'jira',
@@ -89,6 +93,7 @@ function useStatusOrderFixture(focusedEnvironmentId: string) {
     selectedJiraIssueFallback: null,
     setSelectedJiraIssueFallback: vi.fn(),
     setJiraIssues: vi.fn(),
+    setJiraIssueListMeta: vi.fn(),
     setJiraLoading: vi.fn(),
     setJiraError: vi.fn(),
     setJiraErrorDetailsOpen: vi.fn(),

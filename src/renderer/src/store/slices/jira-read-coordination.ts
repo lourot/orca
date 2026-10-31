@@ -1,6 +1,7 @@
 import type { AppState } from '../types'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { CacheEntry } from '../github/cache-model'
+import type { JiraIssueListResult } from '../../../../shared/jira/jira-issue-list-limit'
 import type { JiraSlice, JiraSliceSet } from './jira-slice-contract'
 import type {
   JiraConnectionStatus,
@@ -43,8 +44,11 @@ export type JiraReadScope = JiraReadIdentity & {
 
 export const inflightIssueRequests = new Map<string, InflightJiraReadRequest<JiraIssue | null>>()
 export const inflightIssueSummaryRequests = new Map<string, SharedJiraSummaryRequest>()
-export const inflightSearchRequests = new Map<string, InflightJiraReadRequest<JiraIssue[]>>()
-export const inflightListRequests = new Map<string, InflightJiraReadRequest<JiraIssue[]>>()
+export const inflightSearchRequests = new Map<
+  string,
+  InflightJiraReadRequest<JiraIssueListResult>
+>()
+export const inflightListRequests = new Map<string, InflightJiraReadRequest<JiraIssueListResult>>()
 
 let jiraStatusReadGeneration = 0
 let jiraMutationGeneration = 0
@@ -59,16 +63,16 @@ export function isFreshJiraCacheEntry<T>(entry: CacheEntry<T> | undefined): entr
   return entry !== undefined && Date.now() - entry.fetchedAt < CACHE_TTL
 }
 
-export function evictStaleJiraCacheEntries<T>(
-  cache: Record<string, CacheEntry<T>>,
+export function evictStaleJiraCacheEntries<E extends CacheEntry<unknown>>(
+  cache: Record<string, E>,
   maxEntries = MAX_CACHE_ENTRIES
-): Record<string, CacheEntry<T>> {
+): Record<string, E> {
   const keys = Object.keys(cache)
   if (keys.length <= maxEntries) {
     return cache
   }
   const sorted = keys.sort((a, b) => (cache[a]?.fetchedAt ?? 0) - (cache[b]?.fetchedAt ?? 0))
-  const pruned: Record<string, CacheEntry<T>> = {}
+  const pruned: Record<string, E> = {}
   for (const key of sorted.slice(sorted.length - maxEntries)) {
     pruned[key] = cache[key]
   }

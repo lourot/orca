@@ -74,6 +74,8 @@ export function useTaskPageStoreBindings() {
   const selectJiraSite = useAppStore((s) => s.selectJiraSite)
   const searchJiraIssues = useAppStore((s) => s.searchJiraIssues)
   const listJiraIssues = useAppStore((s) => s.listJiraIssues)
+  const searchJiraIssueList = useAppStore((s) => s.searchJiraIssueList)
+  const listJiraIssueList = useAppStore((s) => s.listJiraIssueList)
   const checkJiraConnection = useAppStore((s) => s.checkJiraConnection)
   const providerRuntimeContextKey = getProviderRuntimeContextKey(settings)
   const providerRuntimeContextKeyRef = useRef(providerRuntimeContextKey)
@@ -149,6 +151,8 @@ export function useTaskPageStoreBindings() {
     selectJiraSite,
     searchJiraIssues,
     listJiraIssues,
+    searchJiraIssueList,
+    listJiraIssueList,
     checkJiraConnection,
     providerRuntimeContextKey,
     providerRuntimeContextKeyRef,

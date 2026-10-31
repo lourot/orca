@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  jiraSearchIssueListForTarget,
   jiraSearchIssuesForTarget,
   jiraStatusForTarget,
   jiraListAssignableUsersForProject
@@ -9,6 +10,7 @@ import {
 import { clearJiraImageCache } from './runtime-jira-image-cache'
 import { clearRuntimeCompatibilityCacheForTests } from './runtime-rpc-client'
 import { createCompatibleRuntimeStatusResponse } from './runtime-compatibility-test-fixture'
+import { JIRA_ISSUE_LIST_META_RUNTIME_CAPABILITY } from '../../../shared/jira/jira-issue-list-limit'
 const jiraSearchIssuesLocal = vi.fn()
 const jiraStatusLocal = vi.fn()
 const jiraListAssignableUsersLocal = vi.fn()
@@ -103,5 +105,50 @@ describe('runtime Jira client search bounds', () => {
     })
     await jiraListAssignableUsersForProject({ kind: 'local' }, '100', 'x'.repeat(20_000), 'site-1')
     expect(jiraProjectUsersLocal).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('runtime Jira client issue list metadata', () => {
+  it.each([
+    {
+      name: 'asks a capable host for metadata and passes it through',
+      capable: true,
+      reply: { issues: [], truncated: true, total: 2340, totalIsApproximate: true },
+      sentMeta: true,
+      expected: { issues: [], truncated: true, total: 2340, totalIsApproximate: true }
+    },
+    {
+      name: 'infers truncation from an older host that returns at most 100 issues',
+      capable: false,
+      reply: Array.from({ length: 100 }, (_, index) => ({ key: `OLD-${index}` })),
+      sentMeta: false,
+      expected: { truncated: true }
+    }
+  ])('$name', async ({ capable, reply, sentMeta, expected }) => {
+    const searchParams: Record<string, unknown>[] = []
+    runtimeCall.mockImplementation(
+      async (args: { method: string; params?: Record<string, unknown> }) => {
+        if (args.method === 'status.get') {
+          const status = createCompatibleRuntimeStatusResponse()
+          return capable
+            ? status
+            : {
+                ...status,
+                result: {
+                  ...status.result,
+                  capabilities: (status.result.capabilities ?? []).filter(
+                    (capability) => capability !== JIRA_ISSUE_LIST_META_RUNTIME_CAPABILITY
+                  )
+                }
+              }
+        }
+        searchParams.push(args.params ?? {})
+        return { id: 'rpc-result', ok: true, result: reply, _meta: { runtimeId: 'remote' } }
+      }
+    )
+    const target = { kind: 'environment', environmentId: 'remote' } as const
+    const result = await jiraSearchIssueListForTarget(target, 'project = A', 1000)
+    expect(result).toMatchObject(expected)
+    expect(searchParams.at(-1)?.includeMeta === true).toBe(sentMeta)
   })
 })

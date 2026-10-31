@@ -1,10 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  JIRA_ISSUE_LIST_MAX,
-  JIRA_REMOTE_ISSUE_LIST_MAX
-} from '../../../shared/jira/jira-issue-list-limit'
+import { JIRA_ISSUE_LIST_MAX } from '../../../shared/jira/jira-issue-list-limit'
 import type { TaskPageLinearCollectionEffectsModel } from './task-page/linear/use-task-page-linear-collection-effects'
 import { useTaskPageJiraListEffects } from './use-task-page-jira-list-effects'
 import { restrictJiraQueryToProject } from '../../../shared/jira/jira-project-reference'
@@ -20,6 +17,14 @@ function createModel(): TaskPageLinearCollectionEffectsModel {
     setTaskResumeState: vi.fn(),
     searchJiraIssues,
     listJiraIssues,
+    searchJiraIssueList: async (...args: unknown[]) => ({
+      issues: await searchJiraIssues(...args),
+      truncated: false
+    }),
+    listJiraIssueList: async (...args: unknown[]) => ({
+      issues: await listJiraIssues(...args),
+      truncated: false
+    }),
     jiraConnected: true,
     selectedJiraSiteId: 'site-1',
     taskSource: 'jira',
@@ -35,6 +40,7 @@ function createModel(): TaskPageLinearCollectionEffectsModel {
     selectedJiraIssueFallback: null,
     setSelectedJiraIssueFallback: vi.fn(),
     setJiraIssues: vi.fn(),
+    setJiraIssueListMeta: vi.fn(),
     setJiraLoading: vi.fn(),
     setJiraError: vi.fn(),
     setJiraErrorDetailsOpen: vi.fn(),
@@ -520,7 +526,7 @@ describe('useTaskPageJiraListEffects refresh wiring', () => {
       model.jiraProjectFilter = { id: '10', key: 'ALP', name: 'Alpha', siteId: 'site-a' }
       renderHook(() => useTaskPageJiraListEffects(model))
       await waitFor(() =>
-        expect(searchJiraIssues).toHaveBeenCalledWith(query, JIRA_REMOTE_ISSUE_LIST_MAX, {
+        expect(searchJiraIssues).toHaveBeenCalledWith(query, JIRA_ISSUE_LIST_MAX, {
           sourceContext: model.jiraTaskSourceContext,
           siteId: 'site-a',
           force: false
@@ -601,15 +607,11 @@ describe('useTaskPageJiraListEffects refresh wiring', () => {
           expect.objectContaining({ details: 'JQL syntax invalid' })
         )
       )
-      expect(searchJiraIssues).toHaveBeenCalledExactlyOnceWith(
-        scopedQuery,
-        JIRA_REMOTE_ISSUE_LIST_MAX,
-        {
-          sourceContext: model.jiraTaskSourceContext,
-          siteId: 'site-a',
-          force: false
-        }
-      )
+      expect(searchJiraIssues).toHaveBeenCalledExactlyOnceWith(scopedQuery, JIRA_ISSUE_LIST_MAX, {
+        sourceContext: model.jiraTaskSourceContext,
+        siteId: 'site-a',
+        force: false
+      })
       expect(model.setJiraJqlRejection).toHaveBeenCalledExactlyOnceWith(null)
 
       model.jiraActiveSavedFilterId = null
@@ -618,7 +620,7 @@ describe('useTaskPageJiraListEffects refresh wiring', () => {
       await waitFor(() => expect(searchJiraIssues).toHaveBeenCalledTimes(2))
       expect(searchJiraIssues).toHaveBeenLastCalledWith(
         'project = "10" AND (statusCategory != Done AND status in ("Blocked")) ORDER BY updated DESC',
-        JIRA_REMOTE_ISSUE_LIST_MAX,
+        JIRA_ISSUE_LIST_MAX,
         { sourceContext: model.jiraTaskSourceContext, siteId: 'site-a', force: false }
       )
       expect(listJiraIssues).not.toHaveBeenCalled()

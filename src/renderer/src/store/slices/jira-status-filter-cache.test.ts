@@ -5,6 +5,10 @@ const { list } = vi.hoisted(() => ({ list: vi.fn() }))
 vi.mock('@/runtime/runtime-jira-client', () => ({
   jiraListIssues: list,
   jiraListIssuesForTarget: list,
+  jiraListIssueListForTarget: async (...args: unknown[]) => ({
+    issues: await list(...args),
+    truncated: false
+  }),
   jiraSearchIssues: vi.fn()
 }))
 beforeEach(() => {

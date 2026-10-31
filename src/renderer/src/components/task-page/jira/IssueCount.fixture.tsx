@@ -1,20 +1,28 @@
 import { defineFixture } from '../../../component-fixtures/component-fixture'
+import type { JiraIssueListMeta } from '../../../../../shared/jira/jira-issue-list-limit'
 import { TaskPageJiraIssueCount } from './IssueCount'
 
-function Header({ shown, loaded, limit }: { shown: number; loaded: number; limit: number }) {
+function Header({ loaded, meta }: { loaded: number; meta: JiraIssueListMeta }) {
   return (
     <div className="flex items-center gap-2 bg-background p-3 text-2xs text-muted-foreground">
-      <TaskPageJiraIssueCount shown={shown} loaded={loaded} limit={limit} />
+      <TaskPageJiraIssueCount shown={loaded} loaded={loaded} meta={meta} />
     </div>
   )
 }
 
-export const belowLimit = defineFixture({
-  width: 520,
-  render: () => <Header shown={230} loaded={230} limit={1000} />
+export const complete = defineFixture({
+  width: 640,
+  render: () => <Header loaded={230} meta={{ truncated: false }} />
 })
 
-export const atLimit = defineFixture({
-  width: 520,
-  render: () => <Header shown={1000} loaded={1000} limit={1000} />
+export const truncatedWithApproximateTotal = defineFixture({
+  width: 640,
+  render: () => (
+    <Header loaded={1000} meta={{ truncated: true, total: 2340, totalIsApproximate: true }} />
+  )
+})
+
+export const truncatedWithoutTotal = defineFixture({
+  width: 640,
+  render: () => <Header loaded={1000} meta={{ truncated: true }} />
 })

@@ -106,7 +106,15 @@ export function useFavouriteTaskPage({
     linkedJiraIssueRefs: [],
     linkedJiraIssueRefsSignature: '[]',
     listJiraIssues: favouriteTransport.list,
-    searchJiraIssues: favouriteTransport.search
+    searchJiraIssues: favouriteTransport.search,
+    listJiraIssueList: async (...args: unknown[]) => ({
+      issues: await favouriteTransport.list(...args),
+      truncated: false
+    }),
+    searchJiraIssueList: async (...args: unknown[]) => ({
+      issues: await favouriteTransport.search(...args),
+      truncated: false
+    })
   }
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The actual Jira hooks only read the supplied fields from the preceding provider pipeline.
   const state = useTaskPageJiraListState(model as unknown as TaskPageLinearViewStateModel)

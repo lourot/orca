@@ -202,6 +202,12 @@ beforeEach(() => {
         readStatus: status,
         listProjects: projects,
         searchIssues: search,
+        searchIssuesWithMeta: async (
+          args: Parameters<Window['api']['jira']['searchIssues']>[0]
+        ) => ({
+          issues: await search(args),
+          truncated: false
+        }),
         cancelSearchIssues: vi
           .fn<Window['api']['jira']['cancelSearchIssues']>()
           .mockResolvedValue(undefined)

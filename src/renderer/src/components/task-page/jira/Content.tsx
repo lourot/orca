@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import type { TaskPageComposerActionsModel } from '../use-task-page-composer-actions'
@@ -14,7 +15,6 @@ import { TaskPageJiraIssueList } from '@/components/task-page-jira-issue-list'
 import { TaskPageJiraBoardView } from '@/components/task-page-jira-board-view'
 import { TaskPageJiraViewControls } from '@/components/task-page-jira-view-controls'
 import { formatRelativeTime } from '../task-page-source-context'
-import { jiraIssueListMaxFor } from '../../../../../shared/jira/jira-issue-list-limit'
 import { TaskPageJiraIssueCount } from './IssueCount'
 import { getJiraStatusTone } from '@/components/task-page/jira/task-page-jira-status-tone'
 import JiraIssueWorkspace from '@/components/JiraIssueWorkspace'
@@ -43,6 +43,7 @@ export function TaskPageJiraContent({
     jiraDetailSourceContext,
     openJiraDetailPage,
     jiraIssues,
+    jiraIssueListMeta,
     jiraLoading,
     jiraError,
     jiraErrorDetailsOpen,
@@ -69,10 +70,10 @@ export function TaskPageJiraContent({
     accountBackedTaskSourceHostId,
     setJiraRefreshNonce
   } = model
+  const [listScrollElement, setListScrollElement] = useState<HTMLDivElement | null>(null)
   const boardTarget = ipcOrRuntimeTargetForHostId(
     jiraTaskSourceContext?.hostId ?? accountBackedTaskSourceHostId
   )
-  const jiraIssueLimit = jiraIssueListMaxFor(boardTarget)
   const boardScopeKey = JSON.stringify([
     jiraTaskSourceScopeKey,
     boardTarget ? getEnvironmentRuntimeContextKey(runtimeTargetEnvironmentId(boardTarget)) : null
@@ -123,7 +124,7 @@ export function TaskPageJiraContent({
             <TaskPageJiraIssueCount
               shown={displayedJiraIssues.length}
               loaded={jiraIssues.length}
-              limit={jiraIssueLimit}
+              meta={jiraIssueListMeta}
             />
             {jiraViewMode === 'list' ? (
               <JiraListColumnsMenu ids={jiraColumnIds} onToggle={toggleJiraColumn} />
@@ -132,6 +133,7 @@ export function TaskPageJiraContent({
         </div>
 
         <div
+          ref={setListScrollElement}
           className="min-h-0 flex-1 overflow-auto scrollbar-sleek"
           style={{
             scrollbarGutter: 'stable'
@@ -239,6 +241,7 @@ export function TaskPageJiraContent({
               issues={sortedJiraIssues}
               onOpenIssue={openJiraDetailPage}
               onStartWorkspace={handleUseJiraItem}
+              scrollElement={listScrollElement}
               selectedIssue={selectedJiraIssue}
               showSiteContext={selectedJiraSiteId === 'all'}
               statusDirection={jiraOrderBy === 'status' ? jiraOrderDirection : 'asc'}

@@ -37,7 +37,8 @@ export const SearchIssues = z.object({
   jql: requiredString('Missing JQL'),
   limit: OptionalFiniteNumber,
   siteId: OptionalString,
-  strict: z.boolean().optional()
+  strict: z.boolean().optional(),
+  includeMeta: z.boolean().optional()
 })
 
 export const ListIssues = z
@@ -46,7 +47,8 @@ export const ListIssues = z
     limit: OptionalFiniteNumber,
     siteId: OptionalString,
     strict: z.boolean().optional(),
-    filters: JiraIssueListFiltersParam.optional()
+    filters: JiraIssueListFiltersParam.optional(),
+    includeMeta: z.boolean().optional()
   })
   .optional()
 

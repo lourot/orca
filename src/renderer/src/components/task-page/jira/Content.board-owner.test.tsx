@@ -61,6 +61,7 @@ function model(sourceContext: TaskSourceContext | null): TaskPageComposerActions
     jiraDetailSourceContext: sourceContext,
     openJiraDetailPage: vi.fn(),
     jiraIssues: [],
+    jiraIssueListMeta: { truncated: false },
     jiraLoading: false,
     jiraError: null,
     jiraErrorDetailsOpen: false,

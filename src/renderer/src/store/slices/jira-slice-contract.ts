@@ -1,3 +1,7 @@
+import type {
+  JiraIssueListMeta,
+  JiraIssueListResult
+} from '../../../../shared/jira/jira-issue-list-limit'
 import type { StateCreator } from 'zustand'
 import type { CacheEntry } from '../github/cache-model'
 import type { AppState } from '../types'
@@ -36,7 +40,7 @@ export type JiraSlice = {
   jiraConnectionRevisions: Record<string, number>
   jiraIssueCache: Record<string, CacheEntry<JiraIssue>>
   jiraIssueSummaryCache: Record<string, CacheEntry<JiraIssue | null>>
-  jiraSearchCache: Record<string, CacheEntry<JiraIssue[]>>
+  jiraSearchCache: Record<string, CacheEntry<JiraIssue[]> & { meta?: JiraIssueListMeta }>
 
   checkJiraConnection: () => Promise<void>
   readJiraStatus: (sourceContext: TaskSourceContext) => Promise<JiraConnectionStatus>
@@ -72,6 +76,18 @@ export type JiraSlice = {
     limit?: number,
     options?: JiraCollectionReadOptions
   ) => Promise<JiraIssue[]>
+  /** Like searchJiraIssues, plus whether Jira matched more issues than were loaded. */
+  searchJiraIssueList: (
+    jql: string,
+    limit?: number,
+    options?: JiraSearchOptions
+  ) => Promise<JiraIssueListResult>
+  /** Like listJiraIssues, plus whether Jira matched more issues than were loaded. */
+  listJiraIssueList: (
+    filter?: JiraIssueFilter,
+    limit?: number,
+    options?: JiraCollectionReadOptions
+  ) => Promise<JiraIssueListResult>
   patchJiraIssue: (issueKey: string, patch: Partial<JiraIssue>, options?: JiraPatchOptions) => void
 }
 

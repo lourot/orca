@@ -19,7 +19,7 @@ import { addIssueComment, createIssue, updateIssue } from '../../jira/jira-issue
 import { getIssue, getIssueSummary } from '../../jira/jira-issue-read'
 import { getIssueComments } from '../../jira/jira-issue-comments'
 import { getProjectStatusOrder, listTransitions } from '../../jira/jira-transition-queries'
-import { listIssues, searchIssues } from '../../jira/jira-issue-search'
+import { listIssuesWithMeta, searchIssuesWithMeta } from '../../jira/jira-issue-search'
 import type {
   JiraConnectArgs,
   JiraCreateIssueArgs,
@@ -82,19 +82,26 @@ export function registerJiraHandlers(): void {
     'jira:searchIssues',
     async (
       _event,
-      args: { jql: string; limit?: number; siteId?: JiraSiteSelection; requestId?: string }
+      args: {
+        jql: string
+        limit?: number
+        siteId?: JiraSiteSelection
+        requestId?: string
+        includeMeta?: boolean
+      }
     ) => {
       if (typeof args?.jql !== 'string') {
-        return []
+        return args?.includeMeta === true ? { issues: [], truncated: false } : []
       }
-      return searchRequests.run(args.requestId, (signal) =>
-        searchIssues(
+      return searchRequests.run(args.requestId, async (signal) => {
+        const result = await searchIssuesWithMeta(
           args.jql,
           clampJiraIssueLimit(args.limit),
           normalizeJiraSiteSelection(args.siteId),
           signal
         )
-      )
+        return args.includeMeta === true ? result : result.issues
+      })
     }
   )
 
@@ -111,18 +118,20 @@ export function registerJiraHandlers(): void {
         limit?: number
         siteId?: JiraSiteSelection
         filters?: JiraIssueListFilters
+        includeMeta?: boolean
       }
     ) => {
       const filter = VALID_FILTERS.has(args?.filter as JiraIssueFilter)
         ? (args!.filter as JiraIssueFilter)
         : undefined
-      return listIssues(
+      const result = await listIssuesWithMeta(
         filter,
         clampJiraIssueLimit(args?.limit),
         normalizeJiraSiteSelection(args?.siteId),
         false,
         args?.filters ? JiraIssueListFiltersParam.parse(args.filters) : undefined
       )
+      return args?.includeMeta === true ? result : result.issues
     }
   )
 
