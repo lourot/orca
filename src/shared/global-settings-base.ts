@@ -1,3 +1,4 @@
+import type { BacklogNewTaskSettings } from './backlog-new-task-settings'
 import type { BrowserExtensionGlobalSettings } from './browser-extension-settings'
 import type { ClaudeAgentViewSettings } from './claude-agent-view'
 import type { BrowserLinkOpeningSettings } from './browser-link-opening-settings'
@@ -11,6 +12,10 @@ import type { PluginSystemSettings } from './plugins/plugin-system-settings'
 import type { WorktreeDeletionPreferences } from './worktree-deletion-preferences'
 import type { AgentPermissionGlobalSettings } from './tui-agent-permission-choice'
 import type { OrchestrationHeartbeatSettings } from './orchestration-heartbeat'
+import type { RollingAgentTitleSettings } from './tab-types'
+import type { EditorSaveNormalizationSettings } from './editor-save-normalization-settings'
+import type { AgentMessageLogSettings } from './agent-message-log-contract'
+import type { JiraKeyLinkSettings } from './jira/jira-key-text-links'
 
 /** Settings groups owned by their feature modules and composed into GlobalSettings. */
 export type GlobalSettingsBase = ClaudeAgentViewSettings &
@@ -25,4 +30,9 @@ export type GlobalSettingsBase = ClaudeAgentViewSettings &
   PluginAppearanceSettings &
   PluginFileTypeSuggestionSettings &
   PluginUpdatePolicySettings &
-  PluginSystemSettings
+  PluginSystemSettings &
+  RollingAgentTitleSettings &
+  EditorSaveNormalizationSettings &
+  BacklogNewTaskSettings &
+  AgentMessageLogSettings &
+  JiraKeyLinkSettings
