@@ -60,6 +60,8 @@ export function useTaskPageJiraListState(model: TaskPageLinearViewStateModel) {
     selectedJiraSiteId
   )
   const [jiraIssues, setJiraIssues] = useState<JiraIssue[]>([])
+  // Whether jiraIssues arrived in the order of the query's own ORDER BY; the board then keeps it.
+  const [jiraIssuesInQueryOrder, setJiraIssuesInQueryOrder] = useState(false)
   const [jiraIssueListMeta, setJiraIssueListMeta] = useState<JiraIssueListMeta>({
     truncated: false
   })
@@ -220,6 +222,8 @@ export function useTaskPageJiraListState(model: TaskPageLinearViewStateModel) {
     ...jiraProjectScope,
     jiraIssues,
     setJiraIssues,
+    jiraIssuesInQueryOrder,
+    setJiraIssuesInQueryOrder,
     jiraIssueListMeta,
     setJiraIssueListMeta,
     jiraLoading,

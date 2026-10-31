@@ -93,6 +93,7 @@ function useStatusOrderFixture(focusedEnvironmentId: string) {
     selectedJiraIssueFallback: null,
     setSelectedJiraIssueFallback: vi.fn(),
     setJiraIssues: vi.fn(),
+    setJiraIssuesInQueryOrder: vi.fn(),
     setJiraIssueListMeta: vi.fn(),
     setJiraLoading: vi.fn(),
     setJiraError: vi.fn(),

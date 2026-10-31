@@ -57,6 +57,7 @@ export function TaskPageJiraContent({
     jiraColumns,
     toggleJiraColumn,
     displayedJiraIssues,
+    jiraIssuesInQueryOrder,
     displayedJiraStatusOrder,
     sortedJiraIssues,
     setJiraConnectOpen,
@@ -207,7 +208,7 @@ export function TaskPageJiraContent({
           {jiraViewMode === 'board' ? (
             <TaskPageJiraBoardView
               key={`${boardScopeKey}:${selectedJiraSiteId}`}
-              issues={sortedJiraIssues}
+              issues={jiraIssuesInQueryOrder ? displayedJiraIssues : sortedJiraIssues}
               statusOrder={displayedJiraStatusOrder}
               selectedIssue={selectedJiraIssue}
               sourceContext={jiraTaskSourceContext}

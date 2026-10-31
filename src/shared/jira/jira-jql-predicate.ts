@@ -28,6 +28,11 @@ function findOrderBy(jql: string): number {
   return -1
 }
 
+/** Whether the query sets its own result order with a top-level ORDER BY. */
+export function hasJiraJqlOrderBy(jql: string): boolean {
+  return findOrderBy(jql.trim()) >= 0
+}
+
 /** The query without its ORDER BY clause, for requests where order is meaningless (counts). */
 export function stripJiraJqlOrderBy(jql: string): string {
   const trimmed = jql.trim()

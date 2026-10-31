@@ -45,6 +45,7 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
     selectedJiraIssueFallback,
     setSelectedJiraIssueFallback,
     setJiraIssues,
+    setJiraIssuesInQueryOrder,
     setJiraIssueListMeta,
     setJiraLoading,
     setJiraError,
@@ -131,7 +132,7 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
             ? { siteId: jiraProjectFilter.siteId }
             : {}),
         force
-      }).then(listMeta.record)
+      }).then((result) => listMeta.record(result, query))
     }
     const request = jiraHasWorkspace
       ? readLinkedJiraIssues(linkedJiraIssueRefs, searchJiraIssues, jiraTaskSourceContext, force)
@@ -190,6 +191,8 @@ export function useTaskPageJiraListEffects(model: TaskPageLinearCollectionEffect
           })
         }
         setJiraIssues(issues)
+        // Linked reads have no query, so their order means nothing.
+        setJiraIssuesInQueryOrder(!jiraHasWorkspace && listMeta.inQueryOrder())
         setJiraIssueListMeta(listMeta.meta())
         setJiraJqlRejection(jqlRejection)
         setJiraLoading(false)

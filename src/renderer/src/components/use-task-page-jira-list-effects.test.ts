@@ -40,6 +40,7 @@ function createModel(): TaskPageLinearCollectionEffectsModel {
     selectedJiraIssueFallback: null,
     setSelectedJiraIssueFallback: vi.fn(),
     setJiraIssues: vi.fn(),
+    setJiraIssuesInQueryOrder: vi.fn(),
     setJiraIssueListMeta: vi.fn(),
     setJiraLoading: vi.fn(),
     setJiraError: vi.fn(),
@@ -625,6 +626,51 @@ describe('useTaskPageJiraListEffects refresh wiring', () => {
       )
       expect(listJiraIssues).not.toHaveBeenCalled()
       expect(model.setJiraError).toHaveBeenLastCalledWith(null)
+    }
+  )
+
+  it.each([
+    {
+      path: 'typed JQL with ORDER BY under a project filter',
+      search: 'assignee = currentUser() ORDER BY priority DESC, updated DESC',
+      project: true,
+      expected: true
+    },
+    { path: 'typed JQL without ORDER BY', search: 'assignee = currentUser()', expected: false },
+    { path: 'plain text', search: 'fix login', expected: false },
+    {
+      path: 'JQL with ORDER BY that Jira rejects, shown as text matches',
+      search: 'project = NOPE ORDER BY priority DESC',
+      rejected: true,
+      expected: false
+    },
+    { path: 'a preset on the host list', search: '', expected: true },
+    { path: 'linked issues', search: '', linked: true, expected: false }
+  ])(
+    'reports whether the board can keep the query order for $path',
+    async ({ search, project, rejected, linked, expected }) => {
+      const model = createModel()
+      model.appliedJiraSearch = search
+      if (project) {
+        model.jiraProjectFilter = { siteId: 'site-1', id: '10000', key: 'APP', name: 'App' }
+      }
+      if (linked) {
+        model.jiraHasWorkspace = true
+        model.linkedJiraIssueRefs = [{ key: 'APP-1', siteId: 'site-1' }]
+        model.linkedJiraIssueRefsSignature = JSON.stringify(model.linkedJiraIssueRefs)
+      }
+      if (rejected) {
+        searchJiraIssues.mockRejectedValueOnce(
+          new Error("Error 400: The value 'NOPE' does not exist.")
+        )
+      }
+      renderHook(() => useTaskPageJiraListEffects(model))
+      await waitFor(() => expect(model.setJiraIssuesInQueryOrder).toHaveBeenCalled())
+      expect(model.setJiraIssuesInQueryOrder).toHaveBeenLastCalledWith(expected)
+      if (!linked) {
+        // A failed load also reports false, so these rows must reach the success path.
+        expect(model.setJiraError).toHaveBeenLastCalledWith(null)
+      }
     }
   )
 

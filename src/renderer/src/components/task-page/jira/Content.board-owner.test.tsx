@@ -13,7 +13,7 @@ import type * as I18n from '@/i18n/i18n'
 
 type BoardProps = ComponentProps<typeof TaskPageJiraBoardView>
 vi.mock('@/components/task-page-jira-board-view', () => ({
-  TaskPageJiraBoardView: ({ target, scopeKey }: BoardProps) => {
+  TaskPageJiraBoardView: ({ target, scopeKey, issues }: BoardProps) => {
     const [draft, setDraft] = useState('')
     return (
       <div>
@@ -24,6 +24,7 @@ vi.mock('@/components/task-page-jira-board-view', () => ({
         />
         <output data-testid="board-owner">{JSON.stringify(target)}</output>
         <output data-testid="board-scope">{scopeKey}</output>
+        <output data-testid="board-issues">{issues.map((issue) => issue.key).join(',')}</output>
       </div>
     )
   }
@@ -120,6 +121,24 @@ it.each([
     expect(screen.getByTestId('board-owner').textContent).toBe(
       JSON.stringify({ kind: 'environment', environmentId: owner })
     )
+  }
+)
+
+it.each([
+  { inQueryOrder: true, expected: 'APP-2,APP-1' },
+  { inQueryOrder: false, expected: 'APP-1,APP-2' }
+])(
+  'shows board cards in query order only when the query set it ($inQueryOrder)',
+  ({ inQueryOrder, expected }) => {
+    const current = model(source)
+    const issue = (key: string) =>
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the mocked board reads only issue keys.
+      ({ key }) as unknown as TaskPageComposerActionsModel['sortedJiraIssues'][number]
+    current.displayedJiraIssues = [issue('APP-2'), issue('APP-1')]
+    current.sortedJiraIssues = [issue('APP-1'), issue('APP-2')]
+    current.jiraIssuesInQueryOrder = inQueryOrder
+    render(<TaskPageJiraContent model={current} />)
+    expect(screen.getByTestId('board-issues').textContent).toBe(expected)
   }
 )
 

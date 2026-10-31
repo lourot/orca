@@ -99,6 +99,7 @@ function useTaskPageFixture(store: ReturnType<typeof createTestStore>, remote: b
     setJiraStatusCatalog,
     setJiraProjectStatusOrder: noop,
     setJiraIssues,
+    setJiraIssuesInQueryOrder: noop,
     setJiraIssueListMeta: noop,
     setJiraLoading,
     jiraSearchInput,
