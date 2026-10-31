@@ -3415,3 +3415,22 @@ html.native-shell .app-layout {
 .monaco-editor .lines-content {
   --vscode-editorWhitespace-foreground: #507050;
 }
+
+/* TODO-style comment badges and LA_ identifiers (keyword-highlight-decorations.ts). */
+.monaco-editor .orca-keyword-highlight {
+  background-color: #ffcc00;
+  color: #1f1f1f !important;
+  font-weight: bold;
+}
+.monaco-editor .orca-keyword-comment-highlight {
+  background-color: #ffcc00;
+  color: #1f1f1f !important;
+}
+.monaco-editor .orca-la-identifier-highlight {
+  color: #ffff00 !important;
+  font-weight: bold;
+}
+.monaco-editor.vs .orca-la-identifier-highlight {
+  background-color: #ffff00;
+  color: #1f1f1f !important;
+}
