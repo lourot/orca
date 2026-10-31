@@ -72,6 +72,7 @@ afterEach(() => {
   cleanup()
   useAppStore.setState(originalState, true)
   localStorage.removeItem('orca.jira.has-workspace.v1')
+  localStorage.removeItem('orca.jira.project-filter.v1')
 })
 beforeEach(() => {
   vi.resetAllMocks()
@@ -90,6 +91,35 @@ describe('repository-scoped Jira Tasks', () => {
     expect(result.current.jiraProjectFilter).toBeNull()
     expect(repo.defaultJiraProject).toEqual(project)
   })
+  it('remembers an unscoped pick per host and site, below an applicable repository default', () => {
+    const plainRepo: Repo = { ...repo, id: 'plain', defaultJiraProject: null }
+    const scope = (host: ExecutionHostId, site: string, selected: readonly Repo[] = []) =>
+      renderHook(() =>
+        useTaskPageJiraProjectScope([plainRepo, repo], selected, undefined, host, site)
+      )
+    const first = scope('local', 'all')
+    act(() => first.result.current.setJiraProjectFilter(sshProject))
+    first.unmount()
+    const defaulted = scope('local', 'all', [repo])
+    act(() => defaulted.result.current.setJiraProjectFilter(null))
+    defaulted.unmount()
+    expect({
+      remembered: scope('local', 'all').result.current.jiraProjectFilter,
+      otherSite: scope('local', 'site-b').result.current.jiraProjectFilter,
+      otherHost: scope('runtime:remote', 'all').result.current.jiraProjectFilter,
+      repositoryDefault: scope('local', 'all', [repo]).result.current.jiraProjectFilter
+    }).toEqual({
+      remembered: sshProject,
+      otherSite: null,
+      otherHost: null,
+      repositoryDefault: project
+    })
+    const cleared = scope('local', 'all')
+    act(() => cleared.result.current.setJiraProjectFilter(null))
+    cleared.unmount()
+    expect(scope('local', 'all').result.current.jiraProjectFilter).toBeNull()
+  })
+
   it('does not apply another site or execution host’s project mapping', () => {
     const initialProps: { host: ExecutionHostId; site: string } = { host: 'local', site: 'site-b' }
     const { result, rerender } = renderHook(
