@@ -1,6 +1,7 @@
 import type { RepoIconPickResult } from '../../shared/repo-icon-pick-failure-copy'
 import type { ExecutionHostId } from '../../shared/execution-host'
 import type { ShellPathExistence } from '../../shared/path-existence-batch'
+import type { GitGuiBlameRequest, GitGuiBlameResult } from '../../shared/git-gui-blame-types'
 import type {
   ShellOpenExternalEditorRequest,
   ShellOpenExternalEditorResult,
@@ -23,6 +24,8 @@ export type ShellApi = {
   openInExternalEditor: (
     request: ShellOpenExternalEditorRequest
   ) => Promise<ShellOpenExternalEditorResult>
+  /** Desktop only: git's blame browser on a local file. */
+  openGitGuiBlame?: (request: GitGuiBlameRequest) => Promise<GitGuiBlameResult>
   openUrl: (url: string) => Promise<void>
   openFilePath: (path: string, ownerHostId: ExecutionHostId) => Promise<boolean>
   openFileUri: (uri: string, ownerHostId: ExecutionHostId) => Promise<void>

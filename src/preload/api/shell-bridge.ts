@@ -7,6 +7,7 @@ import type {
 } from '../../shared/shell-open-types'
 import type { ExecutionHostId } from '../../shared/execution-host'
 import type { ShellPathExistence } from '../../shared/path-existence-batch'
+import type { GitGuiBlameRequest, GitGuiBlameResult } from '../../shared/git-gui-blame-types'
 import type { PreloadApi } from '../api-types'
 
 export const shellApi = {
@@ -23,6 +24,9 @@ export const shellApi = {
     request: ShellOpenExternalEditorRequest
   ): Promise<ShellOpenExternalEditorResult> =>
     ipcRenderer.invoke('shell:openInExternalEditor', request),
+
+  openGitGuiBlame: (request: GitGuiBlameRequest): Promise<GitGuiBlameResult> =>
+    ipcRenderer.invoke('shell:openGitGuiBlame', request),
 
   openUrl: (url: string): Promise<void> => ipcRenderer.invoke('shell:openUrl', url),
 

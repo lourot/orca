@@ -31,6 +31,7 @@ import {
   resolveOwnedPathTarget,
   validateLocalPathTarget
 } from './shell-owned-path-target'
+import { registerGitGuiBlameHandler } from './git-gui-blame'
 import { registerShellPathExistenceHandlers } from './shell-path-existence-handlers'
 
 export { EXTERNAL_EDITOR_CLI_COMMAND }
@@ -136,6 +137,7 @@ export function registerShellHandlers(
       openInFileManager(path, ownerHostId)
   )
 
+  registerGitGuiBlameHandler()
   ipcMain.handle(
     'shell:openInExternalEditor',
     (_event, request: ShellOpenExternalEditorRequest): Promise<ShellOpenExternalEditorResult> =>
