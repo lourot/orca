@@ -123,6 +123,28 @@ describe('getActiveMarkdownExportPayload', () => {
     expect(root.querySelector('.markdown-annotation-controls')).not.toBeNull()
   })
 
+  it('keeps only web, mail and in-page links clickable, as text for the rest', async () => {
+    await mockPreviewOpenFile()
+    const root = document.createElement('div')
+    root.innerHTML = `
+      <div class="markdown-body"><p>
+        <a href="https://example.com">web</a>
+        <a href="mailto:a@example.com">mail</a>
+        <a href="#heading">heading</a>
+        <a href="#orca-doc-link=vincent">vincent</a>
+        <a href="./other.md">other</a>
+      </p></div>`
+    const payload = await getActiveMarkdownExportPayload({ fileId: '/repo/docs/readme.md', root })
+    const exported = parseExportedHtml(payload?.html)
+    expect({
+      links: [...exported.querySelectorAll('a')].map((link) => link.textContent),
+      text: exported.querySelector('p')?.textContent?.replace(/\s+/g, ' ').trim()
+    }).toEqual({
+      links: ['web', 'mail', 'heading'],
+      text: 'web mail heading vincent other'
+    })
+  })
+
   it('strips list-block annotation controls while preserving list text', async () => {
     await mockPreviewOpenFile()
     const root = document.createElement('div')

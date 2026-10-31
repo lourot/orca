@@ -51,6 +51,8 @@ html, body {
 }
 
 .orca-export-root blockquote {
+  margin-left: 0;
+  margin-right: 0;
   padding: 0 1em;
   color: #57606a;
   border-left: 0.25em solid #d0d7de;

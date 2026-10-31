@@ -1,6 +1,7 @@
 import { useAppStore } from '@/store'
 import { detectLanguage } from '@/lib/language-detect'
 import { buildMarkdownExportHtml } from './markdown-export-html'
+import { MARKDOWN_DOC_LINK_PREFIX } from './markdown-doc-links'
 
 export type MarkdownExportPayload = {
   title: string
@@ -19,6 +20,19 @@ const UI_ONLY_SELECTORS = [
   '.markdown-annotation-controls',
   '[data-orca-export-hide]'
 ]
+
+/** Unwrap links a PDF reader cannot follow (wiki-links, workspace files), keeping their text. */
+function unwrapUnfollowableLinks(root: Element): void {
+  for (const link of root.querySelectorAll('a')) {
+    const href = link.getAttribute('href') ?? ''
+    const followable =
+      /^(https?:|mailto:)/i.test(href) ||
+      (href.startsWith('#') && !href.startsWith(MARKDOWN_DOC_LINK_PREFIX))
+    if (!followable) {
+      link.replaceWith(...link.childNodes)
+    }
+  }
+}
 
 function basenameWithoutExt(filePath: string): string {
   const base = filePath.split(/[\\/]/).pop() ?? filePath
@@ -62,6 +76,7 @@ export async function getActiveMarkdownExportPayload({
       node.remove()
     }
   }
+  unwrapUnfollowableLinks(clone)
   // Inline renderer-owned blob images because the hidden PDF window cannot resolve their URLs.
   await inlineBlobImageSources(clone)
 
