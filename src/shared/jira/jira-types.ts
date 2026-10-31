@@ -104,6 +104,16 @@ export type JiraTransition = {
   fields?: JiraCreateField[]
 }
 
+/** Another issue this one relates to, as shown in the details drawer. */
+export type JiraIssueLink = {
+  relation: string
+  key: string
+  title: string
+  statusName: string
+  statusCategoryKey: string
+  issueTypeName?: string
+}
+
 export type JiraIssue = {
   id: string
   key: string
@@ -127,6 +137,11 @@ export type JiraIssue = {
   remainingEstimateSeconds?: number
   /** Jira due date, `YYYY-MM-DD` (no time zone). */
   dueDate?: string
+  /** Keys of unresolved issues that block this one. */
+  blockedBy?: string[]
+  /** Issue links; `relation` is the phrase from this issue's side, e.g. `is blocked by`. */
+  links?: JiraIssueLink[]
+  subtasks?: JiraIssueLink[]
   updatedAt: string
   createdAt: string
 }

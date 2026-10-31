@@ -42,6 +42,7 @@ export function TaskPageJiraContent({
     selectedJiraIssue,
     jiraDetailSourceContext,
     openJiraDetailPage,
+    openJiraIssueByKey,
     jiraIssues,
     jiraIssueListMeta,
     jiraLoading,
@@ -215,6 +216,7 @@ export function TaskPageJiraContent({
               target={boardTarget}
               scopeKey={boardScopeKey}
               onOpenIssue={openJiraDetailPage}
+              onOpenIssueKey={openJiraIssueByKey}
               onStartWorkspace={handleUseJiraItem}
               showSiteContext={selectedJiraSiteId === 'all'}
               loading={jiraLoading}
@@ -241,6 +243,7 @@ export function TaskPageJiraContent({
               getStatusTone={getJiraStatusTone}
               issues={sortedJiraIssues}
               onOpenIssue={openJiraDetailPage}
+              onOpenIssueKey={openJiraIssueByKey}
               onStartWorkspace={handleUseJiraItem}
               scrollElement={listScrollElement}
               selectedIssue={selectedJiraIssue}
@@ -254,6 +257,7 @@ export function TaskPageJiraContent({
           issue={selectedJiraIssue}
           onUse={handleUseJiraItem}
           onClose={closeTaskDetailPage}
+          onOpenIssueKey={openJiraIssueByKey}
           sourceContext={jiraDetailSourceContext}
         />
       </div>

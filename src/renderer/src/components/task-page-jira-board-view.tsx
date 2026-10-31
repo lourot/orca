@@ -29,6 +29,7 @@ type Props = {
   showSiteContext: boolean
   loading?: boolean
   onOpenIssue: (issue: JiraIssue) => void
+  onOpenIssueKey?: (key: string, siteId: string | undefined) => void
   onStartWorkspace: (issue: JiraIssue) => void
   onRefresh: () => void
 }
@@ -43,6 +44,7 @@ export function TaskPageJiraBoardView({
   showSiteContext,
   loading = false,
   onOpenIssue,
+  onOpenIssueKey,
   onStartWorkspace,
   onRefresh
 }: Props): React.JSX.Element {
@@ -224,6 +226,7 @@ export function TaskPageJiraBoardView({
         selectedIssue={selectedIssue}
         showSiteContext={showSiteContext}
         onOpenIssue={onOpenIssue}
+        onOpenIssueKey={onOpenIssueKey}
         onStartWorkspace={onStartWorkspace}
         formatUpdatedAt={formatRelativeTime}
         updatingIssueKeys={

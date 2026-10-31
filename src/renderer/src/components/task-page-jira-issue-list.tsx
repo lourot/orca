@@ -13,6 +13,8 @@ import { jiraListColumnVisibility, type JiraListColumn } from './jira-list-colum
 import { JiraIssueCell, JiraPriorityText, unassignedLabel } from './task-page-jira-issue-cells'
 import type { JiraIssue, JiraProjectStatusOrder } from '../../../shared/jira/jira-types'
 import { openAppHttpLink } from '@/lib/app-http-link-open'
+import { TaskTypeIcon } from './task-page/task-type-icon'
+import { TaskBlockedBy } from './task-page/task-blocked-by'
 
 // Why: the measured height of one issue row, so the scrollbar does not jump before rows are measured.
 const JIRA_ISSUE_ROW_HEIGHT_PX = 56
@@ -31,6 +33,7 @@ type TaskPageJiraIssueListProps = {
   getStatusTone: (categoryKey: string) => string
   issues: JiraIssue[]
   onOpenIssue: (issue: JiraIssue) => void
+  onOpenIssueKey?: (key: string, siteId: string | undefined) => void
   onStartWorkspace: (issue: JiraIssue) => void
   /** The scroller that hosts the list; without it the list renders unwindowed. */
   scrollElement?: HTMLDivElement | null
@@ -106,6 +109,7 @@ function JiraIssueRow({
   getStatusTone,
   issue,
   onOpenIssue,
+  onOpenIssueKey,
   onStartWorkspace,
   selected,
   showSiteContext
@@ -114,6 +118,7 @@ function JiraIssueRow({
   getStatusTone: (categoryKey: string) => string
   issue: JiraIssue
   onOpenIssue: (issue: JiraIssue) => void
+  onOpenIssueKey?: (key: string, siteId: string | undefined) => void
   onStartWorkspace: (issue: JiraIssue) => void
   selected: boolean
   showSiteContext: boolean
@@ -152,18 +157,25 @@ function JiraIssueRow({
           selected && 'bg-accent'
         )}
       >
-        <span className="block truncate font-mono text-[12px] text-muted-foreground @max-3xl:!hidden">
-          {issue.key}
+        <span className="flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-muted-foreground @max-3xl:!hidden">
+          <TaskTypeIcon type={issue.issueType.name} />
+          <span className="truncate">{issue.key}</span>
         </span>
 
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="shrink-0 font-mono text-[11px] text-muted-foreground @3xl:hidden">
+            <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground @3xl:hidden">
+              <TaskTypeIcon type={issue.issueType.name} />
               {issue.key}
             </span>
             <h3 className="min-w-0 truncate text-[13px] font-medium text-foreground">
               {issue.title}
             </h3>
+            <TaskBlockedBy
+              ids={issue.blockedBy}
+              onOpen={onOpenIssueKey && ((key) => onOpenIssueKey(key, issue.siteId))}
+              className="max-w-[40%] shrink-0 text-[11px]"
+            />
           </div>
           <div className="mt-1 flex min-w-0 items-center gap-1.5 @3xl:!hidden">
             <span
@@ -298,6 +310,7 @@ export function TaskPageJiraIssueList({
   getStatusTone,
   issues,
   onOpenIssue,
+  onOpenIssueKey,
   onStartWorkspace,
   scrollElement = null,
   selectedIssue,
@@ -377,6 +390,7 @@ export function TaskPageJiraIssueList({
               getStatusTone={getStatusTone}
               issue={row.issue}
               onOpenIssue={onOpenIssue}
+              onOpenIssueKey={onOpenIssueKey}
               onStartWorkspace={onStartWorkspace}
               selected={isSelectedIssue(row.issue, selectedIssue)}
               showSiteContext={showSiteContext}

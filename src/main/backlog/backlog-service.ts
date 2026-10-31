@@ -14,7 +14,8 @@ import {
 } from './backlog-project'
 import { parseBacklogTask } from './backlog-task-file'
 import { backlogMutationUnavailable, resolveBacklogCli, runBacklogMutation } from './backlog-cli'
-import { describeBacklogTask } from './backlog-task-relations'
+import { describeBacklogTask, openBacklogBlockers } from './backlog-task-relations'
+import { sortBacklogTasks } from './backlog-task-order'
 import { withBacklogTaskLock } from './backlog-task-lock'
 import { BacklogNotSavedError, BacklogSaveUnconfirmedError } from './backlog-save-outcome'
 
@@ -142,6 +143,7 @@ async function runOperation(
       }
     }
     const search = operation.search.toLocaleLowerCase()
+    const byKey = new Map(tasks.map((task) => [backlogTaskKey(task.id), task]))
     const matching = tasks.filter(
       (task) =>
         (!operation.status || task.status === operation.status) &&
@@ -155,14 +157,17 @@ async function runOperation(
       statuses: project.statuses,
       priorities: project.priorities,
       types: project.types,
-      tasks: matching
+      tasks: sortBacklogTasks(matching, project)
         .slice(operation.offset, operation.offset + 100)
-        .map(({ id, title, status, priority, labels }) => ({
+        .map(({ id, title, status, priority, labels, type, dueDate, dependencies }) => ({
           id,
           title,
           status,
           priority,
-          labels
+          labels,
+          type,
+          dueDate,
+          blockedBy: openBacklogBlockers({ dependencies }, byKey, project.statuses)
         })),
       total: matching.length,
       mutationUnavailable

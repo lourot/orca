@@ -24,7 +24,7 @@ export type JiraListColumn = {
 }
 
 export const JIRA_LIST_COLUMNS: readonly JiraListColumn[] = [
-  { id: 'key', widths: [90, 96, 104], locked: true, defaultVisible: true },
+  { id: 'key', widths: [106, 112, 120], locked: true, defaultVisible: true },
   { id: 'title', widths: [180, 180, 180], locked: true, defaultVisible: true },
   { id: 'status', widths: [128, 132, 144], defaultVisible: true },
   { id: 'priority', widths: [92, 120, 132], defaultVisible: true },

@@ -6,6 +6,7 @@ import { useAppStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
 import { findTaskPageLinearIssue } from './linear/task-page-linear-cache-selectors'
 import { findTaskPageJiraIssue } from '@/components/task-page/jira/task-page-jira-cache-selectors'
+import { openJiraIssueByKey as openJiraIssueByKeyFrom } from '@/components/task-page/jira/task-page-jira-open-by-key'
 export function useTaskPageDetailRouting(model: TaskPageGitHubIssueDraftModel) {
   const {
     pageData,
@@ -182,6 +183,17 @@ export function useTaskPageDetailRouting(model: TaskPageGitHubIssueDraftModel) {
     },
     [jiraTaskSourceContext, openTaskPage]
   )
+  const openJiraIssueByKey = useCallback(
+    (key: string, siteId: string | undefined) =>
+      void openJiraIssueByKeyFrom({
+        state: useAppStore.getState(),
+        sourceContext: jiraTaskSourceContext,
+        key,
+        siteId,
+        open: openJiraDetailPage
+      }),
+    [jiraTaskSourceContext, openJiraDetailPage]
+  )
 
   const nextModel = model as typeof model & {
     selectedLinearIssueId: typeof selectedLinearIssueId
@@ -209,6 +221,7 @@ export function useTaskPageDetailRouting(model: TaskPageGitHubIssueDraftModel) {
     jiraDetailSourceContext: typeof jiraDetailSourceContext
     setSelectedJiraIssue: typeof setSelectedJiraIssue
     openJiraDetailPage: typeof openJiraDetailPage
+    openJiraIssueByKey: typeof openJiraIssueByKey
   }
   nextModel.selectedLinearIssueId = selectedLinearIssueId
   nextModel.setSelectedLinearIssueId = setSelectedLinearIssueId
@@ -235,6 +248,7 @@ export function useTaskPageDetailRouting(model: TaskPageGitHubIssueDraftModel) {
   nextModel.jiraDetailSourceContext = jiraDetailSourceContext
   nextModel.setSelectedJiraIssue = setSelectedJiraIssue
   nextModel.openJiraDetailPage = openJiraDetailPage
+  nextModel.openJiraIssueByKey = openJiraIssueByKey
   return nextModel
 }
 export type TaskPageDetailRoutingModel = ReturnType<typeof useTaskPageDetailRouting>

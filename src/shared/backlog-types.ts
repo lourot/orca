@@ -117,10 +117,23 @@ export type BacklogTaskDetail = BacklogTask & {
   related: string[]
   links: BacklogTaskLink[]
 }
+/** A list row; `blockedBy` holds the dependencies that are still open. */
 export type BacklogTaskSummary = Pick<
   BacklogTask,
-  'id' | 'title' | 'status' | 'priority' | 'labels'
->
+  'id' | 'title' | 'status' | 'priority' | 'labels' | 'type' | 'dueDate'
+> & { blockedBy: string[] }
+
+/** Where a status sits in the configured workflow: last is done, first is new, the rest in between. */
+export type BacklogStatusCategory = 'new' | 'indeterminate' | 'done'
+
+/** Categorizes a status by its position in the config; a status outside the config counts as new. */
+export function getBacklogStatusCategory(
+  status: string,
+  statuses: readonly string[]
+): BacklogStatusCategory {
+  const index = statuses.findIndex((entry) => entry.toLowerCase() === status.toLowerCase())
+  return index <= 0 ? 'new' : index === statuses.length - 1 ? 'done' : 'indeterminate'
+}
 export type BacklogList = {
   projectPath: string
   projectName: string
@@ -146,7 +159,10 @@ export const BacklogReply = z.union([
         title: z.string(),
         status: z.string(),
         priority: z.string().default(''),
-        labels: Strings
+        labels: Strings,
+        type: z.string().default(''),
+        dueDate: z.string().default(''),
+        blockedBy: Strings
       })
     ),
     total: z.number(),

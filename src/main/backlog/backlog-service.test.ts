@@ -153,6 +153,37 @@ describe('Backlog project operations', () => {
       executeBacklogOperation(root, { kind: 'list', search: '', status: '', offset: 0 })
     ).rejects.toThrow('limit')
   })
+  it('sorts the whole list before paging and lists only open blockers', async () => {
+    const root = await fixture()
+    for (let index = 0; index < 100; index++) {
+      await task(root, `OPS-${index}`, index === 2 ? 'Released' : 'In review')
+    }
+    await writeFile(
+      path.join(root, 'backlog/tasks/ops-100 - urgent.md'),
+      '---\nid: OPS-100\ntitle: Urgent\nstatus: Inbox\npriority: high\ntype: bug\ndue_date: 2026-11-02\ndependencies: [OPS-1, OPS-2, OPS-999]\n---\n'
+    )
+    const page = await executeBacklogOperation(root, {
+      kind: 'list',
+      search: '',
+      status: '',
+      offset: 0
+    })
+    expect(page).toHaveProperty('total', 101)
+    expect('tasks' in page && page.tasks[0]).toEqual({
+      id: 'OPS-100',
+      title: 'Urgent',
+      status: 'Inbox',
+      priority: 'high',
+      labels: [],
+      type: 'bug',
+      dueDate: '2026-11-02',
+      blockedBy: ['OPS-1']
+    })
+    // The done task sinks past the first page.
+    expect(
+      await executeBacklogOperation(root, { kind: 'list', search: '', status: '', offset: 100 })
+    ).toMatchObject({ tasks: [{ id: 'OPS-2' }] })
+  })
   it('refuses mutations without the CLI or with executable hooks/autocommit', async () => {
     const root = await fixture()
     const create = { kind: 'create', title: 'Task', description: '', status: 'Inbox' } as const

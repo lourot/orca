@@ -2,10 +2,14 @@ import { translate } from '@/i18n/i18n'
 import {
   BACKLOG_TASK_ID_PATTERN,
   backlogTaskKey,
+  getBacklogStatusCategory,
   type BacklogTaskDetail
 } from '../../../../../shared/backlog-types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { TaskDueDate } from '../task-due-date-label'
+import { TaskTypeIcon } from '../task-type-icon'
+import { BacklogPriorityText, BacklogStatusPill } from './BacklogTaskRow'
 
 /** One labelled row; rows without a value are not rendered. */
 function Row({ label, children }: { label: string; children: React.ReactNode }): React.JSX.Element {
@@ -20,9 +24,11 @@ function Row({ label, children }: { label: string; children: React.ReactNode }):
 /** Shows a task's frontmatter fields and its relations; linked tasks open in place. */
 export function BacklogTaskFields({
   task,
+  statuses,
   onOpenTask
 }: {
   task: BacklogTaskDetail
+  statuses: readonly string[]
   onOpenTask: (id: string) => void
 }): React.JSX.Element | null {
   const links = new Map(task.links.map((link) => [backlogTaskKey(link.id), link]))
@@ -45,7 +51,7 @@ export function BacklogTaskFields({
         >
           <span className="font-mono">{link.id}</span>
           <span className="truncate">{link.title}</span>
-          <Badge variant="outline">{link.status}</Badge>
+          <BacklogStatusPill status={link.status} statuses={statuses} />
         </Button>
       ) : (
         <span key={id} className="font-mono text-muted-foreground">
@@ -73,8 +79,19 @@ export function BacklogTaskFields({
       )
     )
   const rows: [string, React.ReactNode][] = [
-    [translate('backlog.priority', 'Priority'), task.priority],
-    [translate('backlog.type', 'Type'), task.type],
+    [
+      translate('backlog.priority', 'Priority'),
+      task.priority ? <BacklogPriorityText key="priority" priority={task.priority} /> : null
+    ],
+    [
+      translate('backlog.type', 'Type'),
+      task.type ? (
+        <>
+          <TaskTypeIcon type={task.type} />
+          {task.type}
+        </>
+      ) : null
+    ],
     [translate('backlog.assignees', 'Assignees'), task.assignees.join(', ')],
     [
       translate('backlog.labels', 'Labels'),
@@ -86,7 +103,16 @@ export function BacklogTaskFields({
           ))
         : null
     ],
-    [translate('backlog.dueDate', 'Due date'), task.dueDate],
+    [
+      translate('backlog.dueDate', 'Due date'),
+      task.dueDate ? (
+        <TaskDueDate
+          key="dueDate"
+          dueDate={task.dueDate}
+          done={getBacklogStatusCategory(task.status, statuses) === 'done'}
+        />
+      ) : null
+    ],
     [translate('backlog.parent', 'Parent'), task.parent ? taskLinks([task.parent]) : null],
     [translate('backlog.dependsOn', 'Depends on'), taskLinks(task.dependencies)],
     [translate('backlog.blocks', 'Blocks'), taskLinks(task.blocks)],

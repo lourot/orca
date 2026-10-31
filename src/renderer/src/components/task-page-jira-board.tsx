@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { ArrowRight, CalendarClock, ExternalLink, MoveRight } from 'lucide-react'
+import { ArrowRight, ExternalLink, MoveRight } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -24,7 +24,9 @@ import {
 } from './task-page-jira-board-sections'
 import { openAppHttpLink } from '@/lib/app-http-link-open'
 import { getJiraPriorityTone } from './task-page/jira/task-page-jira-status-tone'
-import { formatJiraDueDate, isJiraIssueOverdue } from './task-page/jira/task-page-jira-due-date'
+import { TaskDueDate } from './task-page/task-due-date-label'
+import { TaskTypeIcon } from './task-page/task-type-icon'
+import { TaskBlockedBy } from './task-page/task-blocked-by'
 
 export function jiraBoardIssueRefKey(issue: Pick<JiraIssue, 'key' | 'siteId'>): string {
   return `${issue.siteId ?? 'site'}:${issue.key}`
@@ -43,37 +45,13 @@ type TaskPageJiraBoardProps = {
   issues: JiraIssue[]
   onMoveIssue: (issue: JiraIssue, section: TaskPageJiraBoardSection) => Promise<void>
   onOpenIssue: (issue: JiraIssue) => void
+  onOpenIssueKey?: (key: string, siteId: string | undefined) => void
   onStartWorkspace: (issue: JiraIssue) => void
   selectedIssue: JiraIssue | null
   showSiteContext: boolean
   statusDirection?: 'asc' | 'desc'
   statusOrder: JiraProjectStatusOrder | null
   updatingIssueKeys: ReadonlySet<string>
-}
-
-/** The card's due date, in the destructive tone once it has passed on an open issue. */
-function JiraCardDueDate({
-  issue,
-  dueDate
-}: {
-  issue: JiraIssue
-  dueDate: string
-}): React.JSX.Element {
-  const date = formatJiraDueDate(dueDate)
-  const overdue = isJiraIssueOverdue(dueDate, issue.status.categoryKey)
-  const label = overdue
-    ? translate('jira.board.overdue', 'Overdue, due {{date}}', { date })
-    : translate('jira.board.dueDate', 'Due {{date}}', { date })
-  return (
-    <span
-      className={cn('flex items-center gap-0.5', overdue && 'text-destructive')}
-      title={label}
-      aria-label={label}
-    >
-      <CalendarClock className="size-3" aria-hidden />
-      {date}
-    </span>
-  )
 }
 
 function isSelectedIssue(issue: JiraIssue, selectedIssue: JiraIssue | null): boolean {
@@ -88,6 +66,7 @@ export function TaskPageJiraBoard({
   issues,
   onMoveIssue,
   onOpenIssue,
+  onOpenIssueKey,
   onStartWorkspace,
   selectedIssue,
   showSiteContext,
@@ -227,6 +206,7 @@ export function TaskPageJiraBoard({
                     <div className="flex min-w-0 items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex min-w-0 items-center gap-1.5 font-mono text-2xs text-muted-foreground">
+                          <TaskTypeIcon type={issue.issueType.name} />
                           <span className="truncate">{issue.key}</span>
                           {issue.priority ? (
                             <span
@@ -242,6 +222,11 @@ export function TaskPageJiraBoard({
                         <h3 className="mt-1 line-clamp-2 text-[13px] font-medium leading-snug text-foreground">
                           {issue.title}
                         </h3>
+                        <TaskBlockedBy
+                          ids={issue.blockedBy}
+                          onOpen={onOpenIssueKey && ((key) => onOpenIssueKey(key, issue.siteId))}
+                          className="mt-1 text-2xs"
+                        />
                       </div>
                       <div className="flex shrink-0 items-center gap-1 md:opacity-0 md:transition-opacity md:group-hover/card:opacity-100 md:group-focus-within/card:opacity-100">
                         <DropdownMenu>
@@ -357,9 +342,10 @@ export function TaskPageJiraBoard({
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
                         <span className="max-w-[120px] truncate text-3xs">{contextLabel}</span>
-                        {issue.dueDate ? (
-                          <JiraCardDueDate issue={issue} dueDate={issue.dueDate} />
-                        ) : null}
+                        <TaskDueDate
+                          dueDate={issue.dueDate ?? ''}
+                          done={issue.status.categoryKey === 'done'}
+                        />
                         <span>{formatUpdatedAt(issue.updatedAt)}</span>
                       </div>
                     </div>

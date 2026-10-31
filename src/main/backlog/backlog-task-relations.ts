@@ -1,8 +1,30 @@
 import {
   backlogTaskKey,
+  getBacklogStatusCategory,
   type BacklogTask,
   type BacklogTaskDetail
 } from '../../shared/backlog-types'
+
+/**
+ * The dependencies that still block a task: those naming an active task that is not done.
+ * An ID outside `tasks/` (archived, completed or a typo) no longer blocks the list row.
+ */
+export function openBacklogBlockers(
+  task: Pick<BacklogTask, 'dependencies'>,
+  byKey: ReadonlyMap<string, Pick<BacklogTask, 'id' | 'status'>>,
+  statuses: readonly string[]
+): string[] {
+  return [
+    ...new Set(
+      task.dependencies.flatMap((id) => {
+        const blocker = byKey.get(backlogTaskKey(id))
+        return blocker && getBacklogStatusCategory(blocker.status, statuses) !== 'done'
+          ? [blocker.id]
+          : []
+      })
+    )
+  ]
+}
 
 /**
  * Adds the relations Backlog.md stores on the other side: tasks this one blocks (their

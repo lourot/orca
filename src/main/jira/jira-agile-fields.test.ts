@@ -228,4 +228,72 @@ describe('jira agile fields', () => {
     expect(issue.sprint).toBe('Sprint 2')
     expect(issue.storyPoints).toBe(5)
   })
+
+  it('lists only open issues that block this one as blockedBy', () => {
+    const link = (
+      type: { name: string; inward: string },
+      side: 'inwardIssue' | 'outwardIssue',
+      key: string,
+      category = 'indeterminate'
+    ) => ({ type, [side]: { key, fields: { status: { statusCategory: { key: category } } } } })
+    const blocks = { name: 'Blocks', inward: 'is blocked by' }
+    const issue = mapJiraIssue(site, {
+      id: '1',
+      key: 'ALP-1',
+      fields: {
+        issuelinks: [
+          link(blocks, 'inwardIssue', 'ALP-2'),
+          link(blocks, 'inwardIssue', 'ALP-3', 'done'),
+          link(blocks, 'outwardIssue', 'ALP-4'),
+          link({ name: 'Relates', inward: 'relates to' }, 'inwardIssue', 'ALP-5'),
+          link({ name: 'Dependency', inward: 'Is Blocked By' }, 'inwardIssue', 'ALP-6', 'new')
+        ]
+      }
+    })
+    expect(issue.blockedBy).toEqual(['ALP-2', 'ALP-6'])
+    expect(mapJiraIssue(site, { id: '2', key: 'ALP-2', fields: {} }).blockedBy).toBeUndefined()
+  })
+
+  it("maps every link from this issue's side, and the sub-tasks", () => {
+    const linked = (key: string, category: string) => ({
+      key,
+      fields: {
+        summary: `Title ${key}`,
+        status: { name: `Status ${key}`, statusCategory: { key: category } },
+        issuetype: { name: 'Bug' }
+      }
+    })
+    const blocks = { name: 'Blocks', inward: 'is blocked by', outward: 'blocks' }
+    const issue = mapJiraIssue(site, {
+      id: '1',
+      key: 'ALP-1',
+      fields: {
+        issuelinks: [
+          { type: blocks, inwardIssue: linked('ALP-2', 'done') },
+          { type: blocks, outwardIssue: linked('ALP-3', 'new') },
+          {
+            type: { name: 'Relates', inward: 'relates to', outward: 'relates to' },
+            outwardIssue: linked('ALP-4', 'indeterminate')
+          }
+        ],
+        subtasks: [linked('ALP-5', 'new')]
+      }
+    })
+    const link = (relation: string, key: string, category: string) => ({
+      relation,
+      key,
+      title: `Title ${key}`,
+      statusName: `Status ${key}`,
+      statusCategoryKey: category,
+      issueTypeName: 'Bug'
+    })
+    expect(issue.links).toEqual([
+      link('is blocked by', 'ALP-2', 'done'),
+      link('blocks', 'ALP-3', 'new'),
+      link('relates to', 'ALP-4', 'indeterminate')
+    ])
+    expect(issue.subtasks).toEqual([link('subtask', 'ALP-5', 'new')])
+    const bare = mapJiraIssue(site, { id: '2', key: 'ALP-2', fields: {} })
+    expect([bare.links, bare.subtasks]).toEqual([undefined, undefined])
+  })
 })

@@ -87,6 +87,16 @@ describe('TaskPageJiraBoard', () => {
     }
   })
 
+  it('shows the issue type icon and the open blockers of a card', () => {
+    const markup = renderBoard([
+      { ...issue('STA-1', todo), issueType: { id: 'b', name: 'Bug' }, blockedBy: ['STA-7'] },
+      issue('STA-2', todo)
+    ])
+    expect(markup).toMatch(/aria-label="Bug"[^>]*>.*?text-destructive/)
+    expect(markup).toMatch(/text-destructive[^"]*"[^>]*title="Blocked by STA-7"/)
+    expect((markup.match(/title="Blocked by /g) ?? []).length).toBe(1)
+  })
+
   it('renders empty board columns with a drop placeholder', () => {
     const markup = renderBoard([issue('STA-1', todo)], {
       statusIdsByColumn: [['1'], ['3']],

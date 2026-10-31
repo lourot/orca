@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 import '@testing-library/jest-dom/vitest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { BacklogTasks } from './BacklogTasks'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { callBacklog } from '@/lib/backlog-task-source'
 import { getRepoWorkspaceCreationTargetHint } from '@/lib/project-host-workspace-target'
 import type * as BacklogSource from '@/lib/backlog-task-source'
@@ -102,6 +103,63 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Backlog Tasks UI', () => {
+  it('colours each row, greys Done ones, and opens a blocker from its chip', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 31, 12))
+    try {
+      vi.mocked(callBacklog).mockResolvedValue(
+        BacklogReply.parse({
+          projectPath: '/folder',
+          projectName: 'Folder project',
+          statuses: ['To Do', 'In Progress', 'Done'],
+          tasks: [
+            {
+              id: 'T-1',
+              title: 'Open',
+              status: 'To Do',
+              priority: 'high',
+              type: 'bug',
+              dueDate: '2026-10-30',
+              blockedBy: ['T-9']
+            },
+            { id: 'T-2', title: 'Going', status: 'In Progress' },
+            { id: 'T-3', title: 'Shipped', status: 'Done', dueDate: '2026-10-30' }
+          ],
+          total: 3,
+          mutationUnavailable: null
+        })
+      )
+      render(
+        <TooltipProvider>
+          <BacklogTasks />
+        </TooltipProvider>
+      )
+      const open = await screen.findByRole('button', { name: /T-1/ })
+      const going = screen.getByRole('button', { name: /T-2/ })
+      const shipped = screen.getByRole('button', { name: /T-3/ })
+      const pill = (row: HTMLElement, status: string) => within(row).getByText(status).className
+      expect(
+        new Set([pill(open, 'To Do'), pill(going, 'In Progress'), pill(shipped, 'Done')]).size
+      ).toBe(3)
+      expect(within(open).getByText('high')).toHaveClass('text-jira-priority-high')
+      expect(within(open).getByRole('img', { name: 'bug' })).toBeInTheDocument()
+      expect(within(open).getByLabelText(/^Overdue, due/)).toHaveClass('text-destructive')
+      expect(within(shipped).getByLabelText(/^Due /)).not.toHaveClass('text-destructive')
+      expect(within(shipped).getByText('Shipped')).toHaveClass('text-muted-foreground')
+      expect(within(open).getByText('Open')).not.toHaveClass('text-muted-foreground')
+      expect(screen.queryAllByRole('button', { name: /^Open T-/ })).toHaveLength(1)
+      const blocker = screen.getByRole('button', { name: 'Open T-9' })
+      expect(blocker).toHaveClass('text-destructive')
+      vi.mocked(callBacklog).mockClear()
+      fireEvent.click(blocker)
+      await waitFor(() =>
+        expect(callBacklog).toHaveBeenCalledWith(expect.anything(), { kind: 'read', id: 'T-9' })
+      )
+      expect(callBacklog).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
   it('browses details and seeds the existing workspace composer without launching an agent', async () => {
     render(<BacklogTasks />)
     const row = await screen.findByRole('button', { name: /OPS-007/ })

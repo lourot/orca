@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { translate } from '@/i18n/i18n'
 import { formatUiRelativeTimeFromDate } from '@/i18n/relative-time-format'
 import type { JiraComment, JiraIssue } from '../../../shared/jira/jira-types'
+import { JiraIssueLinkedIssues } from './jira-issue-linked-issues'
 
 export type JiraIssueWorkspaceAction = {
   label: string
@@ -31,6 +32,7 @@ export function JiraIssueWorkspaceContent({
   commentsLoading,
   retryComments,
   onUse,
+  onOpenIssueKey,
   actionItems
 }: {
   displayed: JiraIssue
@@ -47,6 +49,7 @@ export function JiraIssueWorkspaceContent({
   commentsLoading: boolean
   retryComments: () => void
   onUse: (issue: JiraIssue) => void
+  onOpenIssueKey?: (key: string, siteId: string | undefined) => void
   actionItems: JiraIssueWorkspaceAction[]
 }): React.JSX.Element {
   return (
@@ -136,6 +139,8 @@ export function JiraIssueWorkspaceContent({
             </p>
           )}
         </section>
+
+        <JiraIssueLinkedIssues issue={displayed} onOpenIssueKey={onOpenIssueKey} />
 
         <section className="px-4 py-4">
           <div className="mb-3 flex items-center justify-between gap-3">

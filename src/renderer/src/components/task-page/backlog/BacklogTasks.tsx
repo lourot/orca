@@ -6,7 +6,6 @@ import type { BacklogList, BacklogTaskDetail } from '../../../../../shared/backl
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -28,6 +27,7 @@ import { getRepoWorkspaceCreationTargetHint } from '@/lib/project-host-workspace
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
 import { BacklogTaskEditor } from './BacklogTaskEditor'
 import { BacklogTaskFields } from './BacklogTaskFields'
+import { BacklogStatusPill, BacklogTaskRow } from './BacklogTaskRow'
 
 /** Selects supported repo or folder projects and remounts task state when host, repo, or path changes. */
 export function BacklogTasks(): React.JSX.Element {
@@ -313,8 +313,12 @@ function BacklogProjectTasks({
             <h2 className="text-lg font-semibold">
               {task.id} · {task.title}
             </h2>
-            <Badge variant="secondary">{task.status}</Badge>
-            <BacklogTaskFields task={task} onOpenTask={(id) => void readTask(id)} />
+            <BacklogStatusPill status={task.status} statuses={list?.statuses ?? []} />
+            <BacklogTaskFields
+              task={task}
+              statuses={list?.statuses ?? []}
+              onOpenTask={(id) => void readTask(id)}
+            />
             <pre className="whitespace-pre-wrap break-words font-sans text-sm">
               {task.body || translate('backlog.noDetails', 'No task details.')}
             </pre>
@@ -327,23 +331,14 @@ function BacklogProjectTasks({
               </p>
             ) : null}
             {list?.tasks.map((entry) => (
-              <Button
+              <BacklogTaskRow
                 key={entry.id}
-                variant="ghost"
-                className="w-full justify-start"
+                task={entry}
+                statuses={list.statuses}
                 disabled={loading}
-                onClick={() => void readTask(entry.id)}
-              >
-                <span className="font-mono">{entry.id}</span>
-                <span className="truncate">{entry.title}</span>
-                <Badge variant="secondary">{entry.status}</Badge>
-                {entry.priority ? <Badge variant="outline">{entry.priority}</Badge> : null}
-                {[...new Set(entry.labels)].map((label) => (
-                  <Badge key={label} variant="outline">
-                    {label}
-                  </Badge>
-                ))}
-              </Button>
+                onOpen={() => void readTask(entry.id)}
+                onOpenTask={(id) => void readTask(id)}
+              />
             ))}
           </>
         )}

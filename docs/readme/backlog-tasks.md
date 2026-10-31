@@ -4,7 +4,11 @@ Select **Tasks → Backlog.md**, then choose a project and execution host. Orca 
 the last chosen project (`defaultBacklogProject` setting) and reopens on it. Git repositories
 without a hosting provider and folder projects are both supported. Search matches IDs,
 titles, labels and task bodies; status filters use the project's configured status names.
-Rows show priority and labels. Details show the task's fields (priority, type, assignees,
+Rows show the type as a coloured icon, the status coloured by its place in the configured
+workflow (first grey, last green as done, the rest blue), the priority (High red, Medium
+amber, Low blue), the due date (red once passed on a task that isn't done), the IDs of
+dependencies that aren't done yet, and labels. Tasks are listed most urgent first: open
+before done, then by due date (undated last), then by configured priority. Details show the task's fields (priority, type, assignees,
 labels, due date, references, documentation) above the complete Markdown body, including
 acceptance criteria, plan and notes.
 

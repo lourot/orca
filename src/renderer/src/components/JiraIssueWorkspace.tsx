@@ -28,6 +28,7 @@ type JiraIssueWorkspaceProps = {
   issue: JiraIssue | null
   onUse: (issue: JiraIssue) => void
   onClose: () => void
+  onOpenIssueKey?: (key: string, siteId: string | undefined) => void
   sourceContext?: TaskSourceContext | null
 }
 
@@ -35,6 +36,7 @@ export default function JiraIssueWorkspace({
   issue,
   onUse,
   onClose,
+  onOpenIssueKey,
   sourceContext
 }: JiraIssueWorkspaceProps): React.JSX.Element {
   const settings = useAppStore((s) => s.settings)
@@ -229,6 +231,7 @@ export default function JiraIssueWorkspace({
 
             <JiraIssueWorkspaceContent
               displayed={displayed}
+              onOpenIssueKey={onOpenIssueKey}
               imageTarget={owner}
               titleDraft={titleDraft}
               setTitleDraft={setTitleDraft}

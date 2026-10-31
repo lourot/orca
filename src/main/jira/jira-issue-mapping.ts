@@ -10,6 +10,7 @@ import type {
   JiraUser
 } from '../../shared/jira/jira-types'
 import { adfToMarkdownText, textToAdf, type AdfToMarkdownOptions } from './adf-markdown'
+import { mapBlockedBy, mapIssueLinks, mapSubtasks } from './jira-issue-links'
 import {
   asRecord,
   asString,
@@ -34,7 +35,9 @@ export const ISSUE_FIELDS = [
   'parent',
   'timeoriginalestimate',
   'timeestimate',
-  'duedate'
+  'duedate',
+  'issuelinks',
+  'subtasks'
 ]
 
 // Lists need metadata without expensive description parsing.
@@ -260,6 +263,9 @@ export function mapJiraIssue(
     originalEstimateSeconds: asFiniteNumber(fields.timeoriginalestimate) ?? undefined,
     remainingEstimateSeconds: asFiniteNumber(fields.timeestimate) ?? undefined,
     dueDate: asString(fields.duedate) || undefined,
+    blockedBy: mapBlockedBy(fields.issuelinks),
+    links: mapIssueLinks(fields.issuelinks),
+    subtasks: mapSubtasks(fields.subtasks),
     createdAt: asString(fields.created, new Date().toISOString()),
     updatedAt: asString(fields.updated, new Date().toISOString())
   }
