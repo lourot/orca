@@ -3416,6 +3416,12 @@ html.native-shell .app-layout {
   --vscode-editorWhitespace-foreground: #507050;
 }
 
+/* The [[wiki-link]] under the mouse while Cmd (Ctrl off macOS) is held: it follows on click. */
+.monaco-editor .monaco-markdown-doc-link-follow {
+  cursor: pointer;
+  text-decoration-color: currentColor;
+}
+
 /* TODO-style comment badges and LA_ identifiers (keyword-highlight-decorations.ts). */
 .monaco-editor .orca-keyword-highlight {
   background-color: #ffcc00;
