@@ -212,6 +212,7 @@ describe('jira agile fields', () => {
           parent: { key: 'ALP-9', fields: { summary: 'Big epic', issuetype: { name: 'Epic' } } },
           timeoriginalestimate: 7200,
           timeestimate: 3600,
+          duedate: '2026-11-05',
           customfield_1: [{ name: 'Sprint 2', state: 'active' }],
           customfield_3: 5
         }
@@ -222,6 +223,8 @@ describe('jira agile fields', () => {
     expect(issue.parent).toEqual({ key: 'ALP-9', title: 'Big epic', issueTypeName: 'Epic' })
     expect(issue.originalEstimateSeconds).toBe(7200)
     expect(issue.remainingEstimateSeconds).toBe(3600)
+    expect(issue.dueDate).toBe('2026-11-05')
+    expect(mapJiraIssue(site, { id: '2', key: 'ALP-2', fields: {} }).dueDate).toBeUndefined()
     expect(issue.sprint).toBe('Sprint 2')
     expect(issue.storyPoints).toBe(5)
   })

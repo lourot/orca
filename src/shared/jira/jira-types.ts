@@ -125,6 +125,8 @@ export type JiraIssue = {
   storyPoints?: number
   originalEstimateSeconds?: number
   remainingEstimateSeconds?: number
+  /** Jira due date, `YYYY-MM-DD` (no time zone). */
+  dueDate?: string
   updatedAt: string
   createdAt: string
 }

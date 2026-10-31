@@ -33,7 +33,8 @@ export const ISSUE_FIELDS = [
   'updated',
   'parent',
   'timeoriginalestimate',
-  'timeestimate'
+  'timeestimate',
+  'duedate'
 ]
 
 // Lists need metadata without expensive description parsing.
@@ -258,6 +259,7 @@ export function mapJiraIssue(
         .find((value) => value !== null) ?? undefined,
     originalEstimateSeconds: asFiniteNumber(fields.timeoriginalestimate) ?? undefined,
     remainingEstimateSeconds: asFiniteNumber(fields.timeestimate) ?? undefined,
+    dueDate: asString(fields.duedate) || undefined,
     createdAt: asString(fields.created, new Date().toISOString()),
     updatedAt: asString(fields.updated, new Date().toISOString())
   }

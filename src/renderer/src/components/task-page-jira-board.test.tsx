@@ -68,6 +68,25 @@ describe('TaskPageJiraBoard', () => {
     expect((markup.match(/w-72 shrink-0/g) ?? []).length).toBe(2)
   })
 
+  it('colours the priority and shows the due date, tinted only once an open issue is past it', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 9, 31, 12))
+    try {
+      const card = (key: string, extra: Partial<JiraIssue>) => ({ ...issue(key, todo), ...extra })
+      const markup = renderBoard([
+        card('STA-1', { priority: { id: '2', name: 'High' }, dueDate: '2026-10-30' }),
+        card('STA-2', { dueDate: '2026-11-05' }),
+        card('STA-3', {})
+      ])
+      expect(markup).toMatch(/text-jira-priority-high[^>]*>High</)
+      expect(markup).toMatch(/text-destructive"[^>]*title="Overdue, due /)
+      expect(markup).toContain('title="Due ')
+      expect((markup.match(/title="(Overdue, due|Due) /g) ?? []).length).toBe(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('renders empty board columns with a drop placeholder', () => {
     const markup = renderBoard([issue('STA-1', todo)], {
       statusIdsByColumn: [['1'], ['3']],

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { ArrowRight, ExternalLink, MoveRight } from 'lucide-react'
+import { ArrowRight, CalendarClock, ExternalLink, MoveRight } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -23,6 +23,8 @@ import {
   type TaskPageJiraBoardSection
 } from './task-page-jira-board-sections'
 import { openAppHttpLink } from '@/lib/app-http-link-open'
+import { getJiraPriorityTone } from './task-page/jira/task-page-jira-status-tone'
+import { formatJiraDueDate, isJiraIssueOverdue } from './task-page/jira/task-page-jira-due-date'
 
 export function jiraBoardIssueRefKey(issue: Pick<JiraIssue, 'key' | 'siteId'>): string {
   return `${issue.siteId ?? 'site'}:${issue.key}`
@@ -47,6 +49,31 @@ type TaskPageJiraBoardProps = {
   statusDirection?: 'asc' | 'desc'
   statusOrder: JiraProjectStatusOrder | null
   updatingIssueKeys: ReadonlySet<string>
+}
+
+/** The card's due date, in the destructive tone once it has passed on an open issue. */
+function JiraCardDueDate({
+  issue,
+  dueDate
+}: {
+  issue: JiraIssue
+  dueDate: string
+}): React.JSX.Element {
+  const date = formatJiraDueDate(dueDate)
+  const overdue = isJiraIssueOverdue(dueDate, issue.status.categoryKey)
+  const label = overdue
+    ? translate('jira.board.overdue', 'Overdue, due {{date}}', { date })
+    : translate('jira.board.dueDate', 'Due {{date}}', { date })
+  return (
+    <span
+      className={cn('flex items-center gap-0.5', overdue && 'text-destructive')}
+      title={label}
+      aria-label={label}
+    >
+      <CalendarClock className="size-3" aria-hidden />
+      {date}
+    </span>
+  )
 }
 
 function isSelectedIssue(issue: JiraIssue, selectedIssue: JiraIssue | null): boolean {
@@ -202,7 +229,12 @@ export function TaskPageJiraBoard({
                         <div className="flex min-w-0 items-center gap-1.5 font-mono text-2xs text-muted-foreground">
                           <span className="truncate">{issue.key}</span>
                           {issue.priority ? (
-                            <span className="truncate font-sans text-3xs">
+                            <span
+                              className={cn(
+                                'truncate font-sans text-3xs font-medium',
+                                getJiraPriorityTone(issue.priority.name)
+                              )}
+                            >
                               {issue.priority.name}
                             </span>
                           ) : null}
@@ -325,6 +357,9 @@ export function TaskPageJiraBoard({
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
                         <span className="max-w-[120px] truncate text-3xs">{contextLabel}</span>
+                        {issue.dueDate ? (
+                          <JiraCardDueDate issue={issue} dueDate={issue.dueDate} />
+                        ) : null}
                         <span>{formatUpdatedAt(issue.updatedAt)}</span>
                       </div>
                     </div>
