@@ -110,6 +110,9 @@ describe('diff-comment notes copy failures', () => {
 
 describe('diff-comment notes shelf reveal request', () => {
   it('expands the shelf only for a fresh request on the active worktree', () => {
+    const now = 1_767_225_600_000
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(now)
     const cases = {
       freshActive: { worktreeId: 'wt-1', ageMs: 0 },
       staleActive: { worktreeId: 'wt-1', ageMs: 10_000 },
@@ -119,7 +122,7 @@ describe('diff-comment notes shelf reveal request', () => {
     for (const [name, { worktreeId, ageMs }] of Object.entries(cases)) {
       const consume = vi.fn()
       mocks.storeState = {
-        diffNotesShelfRevealRequest: { worktreeId, issuedAt: Date.now() - ageMs },
+        diffNotesShelfRevealRequest: { worktreeId, issuedAt: now - ageMs },
         consumeDiffNotesShelfRevealRequest: consume
       }
       const { result, unmount } = renderNotes()
@@ -130,6 +133,7 @@ describe('diff-comment notes shelf reveal request', () => {
       unmount()
     }
     mocks.storeState = {}
+    vi.useRealTimers()
 
     expect(results).toEqual({
       freshActive: { expanded: true, consumedFor: ['wt-1'] },

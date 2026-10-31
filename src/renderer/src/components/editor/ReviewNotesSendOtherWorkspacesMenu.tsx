@@ -22,6 +22,11 @@ import {
   AgentTargetMenuItem,
   orderSendTargetsByWorktreeAgentRows
 } from './ReviewNotesSendAgentTargetItem'
+import {
+  selectDetectedWorktreesByRepo,
+  selectFolderWorkspaces,
+  selectWorktreesByRepo
+} from '@/store/workspace-record-selectors'
 
 type SendToWorkspaceAgent = (
   target: NotesSendAgentTarget,
@@ -38,9 +43,9 @@ function selectOtherWorkspacesInputs(state: AppState): NotesSendOtherWorkspacesS
     ptyIdsByTabId: state.ptyIdsByTabId,
     runtimePaneTitlesByTabId: state.runtimePaneTitlesByTabId,
     repos: state.repos,
-    worktreesByRepo: state.worktreesByRepo,
-    detectedWorktreesByRepo: state.detectedWorktreesByRepo,
-    folderWorkspaces: state.folderWorkspaces,
+    worktreesByRepo: selectWorktreesByRepo(state),
+    detectedWorktreesByRepo: selectDetectedWorktreesByRepo(state),
+    folderWorkspaces: selectFolderWorkspaces(state),
     projectGroups: state.projectGroups,
     settings: state.settings,
     restoredRuntimeHostIdByWorkspaceSessionKey: state.restoredRuntimeHostIdByWorkspaceSessionKey,

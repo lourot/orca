@@ -104,6 +104,7 @@ describe('WorktreeCard color tag strip', () => {
       expect(markup).toContain('background-color:#ef4444')
       expect(markup).toContain('Group color #ef4444')
     },
+    // Why: the first test imports WorktreeCard's whole module graph, slow under parallel load.
     WORKTREE_CARD_IMPORT_TIMEOUT_MS
   )
 
@@ -127,6 +128,7 @@ describe('WorktreeCard color tag strip', () => {
       // A cleared tag must render byte-identically to one that never had a color.
       expect(cleared).toBe(untagged)
     },
+    // Why: the first test imports WorktreeCard's whole module graph, slow under parallel load.
     WORKTREE_CARD_IMPORT_TIMEOUT_MS
   )
 })

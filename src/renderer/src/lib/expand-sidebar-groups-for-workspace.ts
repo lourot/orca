@@ -10,6 +10,7 @@ import { getPinnedWorktreeDisplayPolicy } from '@/components/sidebar/worktree-li
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import { getSettingsFocusedExecutionHostId } from '../../../shared/execution-host'
 import type { Worktree } from '../../../shared/worktree/types'
+import { selectFolderWorkspaces } from '@/store/workspace-record-selectors'
 
 /**
  * Un-collapse every sidebar group hiding `target`, persistently. Expand only —
@@ -37,7 +38,7 @@ export function expandSidebarGroupsForWorkspace(
   const collapsedGroupKeys = collectCollapsedGroupKeysHidingWorkspace(
     {
       worktrees,
-      folderWorkspaces: state.folderWorkspaces,
+      folderWorkspaces: selectFolderWorkspaces(state),
       repoMap: getRepoMapFromState(state),
       // The store's own map, not a copy: the lineage projection caches on its identity.
       worktreeMap: getWorktreeMapFromState(state),

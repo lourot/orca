@@ -11,6 +11,7 @@ import type { Worktree } from '../../../../shared/worktree/types'
 import type { Repo } from '../../../../shared/repo-types'
 import type { SearchResult } from '../../../../shared/code-search-types'
 import type { FileSearchResultOwner } from '@/lib/file-search-result-owner'
+import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 
 export type FileSearchScope = 'current' | 'all-primary' | 'all-worktrees'
 
@@ -100,7 +101,7 @@ export function getFileSearchRoots(
     if (!activeWorktreeId) {
       return []
     }
-    for (const worktrees of Object.values(state.worktreesByRepo)) {
+    for (const worktrees of Object.values(selectWorktreesByRepo(state))) {
       const worktree = worktrees.find((candidate) => candidate.id === activeWorktreeId)
       if (!worktree) {
         continue
@@ -118,7 +119,7 @@ export function getFileSearchRoots(
 
   const roots: FileSearchRoot[] = []
   for (const repo of localRepos) {
-    const worktrees = state.worktreesByRepo[repo.id] ?? []
+    const worktrees = selectWorktreesByRepo(state)[repo.id] ?? []
     const localWorktrees = worktrees.filter((worktree) => worktreeHostMatchesLocal(worktree, repo))
     roots.push(...localWorktrees.map((worktree) => rootFromWorktree(worktree, repo)))
     if (

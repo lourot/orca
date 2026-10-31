@@ -14,7 +14,7 @@ const usage: OpenCodeMonthlyCost = {
   estimatedCostUsd: 20.83,
   monthlyCapUsd: 300,
   usedPercent: (20.83 / 300) * 100,
-  updatedAt: Date.now(),
+  updatedAt: 1_767_225_600_000,
   error: null
 }
 

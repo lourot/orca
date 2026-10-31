@@ -112,6 +112,7 @@ describe('WorktreeCard workspace status dot', () => {
       expect(withoutDot).not.toContain('Workspace status')
       expect(withoutDot).not.toContain('bg-rose-500')
     },
+    // Why: the first test imports WorktreeCard's whole module graph, slow under parallel load.
     WORKTREE_CARD_IMPORT_TIMEOUT_MS
   )
 })

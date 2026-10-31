@@ -1,5 +1,6 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join, relative, resolve } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 // Why: the excerpt is captured at creation because the batch send path has no file
@@ -8,32 +9,20 @@ import { describe, expect, it } from 'vitest'
 // large file, and invisible until someone reads a prompt. There are five surfaces
 // that create notes, so guard the tree rather than each call site.
 const SCANNED_ROOT = 'src/renderer'
-const SCANNED_EXTENSIONS = ['.ts', '.tsx']
-const IGNORED_DIRECTORIES = new Set(['node_modules', 'dist', 'out', 'build', '.git'])
 const CALL = 'addDiffComment({'
 // Every creation site ends its payload with the reserved side literal.
 const PAYLOAD_END = "side: 'modified'"
 
-function collectSourceFiles(root: string): string[] {
-  let found: string[] = []
-  let entries: string[]
-  try {
-    entries = readdirSync(root)
-  } catch {
-    return found
-  }
-  for (const entry of entries) {
-    if (IGNORED_DIRECTORIES.has(entry) || entry.startsWith('.')) {
-      continue
-    }
-    const path = join(root, entry)
-    if (statSync(path).isDirectory()) {
-      found = found.concat(collectSourceFiles(path))
-    } else if (SCANNED_EXTENSIONS.some((extension) => entry.endsWith(extension))) {
-      found.push(path)
-    }
-  }
-  return found
+/** Files under `root` that call the creator at all; reading every renderer file takes ~30s on a slow disk. */
+function collectCallingSourceFiles(root: string): string[] {
+  const listed = execFileSync('git', ['grep', '-l', '-F', '--untracked', CALL, '--', '.'], {
+    cwd: root,
+    encoding: 'utf8'
+  })
+  return listed
+    .split('\n')
+    .filter((file) => /\.tsx?$/.test(file))
+    .map((file) => resolve(root, file))
 }
 
 function callSitesMissingExcerpt(text: string): number {
@@ -52,7 +41,7 @@ function callSitesMissingExcerpt(text: string): number {
 describe('review note anchor excerpt coverage', () => {
   it('captures an excerpt at every note creation site', () => {
     const root = resolve(process.cwd(), SCANNED_ROOT)
-    const offenders = collectSourceFiles(root).filter((file) => {
+    const offenders = collectCallingSourceFiles(root).filter((file) => {
       if (file.endsWith('.test.ts') || file.endsWith('.test.tsx')) {
         return false
       }

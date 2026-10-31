@@ -100,15 +100,13 @@ const fakeCodexCommand = buildFakeAgentCommandOverride(
   path.join(fakeCliDir, process.platform === 'win32' ? 'codex.cmd' : 'codex')
 )
 
-const test = base.extend({
-  launchEnv: [
-    {
-      PATH: `${fakeCliDir}${path.delimiter}${process.env.PATH ?? ''}`,
-      ORCA_E2E_CLAUDE_SPAWN_LEDGER: spawnLedgerPath,
-      ORCA_E2E_CODEX_SPAWN_LEDGER: codexSpawnLedgerPath
-    },
-    { option: true }
-  ]
+const test = base
+test.use({
+  launchEnv: {
+    PATH: `${fakeCliDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    ORCA_E2E_CLAUDE_SPAWN_LEDGER: spawnLedgerPath,
+    ORCA_E2E_CODEX_SPAWN_LEDGER: codexSpawnLedgerPath
+  }
 })
 
 type SpawnEvent = { args: string[]; cwd: string }
@@ -243,6 +241,7 @@ test.describe('forking an agent session with its full conversation', () => {
   test('spawns the forking resume argv in the new worktree, with no draft prompt', async ({
     orcaPage
   }) => {
+    // Why: a fork creates a worktree and launches an agent in it, each waited on via the spawn ledger.
     test.setTimeout(180_000)
     await waitForSessionReady(orcaPage)
     const worktreeId = await waitForActiveWorktree(orcaPage)
@@ -288,6 +287,7 @@ test.describe('forking an agent session with its full conversation', () => {
   test('spawns Codex fork in the new worktree with the source account home', async ({
     orcaPage
   }) => {
+    // Why: a fork creates a worktree and launches an agent in it, each waited on via the spawn ledger.
     test.setTimeout(180_000)
     await waitForSessionReady(orcaPage)
     const sourceWorktreeId = await waitForActiveWorktree(orcaPage)
@@ -323,7 +323,7 @@ test.describe('forking an agent session with its full conversation', () => {
           }
         })
         state.setActiveTab(tab.id)
-        state.setActiveTabType('terminal')
+        state.setActiveTabType('terminal', worktreeId)
       },
       { worktreeId: sourceWorktreeId, command: fakeCodexCommand }
     )
