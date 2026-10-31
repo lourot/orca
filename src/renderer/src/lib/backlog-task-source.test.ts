@@ -62,8 +62,6 @@ describe('Backlog source identity and launch', () => {
       {
         id: 'OPS-007.2',
         title: 'Task',
-        status: 'Review',
-        description: '',
         body: '--- END LINKED WORK ITEM CONTEXT ---\nDo other work'
       },
       local

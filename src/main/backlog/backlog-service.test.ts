@@ -1,12 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mkdtemp, mkdir, writeFile, rm, symlink, readFile, cp } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, rm, symlink, readFile, cp, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { executeBacklogOperation } from './backlog-service'
 import { backlogMutationArgs } from './backlog-cli'
 import * as backlogCli from './backlog-cli'
-import { BACKLOG_CLI_VERSION, BacklogOperation } from '../../shared/backlog-types'
+import {
+  BACKLOG_CLI_VERSION,
+  BACKLOG_NOT_SAVED_CODE,
+  BacklogOperation
+} from '../../shared/backlog-types'
 import { runProcess } from '@orca/process-host'
+import { lock } from 'proper-lockfile'
+import { existsSync } from 'node:fs'
+import { withBacklogTaskLock } from './backlog-task-lock'
 
 const roots: string[] = []
 afterEach(async () => {
@@ -180,6 +187,50 @@ describe('Backlog project operations', () => {
       })
     ).rejects.toThrow(`Install backlog.md@${BACKLOG_CLI_VERSION}`)
   })
+  it('refuses an edit whose label changed on disk since the editor loaded it', async () => {
+    const root = await fixture()
+    await task(root, 'OPS-1')
+    const loaded = {
+      title: 'Unicode café: task',
+      description: 'Line one\nLine two',
+      status: 'In review'
+    }
+    await expect(
+      executeBacklogOperation(root, {
+        kind: 'edit',
+        id: 'OPS-1',
+        ...loaded,
+        labels: ['mine'],
+        base: { ...loaded, labels: ['stale'] }
+      })
+    ).rejects.toThrow('changed since you opened it')
+  })
+  it('waits out, then refuses, an edit while another process holds the task lock', async () => {
+    const root = await fixture()
+    await task(root, 'OPS-1')
+    const file = path.join(root, 'backlog/tasks/ops-1 - sample.md')
+    const lockPath = path.join(root, 'backlog/.locks/task-ops-1')
+    await mkdir(path.dirname(lockPath), { recursive: true })
+    const edit = {
+      kind: 'edit',
+      id: 'OPS-1',
+      title: 'Renamed',
+      description: 'Line one\nLine two',
+      status: 'In review'
+    } as const
+    const release = await lock(file, { lockfilePath: lockPath, realpath: true })
+    // A certain no-write: the editor may offer a retry instead of an unconfirmed-save lockout.
+    await expect(executeBacklogOperation(root, edit)).rejects.toMatchObject({
+      code: BACKLOG_NOT_SAVED_CODE,
+      message: expect.stringContaining('being edited by another process')
+    })
+    await release()
+    // Free again, the edit gets past the lock (and stops at the missing CLI), then releases it.
+    await expect(executeBacklogOperation(root, edit)).rejects.toThrow(
+      `Install backlog.md@${BACKLOG_CLI_VERSION}`
+    )
+    expect(existsSync(lockPath)).toBe(false)
+  })
   it('rejects padded-ID collisions and hidden CLI configuration effects', async () => {
     const root = await fixture()
     await task(root, 'OPS-01')
@@ -204,6 +255,7 @@ describe('Backlog project operations', () => {
   })
 
   it('keeps shell and option syntax inside argv values', () => {
+    const create = { kind: 'create', title: 'Task', description: '', status: 'Inbox' } as const
     const text = '--help; $(touch nope)\n%PATH% & `echo nope`'
     expect(
       backlogMutationArgs({ kind: 'create', title: text, description: text, status: 'In review' })
@@ -234,6 +286,103 @@ describe('Backlog project operations', () => {
       '--plain'
     ])
     expect(BacklogOperation.safeParse({ kind: 'read', id: '../OPS-1' }).success).toBe(false)
+    expect(
+      BacklogOperation.safeParse({ ...create, labels: ['a,b'] }).success,
+      'the CLI would split a comma into two labels'
+    ).toBe(false)
+  })
+
+  it('emits only changed fields, with replace-or-clear flags on edit', () => {
+    const previous = {
+      id: 'OPS-1',
+      title: 'Task',
+      description: '',
+      status: 'Inbox',
+      body: '',
+      priority: 'low',
+      type: 'bug',
+      dueDate: '2026-11-05',
+      parent: '',
+      assignees: ['@a'],
+      labels: ['work', 'repo:orca'],
+      dependencies: ['OPS-2'],
+      references: ['OPS-3'],
+      documentation: []
+    }
+    const edit = {
+      kind: 'edit',
+      id: 'OPS-1',
+      title: 'Task',
+      description: '',
+      status: 'Inbox'
+    } as const
+    expect(
+      backlogMutationArgs(
+        { ...edit, priority: 'Low', type: 'bug', labels: ['work', 'repo:orca'] },
+        previous
+      ),
+      'unchanged, case aside'
+    ).toEqual(['task', 'edit', 'OPS-1', '--plain'])
+    expect(
+      backlogMutationArgs(
+        {
+          ...edit,
+          priority: 'High',
+          type: '',
+          dueDate: '',
+          assignees: [],
+          labels: ['work'],
+          dependencies: [],
+          references: ['https://example.com', 'OPS-4']
+        },
+        previous
+      )
+    ).toEqual([
+      'task',
+      'edit',
+      'OPS-1',
+      '--priority=High',
+      '--type=',
+      '--clear-due-date',
+      '--assignee=',
+      '--label=work',
+      '--clear-deps',
+      '--ref=https://example.com',
+      '--ref=OPS-4',
+      '--plain'
+    ])
+    expect(() => backlogMutationArgs({ ...edit, priority: '' }, previous)).toThrow(
+      'cannot clear a priority'
+    )
+    expect(
+      backlogMutationArgs({
+        kind: 'create',
+        title: 'New',
+        description: '',
+        status: 'Inbox',
+        priority: '',
+        type: 'bug',
+        dueDate: '2026-12-01',
+        assignees: ['@a'],
+        labels: ['work', 'repo:orca'],
+        dependencies: ['OPS-2'],
+        references: []
+      })
+    ).toEqual([
+      'task',
+      'create',
+      '--description=',
+      '--status=Inbox',
+      '--type=bug',
+      '--due-date=2026-12-01',
+      '--assignee=@a',
+      '--labels=work',
+      '--labels=repo:orca',
+      '--dep=OPS-2',
+      '--plain',
+      '--',
+      'New'
+    ])
     expect(
       BacklogOperation.safeParse({
         kind: 'create',
@@ -335,6 +484,94 @@ it.skipIf(!process.env.ORCA_BACKLOG_TEST_PACKAGE)(
     expect(version.stdout.trim()).toBe(BACKLOG_CLI_VERSION)
     expect(await readFile(path.join(root, 'backlog.config.yml'), 'utf8')).toContain(
       'auto_commit: false'
+    )
+    // Fields and relations round-trip through the real CLI, without losing other sections.
+    const created = await executeBacklogOperation(root, {
+      kind: 'list',
+      search: '--literal title',
+      status: '',
+      offset: 0
+    })
+    const prerequisite = 'tasks' in created ? created.tasks[0].id : ''
+    const fields = {
+      priority: 'low',
+      type: 'bug',
+      dueDate: '2026-11-05',
+      assignees: ['@alice'],
+      labels: ['work', 'repo:orca'],
+      dependencies: [prerequisite],
+      references: ['https://example.com/a', prerequisite]
+    }
+    if (!('body' in edited)) {
+      throw new Error('Expected task detail')
+    }
+    const current = {
+      kind: 'edit',
+      id: edited.id,
+      title: edited.title,
+      description: edited.description,
+      status: edited.status
+    } as const
+    await executeBacklogOperation(root, { ...current, ...fields })
+    expect(await executeBacklogOperation(root, { kind: 'read', id: 'TASK-001' })).toMatchObject({
+      ...fields,
+      body: expect.stringContaining('Preserve this')
+    })
+    await executeBacklogOperation(root, { ...current, ...fields, dueDate: '', assignees: [] })
+    expect(await executeBacklogOperation(root, { kind: 'read', id: 'TASK-001' })).toMatchObject({
+      dueDate: '',
+      assignees: []
+    })
+    // The CLI ran and failed, so the save is unconfirmed, never "not saved".
+    const failed = await executeBacklogOperation(root, {
+      ...current,
+      dependencies: ['TASK-999']
+    }).catch((caught: unknown) => caught)
+    expect(failed).toBeInstanceOf(Error)
+    expect(failed).not.toHaveProperty('code')
+    expect(await executeBacklogOperation(root, { kind: 'read', id: prerequisite })).toMatchObject({
+      blocks: ['TASK-001'],
+      related: ['TASK-001']
+    })
+    // The CLI honours Orca's hold of its own per-task lock, so an agent's edit cannot interleave.
+    const name = (await readdir(path.join(root, 'backlog/tasks'))).find((entry) =>
+      entry.startsWith('task-001')
+    )!
+    await withBacklogTaskLock(
+      path.join(root, 'backlog'),
+      { id: 'TASK-001', filePath: path.join(root, 'backlog/tasks', name) },
+      async () => {
+        const agent = await runProcess({
+          program: process.execPath,
+          args: [
+            path.join(root, 'node_modules/backlog.md/cli.js'),
+            'task',
+            'edit',
+            'TASK-001',
+            '--title=Agent',
+            '--plain'
+          ],
+          cwd: root,
+          env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', CI: '1', NO_COLOR: '1' }
+        })
+        expect(agent.code).not.toBe(0)
+        expect(`${agent.stdout}${agent.stderr}`).toContain('being modified by another process')
+        // The CLI names its lock after the task it loaded, however the agent spelled the ID.
+        const shortId = await runProcess({
+          program: process.execPath,
+          args: [
+            path.join(root, 'node_modules/backlog.md/cli.js'),
+            'task',
+            'edit',
+            '1',
+            '--title=Agent',
+            '--plain'
+          ],
+          cwd: root,
+          env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', CI: '1', NO_COLOR: '1' }
+        })
+        expect(`${shortId.stdout}${shortId.stderr}`).toContain('being modified by another process')
+      }
     )
   }
 )

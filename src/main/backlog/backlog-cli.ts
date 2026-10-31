@@ -4,11 +4,13 @@ import { createRequire } from 'node:module'
 import { z } from 'zod'
 import {
   BACKLOG_CLI_VERSION,
+  sameBacklogFieldValue,
   type BacklogOperation,
   type BacklogTask
 } from '../../shared/backlog-types'
 import { runProcess } from '@orca/process-host'
 import { readBacklogFile, type BacklogProject } from './backlog-project'
+import { BacklogSaveUnconfirmedError } from './backlog-save-outcome'
 
 const Package = z.object({
   name: z.literal('backlog.md'),
@@ -98,20 +100,72 @@ export function backlogMutationUnavailable(project: BacklogProject): string | nu
   return null
 }
 
+type BacklogMutation = Extract<BacklogOperation, { kind: 'create' | 'edit' }>
+
+const TEXT_FLAGS = {
+  priority: { flag: 'priority', clear: null },
+  type: { flag: 'type', clear: '--type=' },
+  dueDate: { flag: 'due-date', clear: '--clear-due-date' }
+} as const
+// Edit flags replace the whole list, matching an editor that sends the full list.
+const LIST_FLAGS = {
+  assignees: { create: 'assignee', edit: 'assignee', clear: '--assignee=' },
+  labels: { create: 'labels', edit: 'label', clear: '--clear-labels' },
+  dependencies: { create: 'dep', edit: 'depends-on', clear: '--clear-deps' },
+  references: { create: 'ref', edit: 'ref', clear: '--ref=' }
+} as const
+
+/** Long `--flag=value` forms only: the CLI keeps a short flag's `=` in the value. */
+function fieldArgs(operation: BacklogMutation, previous?: BacklogTask | null): string[] {
+  const text = (['priority', 'type', 'dueDate'] as const).flatMap((key) => {
+    const next = operation[key]
+    if (next === undefined || sameBacklogFieldValue(next, previous?.[key] ?? '')) {
+      return []
+    }
+    const { flag, clear } = TEXT_FLAGS[key]
+    if (next) {
+      return [`--${flag}=${next}`]
+    }
+    if (operation.kind === 'create') {
+      return []
+    }
+    if (!clear) {
+      throw new Error('Backlog.md cannot clear a priority; choose one instead.')
+    }
+    return [clear]
+  })
+  const lists = (['assignees', 'labels', 'dependencies', 'references'] as const).flatMap((key) => {
+    const next = operation[key]
+    if (next === undefined || sameBacklogFieldValue(next, previous?.[key] ?? [])) {
+      return []
+    }
+    const flags = LIST_FLAGS[key]
+    if (operation.kind === 'create') {
+      return next.map((value) => `--${flags.create}=${value}`)
+    }
+    return next.length ? next.map((value) => `--${flags.edit}=${value}`) : [flags.clear]
+  })
+  return [...text, ...lists]
+}
+
 /** Emits only changed edit fields and separates user text from CLI option parsing. */
 export function backlogMutationArgs(
-  operation: Extract<BacklogOperation, { kind: 'create' | 'edit' }>,
+  operation: BacklogMutation,
   previous?: BacklogTask | null
 ): string[] {
   const fields = (['title', 'description', 'status'] as const)
     .filter((field) => !previous || operation[field] !== previous[field])
     .map((field) => `--${field}=${operation[field]}`)
+  const extra = fieldArgs(operation, previous)
   return operation.kind === 'edit'
-    ? ['task', 'edit', operation.id, ...fields, '--plain']
-    : ['task', 'create', ...fields.slice(1), '--plain', '--', operation.title]
+    ? ['task', 'edit', operation.id, ...fields, ...extra, '--plain']
+    : ['task', 'create', ...fields.slice(1), ...extra, '--plain', '--', operation.title]
 }
 
-/** Runs the pinned CLI with bounded time/output; failures leave completion unconfirmed, not rolled back. */
+/**
+ * Runs the pinned CLI with bounded time/output. Failures before the spawn leave the task untouched;
+ * failures after it are BacklogSaveUnconfirmedError, since the CLI may have written.
+ */
 export async function runBacklogMutation(
   project: BacklogProject,
   operation: Extract<BacklogOperation, { kind: 'create' | 'edit' }>,
@@ -119,11 +173,12 @@ export async function runBacklogMutation(
   signal: AbortSignal
 ): Promise<void> {
   const cli = await resolveBacklogCli(project)
+  const args = [cli, ...backlogMutationArgs(operation, previous)]
   signal.throwIfAborted()
   const result = await runProcess({
     signal,
     program: process.execPath,
-    args: [cli, ...backlogMutationArgs(operation, previous)],
+    args,
     cwd: project.root,
     env: {
       ...process.env,
@@ -131,16 +186,24 @@ export async function runBacklogMutation(
       BACKLOG_CWD: project.root,
       CI: '1',
       NO_COLOR: '1',
-      GIT_TERMINAL_PROMPT: '0'
+      GIT_TERMINAL_PROMPT: '0',
+      // Edits run under Orca's hold of the same per-task lock (withBacklogTaskLock); creates keep
+      // the CLI's own locks, which also guard ID allocation.
+      ...(operation.kind === 'edit' ? { USE_GLOBAL_TASK_ID_LOCK: 'false' } : {})
     },
     timeoutMs: 30000,
     maxOutputBytes: 262144,
     killOnOutputLimit: true,
     detached: process.platform !== 'win32',
     terminationBarrier: true
+  }).catch((error: unknown) => {
+    throw new BacklogSaveUnconfirmedError(
+      `Backlog CLI did not confirm completion. Refresh tasks before retrying. ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
+    )
   })
   if (result.code !== 0 || result.timedOut || result.outputTruncated) {
-    throw new Error(
+    throw new BacklogSaveUnconfirmedError(
       `Backlog CLI did not confirm completion. Refresh tasks before retrying. ${result.stderr.slice(0, 2000)}`
     )
   }

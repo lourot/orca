@@ -3,8 +3,21 @@
 Select **Tasks → Backlog.md**, then choose a project and execution host. Orca remembers
 the last chosen project (`defaultBacklogProject` setting) and reopens on it. Git repositories
 without a hosting provider and folder projects are both supported. Search matches IDs,
-titles and task bodies; status filters use the project's configured status names. Details
-show the complete Markdown body, including acceptance criteria, plan and notes.
+titles, labels and task bodies; status filters use the project's configured status names.
+Rows show priority and labels. Details show the task's fields (priority, type, assignees,
+labels, due date, references, documentation) above the complete Markdown body, including
+acceptance criteria, plan and notes.
+
+## Relations
+
+Details list a task's relations; a related task the board knows opens in place.
+
+- **Depends on**: the task's `dependencies` (`backlog task edit --depends-on`), i.e. what it
+  is blocked by.
+- **Blocks**: tasks whose dependencies name this one. Backlog.md stores only one side.
+- **Parent** and **Subtasks**: `parent_task_id`, set at creation (`backlog task create -p`).
+- **Related**: Backlog.md has no such field, so a reference that is a task ID (`--ref TASK-3`)
+  counts as related, in both directions: one side is enough.
 
 Reading requires an initialized Backlog.md project, not an account or CLI installation.
 Orca recognizes `backlog.config.yml` (including `backlog_directory`), `backlog/config.yml`
@@ -21,8 +34,21 @@ uses a global CLI or writes task Markdown itself. Other CLI versions remain read
 until their command contract is validated. Missing or unsupported installations are
 explained inline without preventing browsing.
 
-Creation/editing supports title, description and configured status. The CLI preserves
-other task fields and structured sections. To avoid hidden Git/network/hook effects,
+Creation/editing supports title, description, configured status, priority, type, due date,
+assignees, labels, dependencies and references. Priority and type use the project's
+configured `priorities` and `types` (Backlog.md's defaults when unset). Backlog.md cannot
+clear a priority once set. Parents, acceptance criteria and documentation stay CLI-only.
+Only changed fields are passed to the CLI, which preserves the rest and the structured
+sections.
+
+An edit is atomic against other Backlog CLI users, such as agents. Orca holds the CLI's
+own per-task lock (`<backlog>/.locks/task-<id>`) while it re-reads the task, checks that
+the fields it loaded are unchanged, and runs the CLI edit (with `USE_GLOBAL_TASK_ID_LOCK=false`,
+since Orca already holds the lock). A concurrent CLI edit of that task fails with "is
+being modified by another process" and can be retried; if the task changed first, Orca
+refuses the save and asks for a refresh. If another process holds the lock for more than
+about 2 seconds, Orca's save fails without writing. The lock path follows the pinned
+1.55.3 CLI. To avoid hidden Git/network/hook effects,
 editing requires these project settings:
 
 ```yaml
@@ -33,7 +59,10 @@ check_active_branches: false
 
 Projects with `onStatusChange`, and individual tasks with a status hook, must be edited
 with the CLI directly. Orca does not change project configuration to bypass this gate.
-After an interrupted/failed save, refresh before retrying: the CLI may already have
+A save refused before the CLI runs (task lock held, task changed on disk, invalid
+value, missing CLI or unsafe configuration) wrote nothing: the runtime returns
+`backlog_not_saved`, and the editor shows the reason and lets you retry at once. After
+any other failed or interrupted save, refresh before retrying: the CLI may already have
 written the task. Saves are never retried automatically.
 
 ## Start work
@@ -50,7 +79,10 @@ from a different checkout. No synthetic GitHub issue number or hosted issue URL 
 Filesystem reads and CLI writes run on the selected execution host. SSH projects are
 refused, never read from local files: the SSH relay that would run the CLI was removed
 (#27215). Paired runtimes advertise `tasks.backlog.v1`; older runtimes do not receive
-Backlog calls. Native mobile has its own provider allowlist and does not expose
+Backlog calls. Editing fields beyond title, description and status needs
+`tasks.backlog.fields.v1` too: an older runtime would drop them while reporting success,
+so Orca offers only the three fields there. New reply fields are optional, so older
+renderers ignore them and newer renderers show nothing from older runtimes. Native mobile has its own provider allowlist and does not expose
 this source or its mutation RPC. Desktop/web renderers are the supported UI surface.
 
 Runtime `backlog.execute` accepts a registered `repoId`, resolves its path on that runtime,

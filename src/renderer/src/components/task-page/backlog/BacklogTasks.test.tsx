@@ -8,6 +8,8 @@ import type * as BacklogSource from '@/lib/backlog-task-source'
 import type { Repo } from '../../../../../shared/repo-types'
 import type { RuntimeEnvironmentStatus } from '../../../../../shared/runtime-host-status'
 import { BACKLOG_TASKS_CAPABILITY } from '../../../../../shared/backlog-capability'
+import { BACKLOG_NOT_SAVED_CODE, BacklogReply } from '../../../../../shared/backlog-types'
+import { RuntimeRpcCallError } from '@/runtime/runtime-rpc-result'
 
 const mocks = vi.hoisted(
   (): {
@@ -52,13 +54,28 @@ vi.mock('../../task-page-source-context', () => ({
   })
 }))
 
-const list = {
+// Parsing fills the field defaults a real reply carries.
+const list = BacklogReply.parse({
   projectPath: '/folder',
   projectName: 'Folder project',
   statuses: ['Inbox', 'Review'],
   tasks: [{ id: 'OPS-007', title: 'Task title', status: 'Review' }],
   total: 1,
   mutationUnavailable: null
+})
+/** A read reply with every optional field defaulted. */
+function detail(fields: Record<string, unknown>): BacklogReply {
+  return BacklogReply.parse({ id: 'OPS-007', title: 'Task title', description: '', ...fields })
+}
+// The loaded field values the editor echoes as `base`; unchanged fields themselves are not sent.
+const noFields = {
+  priority: '',
+  type: '',
+  dueDate: '',
+  assignees: [],
+  labels: [],
+  dependencies: [],
+  references: []
 }
 beforeEach(() => {
   vi.resetAllMocks()
@@ -83,13 +100,9 @@ describe('Backlog Tasks UI', () => {
   it('browses details and seeds the existing workspace composer without launching an agent', async () => {
     render(<BacklogTasks />)
     const row = await screen.findByRole('button', { name: /OPS-007/ })
-    vi.mocked(callBacklog).mockResolvedValueOnce({
-      id: 'OPS-007',
-      title: 'Task title',
-      status: 'Review',
-      description: 'Description',
-      body: 'Acceptance criteria'
-    })
+    vi.mocked(callBacklog).mockResolvedValueOnce(
+      detail({ status: 'Review', description: 'Description', body: 'Acceptance criteria' })
+    )
     fireEvent.click(row)
     expect(await screen.findByText('Acceptance criteria')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Start workspace' }))
@@ -107,13 +120,9 @@ describe('Backlog Tasks UI', () => {
     async (status) => {
       render(<BacklogTasks />)
       const row = await screen.findByRole('button', { name: /OPS-007/ })
-      vi.mocked(callBacklog).mockResolvedValueOnce({
-        id: 'OPS-007',
-        title: 'Task title',
-        status: 'Legacy',
-        description: 'Description',
-        body: 'Details'
-      })
+      vi.mocked(callBacklog).mockResolvedValueOnce(
+        detail({ status: 'Legacy', description: 'Description', body: 'Details' })
+      )
       fireEvent.click(row)
       await screen.findByText('Details')
       fireEvent.click(screen.getByRole('button', { name: 'Edit task' }))
@@ -135,7 +144,7 @@ describe('Backlog Tasks UI', () => {
           title: 'New title',
           description: 'Description',
           status,
-          base: { title: 'Task title', description: 'Description', status: 'Legacy' }
+          base: { title: 'Task title', description: 'Description', status: 'Legacy', ...noFields }
         })
       )
     }
@@ -186,13 +195,7 @@ describe('Backlog Tasks UI', () => {
     })
     const view = render(<BacklogTasks />)
     const row = await screen.findByRole('button', { name: /OPS-007/ })
-    vi.mocked(callBacklog).mockResolvedValueOnce({
-      id: 'OPS-007',
-      title: 'Task title',
-      status: 'Review',
-      description: '',
-      body: 'Details'
-    })
+    vi.mocked(callBacklog).mockResolvedValueOnce(detail({ status: 'Review', body: 'Details' }))
     fireEvent.click(row)
     await screen.findByText('Details')
     mocks.runtimeStatusByEnvironmentId = new Map()
@@ -201,6 +204,57 @@ describe('Backlog Tasks UI', () => {
     view.rerender(<BacklogTasks />)
     expect(screen.queryByRole('button', { name: 'Start workspace' })).toBeNull()
     expect(screen.getByText(/Update the project’s Orca server/)).toBeInTheDocument()
+  })
+  it('opens a related task from the detail', async () => {
+    render(<BacklogTasks />)
+    const row = await screen.findByRole('button', { name: /OPS-007/ })
+    vi.mocked(callBacklog).mockResolvedValueOnce(
+      detail({
+        status: 'Review',
+        body: 'Details',
+        dependencies: ['OPS-001'],
+        links: [{ id: 'OPS-001', title: 'Prerequisite', status: 'Inbox' }]
+      })
+    )
+    fireEvent.click(row)
+    vi.mocked(callBacklog).mockResolvedValueOnce(
+      detail({ id: 'OPS-001', title: 'Prerequisite', status: 'Inbox', body: 'First' })
+    )
+    fireEvent.click(await screen.findByRole('button', { name: /OPS-001.*Prerequisite/ }))
+    await screen.findByText('First')
+    expect(callBacklog).toHaveBeenLastCalledWith(expect.anything(), { kind: 'read', id: 'OPS-001' })
+  })
+  it('edits only title, description and status on a host without the fields capability', async () => {
+    mocks.repos = [{ ...mocks.repos[0], executionHostId: 'runtime:remote' }]
+    mocks.runtimeStatusByEnvironmentId.set('remote', {
+      checkedAt: 0,
+      status: {
+        runtimeId: 'remote',
+        rendererGraphEpoch: 1,
+        graphStatus: 'ready',
+        authoritativeWindowId: 1,
+        liveTabCount: 0,
+        liveLeafCount: 0,
+        runtimeProtocolVersion: 1,
+        minCompatibleRuntimeClientVersion: 1,
+        capabilities: [BACKLOG_TASKS_CAPABILITY]
+      }
+    })
+    render(<BacklogTasks />)
+    await screen.findByRole('button', { name: /OPS-007/ })
+    fireEvent.click(screen.getByRole('button', { name: 'New task' }))
+    expect(screen.queryByLabelText('Labels')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Remote' } })
+    vi.mocked(callBacklog).mockResolvedValueOnce({ saved: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    await waitFor(() =>
+      expect(callBacklog).toHaveBeenCalledWith(expect.anything(), {
+        kind: 'create',
+        title: 'Remote',
+        description: '',
+        status: 'Inbox'
+      })
+    )
   })
   it('shows an actionable empty-project state without calling a host', () => {
     mocks.repos = []
@@ -249,6 +303,28 @@ describe('Backlog Tasks UI', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: 'New task' })).toBeEnabled())
     }
   )
+  it('lets the user retry a save the host refused before writing', async () => {
+    render(<BacklogTasks />)
+    await screen.findByRole('button', { name: /OPS-007/ })
+    fireEvent.click(screen.getByRole('button', { name: 'New task' }))
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Locked' } })
+    vi.mocked(callBacklog).mockRejectedValueOnce(
+      new RuntimeRpcCallError({
+        id: 'rpc-1',
+        ok: false,
+        error: { code: BACKLOG_NOT_SAVED_CODE, message: 'Nothing was saved; try again.' }
+      })
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Nothing was saved; try again.')
+    expect(alert).not.toHaveTextContent('unconfirmed')
+    vi.mocked(callBacklog).mockResolvedValueOnce({ saved: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    // An unconfirmed save would keep New task disabled until an explicit Refresh.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New task' })).toBeEnabled())
+  })
   it('shows actionable host errors and no false empty-state success', async () => {
     vi.mocked(callBacklog).mockRejectedValue(new Error('Reconnect SSH host'))
     render(<BacklogTasks />)

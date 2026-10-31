@@ -1,6 +1,9 @@
 import type { Repo } from '../../../shared/repo-types'
 import { getRepoExecutionHostId, parseExecutionHostId } from '../../../shared/execution-host'
-import { BACKLOG_TASKS_CAPABILITY } from '../../../shared/backlog-capability'
+import {
+  BACKLOG_TASKS_CAPABILITY,
+  BACKLOG_TASK_FIELDS_CAPABILITY
+} from '../../../shared/backlog-capability'
 import {
   BacklogReply,
   BACKLOG_RPC_TIMEOUT_MS,
@@ -25,6 +28,18 @@ export function supportsBacklog(
   return (
     !hostId.startsWith('runtime:') ||
     Boolean(hosts.get(hostId)?.capabilities?.includes(BACKLOG_TASKS_CAPABILITY))
+  )
+}
+
+/** Local projects run this build; a runtime host must advertise the fields capability or it drops them. */
+export function supportsBacklogFieldEdits(
+  repo: Repo,
+  hosts: ReadonlyMap<ExecutionHostId, Pick<ExecutionHostRegistryEntry, 'capabilities'>>
+): boolean {
+  const hostId = getRepoExecutionHostId(repo)
+  return (
+    !hostId.startsWith('runtime:') ||
+    Boolean(hosts.get(hostId)?.capabilities?.includes(BACKLOG_TASK_FIELDS_CAPABILITY))
   )
 }
 
@@ -58,7 +73,10 @@ export async function callBacklog(repo: Repo, operation: BacklogOperation): Prom
 }
 
 /** Pairs CLI workflow instructions with contained task/source data for a reviewable composer draft. */
-export function buildBacklogTaskPrompt(task: BacklogTask, context: TaskSourceContext): string {
+export function buildBacklogTaskPrompt(
+  task: Pick<BacklogTask, 'id' | 'title' | 'body'>,
+  context: TaskSourceContext
+): string {
   return [
     `Work on Backlog.md task ${task.id}. Read the current task with the project Backlog CLI and follow the project workflow. Do not hand-edit task Markdown.`,
     buildContainedLinkedContextBlock({

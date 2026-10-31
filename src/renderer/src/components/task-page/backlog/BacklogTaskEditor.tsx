@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { translate } from '@/i18n/i18n'
 import type { Repo } from '../../../../../shared/repo-types'
-import type { BacklogTask } from '../../../../../shared/backlog-types'
+import { BACKLOG_NOT_SAVED_CODE, type BacklogTask } from '../../../../../shared/backlog-types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,12 +21,24 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { callBacklog } from '@/lib/backlog-task-source'
+import { RuntimeRpcCallError } from '@/runtime/runtime-rpc-result'
+import {
+  BacklogTaskFieldInputs,
+  backlogFieldDraft,
+  backlogFieldEdits
+} from './BacklogTaskFieldInputs'
 
-/** Edits task fields through the owning host; null task creates, and legacy status may be retained. */
+/**
+ * Edits task fields through the owning host; null task creates, and legacy status may be retained.
+ * `editFields` is false for hosts without the fields capability, which would silently drop them.
+ */
 export function BacklogTaskEditor({
   repo,
   task,
   statuses,
+  priorities,
+  types,
+  editFields,
   onClose,
   onUnconfirmed,
   onSaved
@@ -34,6 +46,9 @@ export function BacklogTaskEditor({
   repo: Repo
   task: BacklogTask | null
   statuses: string[]
+  priorities: string[]
+  types: string[]
+  editFields: boolean
   onClose: () => void
   onUnconfirmed: () => void
   onSaved: () => void
@@ -41,26 +56,50 @@ export function BacklogTaskEditor({
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   const [status, setStatus] = useState(task?.status ?? statuses[0])
+  const [loadedDraft] = useState(() => backlogFieldDraft(task))
+  const [draft, setDraft] = useState(loadedDraft)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  /** Reports only confirmed saves; any failure locks this editor and notifies the parent to require inspection. */
+  // A save the host refused before writing: shown, but the user may retry right away.
+  const [refusal, setRefusal] = useState<string | null>(null)
+  /**
+   * Reports only confirmed saves. A refusal before the CLI ran leaves the editor usable; any other
+   * failure may have written, so it locks this editor and notifies the parent to require inspection.
+   */
   async function save(): Promise<void> {
     if (saving || error) {
       return
     }
     setSaving(true)
     setError(null)
+    setRefusal(null)
     try {
-      const fields = { title, description, status }
+      const fields = {
+        title,
+        description,
+        status,
+        ...(editFields ? backlogFieldEdits(draft, loadedDraft) : {})
+      }
+      const loaded = task && {
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        ...(editFields
+          ? {
+              priority: task.priority,
+              type: task.type,
+              dueDate: task.dueDate,
+              assignees: task.assignees,
+              labels: task.labels,
+              dependencies: task.dependencies,
+              references: task.references
+            }
+          : {})
+      }
       const reply = await callBacklog(
         repo,
-        task
-          ? {
-              kind: 'edit',
-              id: task.id,
-              ...fields,
-              base: { title: task.title, description: task.description, status: task.status }
-            }
+        task && loaded
+          ? { kind: 'edit', id: task.id, ...fields, base: loaded }
           : { kind: 'create', ...fields }
       )
       if (!('saved' in reply)) {
@@ -68,8 +107,13 @@ export function BacklogTaskEditor({
       }
       onSaved()
     } catch (failure) {
+      const message = failure instanceof Error ? failure.message : String(failure)
+      if (failure instanceof RuntimeRpcCallError && failure.code === BACKLOG_NOT_SAVED_CODE) {
+        setRefusal(message)
+        return
+      }
       setError(
-        `${failure instanceof Error ? failure.message : String(failure)} Completion is unconfirmed. Close this editor, refresh, and inspect tasks before trying again.`
+        `${message} Completion is unconfirmed. Close this editor, refresh, and inspect tasks before trying again.`
       )
       onUnconfirmed()
     } finally {
@@ -85,7 +129,7 @@ export function BacklogTaskEditor({
         }
       }}
     >
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {task
@@ -100,7 +144,7 @@ export function BacklogTaskEditor({
           </DialogDescription>
         </DialogHeader>
         <form
-          className="space-y-3"
+          className="scrollbar-sleek max-h-[calc(100vh-12rem)] space-y-3 overflow-y-auto"
           onSubmit={(event) => {
             event.preventDefault()
             void save()
@@ -151,9 +195,18 @@ export function BacklogTaskEditor({
               </SelectContent>
             </Select>
           </div>
-          {error ? (
+          {editFields ? (
+            <BacklogTaskFieldInputs
+              draft={draft}
+              priorities={priorities}
+              types={types}
+              disabled={saving}
+              onChange={setDraft}
+            />
+          ) : null}
+          {error || refusal ? (
             <p role="alert" className="text-sm text-destructive">
-              {error}
+              {error ?? refusal}
             </p>
           ) : null}
           <div className="flex justify-end gap-2">

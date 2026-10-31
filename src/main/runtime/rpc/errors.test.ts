@@ -22,6 +22,8 @@ import {
 } from '../../../shared/agent-session-wire-refusals'
 import { readAgentSessionErrorRefusal } from '../../../shared/agent-session-write-failure'
 import { WslHostWindowsDriveRefusalError } from '../../../shared/wsl-host-windows-drive-refusal'
+import { BacklogNotSavedError } from '../../backlog/backlog-save-outcome'
+import { BACKLOG_NOT_SAVED_CODE } from '../../../shared/backlog-types'
 
 class LineageError extends Error {
   code = 'LINEAGE_PARENT_NOT_FOUND'
@@ -294,6 +296,13 @@ describe('mapRuntimeError', () => {
       _meta: { runtimeId: 'runtime-1' }
     })
   })
+})
+
+// The Backlog editor offers a retry only when this code survives the RPC; mapped away, it would lock.
+it('passes a Backlog save refused before writing through with its code', () => {
+  expect(
+    mapRuntimeError('req_1', { runtimeId: 'runtime-1' }, new BacklogNotSavedError('Task is locked'))
+  ).toMatchObject({ ok: false, error: { code: BACKLOG_NOT_SAVED_CODE, message: 'Task is locked' } })
 })
 
 describe('artifact sharing denial', () => {

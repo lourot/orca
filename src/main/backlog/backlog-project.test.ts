@@ -2,7 +2,8 @@ import { afterEach, expect, it } from 'vitest'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { loadBacklogProject, parseBacklogTask } from './backlog-project'
+import { loadBacklogProject } from './backlog-project'
+import { parseBacklogTask } from './backlog-task-file'
 import { backlogMutationUnavailable } from './backlog-cli'
 
 const roots: string[] = []
@@ -117,3 +118,38 @@ it.each(['title: @bad', 'onStatusChange: @bad', 'assignee: [@sara', 'reporter: `
     expect(() => parseBacklogTask(`---\nid: TASK-1\nstatus: Inbox\n${field}\n---\n`)).toThrow()
   }
 )
+
+it('reads every display field, leniently, as the CLI writes them', () => {
+  const parse = (fields: string) =>
+    parseBacklogTask(`---\nid: TASK-2\ntitle: Safe\nstatus: Inbox\n${fields}\n---\n`)
+  expect(
+    parse(
+      [
+        'assignee:\n  - "@alice"',
+        "due_date: '2026-11-05'",
+        'labels:\n  - work\n  - repo:orca',
+        'dependencies:\n  - TASK-1',
+        'references:\n  - https://example.com/a\n  - TASK-3',
+        'documentation:\n  - /abs/note.md',
+        'parent_task_id: TASK-1',
+        'priority: low',
+        'type: bug'
+      ].join('\n')
+    )
+  ).toMatchObject({
+    assignees: ['@alice'],
+    dueDate: '2026-11-05',
+    labels: ['work', 'repo:orca'],
+    dependencies: ['TASK-1'],
+    references: ['https://example.com/a', 'TASK-3'],
+    documentation: ['/abs/note.md'],
+    parent: 'TASK-1',
+    priority: 'low',
+    type: 'bug'
+  })
+  // An unquoted date parses as a YAML Date; a scalar list and junk degrade instead of throwing.
+  expect(
+    parse('due_date: 2026-11-05\nlabels: work\ndependencies: { bad: map }\npriority: [x]')
+  ).toMatchObject({ dueDate: '2026-11-05', labels: ['work'], dependencies: [], priority: '' })
+  expect(parse('')).toMatchObject({ labels: [], priority: '', dueDate: '', parent: '' })
+})

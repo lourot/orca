@@ -31,6 +31,7 @@ import {
   classifySkillInstallFailureCode
 } from '../../../shared/skill-install-failure'
 import { GIT_DIFF_TOO_LARGE_CODE } from '../../../shared/git-diff-transport-budget'
+import { BACKLOG_NOT_SAVED_CODE } from '../../../shared/backlog-types'
 import { AUTOMATION_OWNER_CONFLICT_CODES } from '../../../shared/automation-owner-conflict'
 import { ARCHIVE_HOOK_FAILED_REMOVAL_CODE } from '../../../shared/worktree/archive-hook-removal-gate'
 import { NESTED_WORKER_DEPTH_EXCEEDED_CODE } from '../../../shared/nested-worker-depth'
@@ -167,6 +168,8 @@ const STRUCTURED_RUNTIME_PASSTHROUGH_CODES: ReadonlySet<string> = new Set([
   NESTED_WORKER_DEPTH_EXCEEDED_CODE,
   PROJECT_RUNTIME_REPAIR_REQUIRED_CODE,
   GIT_DIFF_TOO_LARGE_CODE,
+  // A Backlog save refused before the CLI ran; the editor offers a retry instead of a refresh.
+  BACKLOG_NOT_SAVED_CODE,
   ARTIFACT_SHARING_DISABLED_CODE,
   AGENT_SKILL_SHARING_DISABLED_CODE,
   SHARING_UNAVAILABLE_ON_HOST_CODE,

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import type { Repo } from '../../../../../shared/repo-types'
-import type { BacklogList, BacklogTask } from '../../../../../shared/backlog-types'
+import type { BacklogList, BacklogTaskDetail } from '../../../../../shared/backlog-types'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,12 +18,14 @@ import {
   backlogRepoKey,
   buildBacklogTaskPrompt,
   callBacklog,
-  supportsBacklog
+  supportsBacklog,
+  supportsBacklogFieldEdits
 } from '@/lib/backlog-task-source'
 import { buildExecutionHostRegistry } from '../../../../../shared/execution-host-registry'
 import { getRepoExecutionHostId } from '../../../../../shared/execution-host'
 import { getTaskPageRepoSourceContext } from '../task-page-source-context'
 import { BacklogTaskEditor } from './BacklogTaskEditor'
+import { BacklogTaskFields } from './BacklogTaskFields'
 
 /** Selects supported repo or folder projects and remounts task state when host, repo, or path changes. */
 export function BacklogTasks(): React.JSX.Element {
@@ -68,7 +70,11 @@ export function BacklogTasks(): React.JSX.Element {
         </SelectContent>
       </Select>
       {repo ? (
-        <BacklogProjectTasks key={backlogRepoKey(repo)} repo={repo} />
+        <BacklogProjectTasks
+          key={backlogRepoKey(repo)}
+          repo={repo}
+          editFields={supportsBacklogFieldEdits(repo, hosts)}
+        />
       ) : (
         <p className="text-sm text-muted-foreground">
           {repos.length
@@ -87,14 +93,20 @@ export function BacklogTasks(): React.JSX.Element {
 }
 
 /** Browses one checkout; unconfirmed writes block editing until an explicit refresh succeeds. */
-function BacklogProjectTasks({ repo }: { repo: Repo }): React.JSX.Element {
+function BacklogProjectTasks({
+  repo,
+  editFields
+}: {
+  repo: Repo
+  editFields: boolean
+}): React.JSX.Element {
   const openModal = useAppStore((state) => state.openModal)
   const [list, setList] = useState<BacklogList | null>(null)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [offset, setOffset] = useState(0)
   const [revision, setRevision] = useState(0)
-  const [task, setTask] = useState<BacklogTask | null>(null)
+  const [task, setTask] = useState<BacklogTaskDetail | null>(null)
   const [editing, setEditing] = useState(false)
   const [unconfirmed, setUnconfirmed] = useState(false)
   const unconfirmedRevision = useRef(-1)
@@ -294,6 +306,7 @@ function BacklogProjectTasks({ repo }: { repo: Repo }): React.JSX.Element {
               {task.id} · {task.title}
             </h2>
             <Badge variant="secondary">{task.status}</Badge>
+            <BacklogTaskFields task={task} onOpenTask={(id) => void readTask(id)} />
             <pre className="whitespace-pre-wrap break-words font-sans text-sm">
               {task.body || translate('backlog.noDetails', 'No task details.')}
             </pre>
@@ -316,6 +329,12 @@ function BacklogProjectTasks({ repo }: { repo: Repo }): React.JSX.Element {
                 <span className="font-mono">{entry.id}</span>
                 <span className="truncate">{entry.title}</span>
                 <Badge variant="secondary">{entry.status}</Badge>
+                {entry.priority ? <Badge variant="outline">{entry.priority}</Badge> : null}
+                {[...new Set(entry.labels)].map((label) => (
+                  <Badge key={label} variant="outline">
+                    {label}
+                  </Badge>
+                ))}
               </Button>
             ))}
           </>
@@ -347,6 +366,9 @@ function BacklogProjectTasks({ repo }: { repo: Repo }): React.JSX.Element {
           repo={repo}
           task={task}
           statuses={list.statuses}
+          priorities={list.priorities}
+          types={list.types}
+          editFields={editFields}
           onClose={() => setEditing(false)}
           onUnconfirmed={() => {
             unconfirmedRevision.current = revision

@@ -1,9 +1,10 @@
 import { lstat, open, opendir, realpath } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import path from 'node:path'
-import { isScalar, isSeq, parse, parseDocument, visit } from 'yaml'
+import { parse } from 'yaml'
 import { z } from 'zod'
-import type { BacklogTask } from '../../shared/backlog-types'
+import { backlogTaskKey } from '../../shared/backlog-types'
+import { parseBacklogTask } from './backlog-task-file'
 
 const Config = z.object({
   project_name: z.string().optional(),
@@ -15,6 +16,17 @@ const Config = z.object({
     .min(1)
     .max(100)
     .default(['To Do', 'In Progress', 'Done']),
+  // Backlog.md's own defaults (`task create --help`, 1.55.3) when the config names none.
+  priorities: z
+    .array(z.string().min(1).max(200))
+    .max(100)
+    .default(['High', 'Medium', 'Low'])
+    .catch(['High', 'Medium', 'Low']),
+  types: z
+    .array(z.string().min(1).max(200))
+    .max(100)
+    .default(['bug', 'feature', 'enhancement', 'task', 'chore', 'docs', 'spike'])
+    .catch(['bug', 'feature', 'enhancement', 'task', 'chore', 'docs', 'spike']),
   auto_commit: z.boolean().optional(),
   autoCommit: z.boolean().optional(),
   remote_operations: z.boolean().optional(),
@@ -24,19 +36,6 @@ const Config = z.object({
   onStatusChange: z.string().optional(),
   on_status_change: z.string().optional()
 })
-const Metadata = z.object({
-  id: z
-    .string()
-    .regex(/^[a-zA-Z]+-[a-zA-Z0-9]+(?:[._-][a-zA-Z0-9]+)*$/)
-    .max(128),
-  title: z
-    .union([z.string(), z.number().finite(), z.boolean(), z.date(), z.null(), z.undefined()])
-    .transform((value) => String(value || ''))
-    .pipe(z.string().max(1024)),
-  status: z.string().max(200),
-  onStatusChange: z.unknown().optional()
-})
-
 /** Reads bounded UTF-8 from a regular file, rejecting symlinks at lstat and using O_NOFOLLOW off Windows. */
 export async function readBacklogFile(file: string, maxBytes = 131072): Promise<string> {
   const entry = await lstat(file)
@@ -186,6 +185,8 @@ export async function loadBacklogProject(repoPath: string) {
     backlogPath,
     projectName,
     statuses: config.statuses,
+    priorities: config.priorities,
+    types: config.types,
     config,
     unsafeCliConfig,
     configMatchesCli
@@ -193,67 +194,6 @@ export async function loadBacklogProject(repoPath: string) {
 }
 
 export type BacklogProject = Awaited<ReturnType<typeof loadBacklogProject>>
-
-/** Validates task frontmatter, extracts display content, and flags status hooks before CLI edits. */
-export function parseBacklogTask(content: string): BacklogTask & { hasStatusHook: boolean } {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)([\s\S]*)$/.exec(content)
-  if (!match) {
-    throw new Error('Backlog task is missing YAML frontmatter.')
-  }
-  // Full YAML (including merges and quoted keys) is required to see every executable hook.
-  const document = parseDocument(match[1], {
-    version: '1.1',
-    merge: true,
-    // gray-matter treats yes/no/on/off as strings, while retaining YAML dates and octal numbers.
-    customTags: (tags) => [
-      ...tags.filter((tag) => typeof tag === 'string' || tag.tag !== 'tag:yaml.org,2002:bool'),
-      'bool'
-    ]
-  })
-  const allowedAtSigns = new Set<number>()
-  visit(document, {
-    /** Allows bare @ handles only in assignee/reporter scalars or flow-sequence entries. */
-    Pair(_key, pair) {
-      if (!isScalar(pair.key) || !['assignee', 'reporter'].includes(String(pair.key.value))) {
-        return
-      }
-      const values = isSeq(pair.value) && pair.value.flow ? pair.value.items : [pair.value]
-      for (const value of values) {
-        if (
-          isScalar(value) &&
-          value.type === 'PLAIN' &&
-          value.source?.startsWith('@') &&
-          value.range
-        ) {
-          allowedAtSigns.add(value.range[0])
-        }
-      }
-    }
-  })
-  // Backlog accepts unquoted @ handles; all other YAML failures must remain blocking.
-  document.errors = document.errors.filter(
-    (error) => error.code !== 'BAD_SCALAR_START' || !allowedAtSigns.has(error.pos[0])
-  )
-  if (document.errors.length) {
-    throw document.errors[0]
-  }
-  const metadata = Metadata.parse(document.toJS())
-  const body = match[2].trim()
-  const description =
-    /<!-- SECTION:DESCRIPTION:BEGIN -->\s*([\s\S]*?)\s*<!-- SECTION:DESCRIPTION:END -->/.exec(
-      body
-    )?.[1] ??
-    /(?:^|\r?\n)## Description[^\S\r\n]*\r?\n([\s\S]*?)(?=\r?\n## |$)/.exec(body)?.[1]?.trim() ??
-    ''
-  return {
-    id: metadata.id,
-    title: metadata.title,
-    status: metadata.status,
-    description,
-    body,
-    hasStatusHook: Boolean(metadata.onStatusChange)
-  }
-}
 
 /** Reads active tasks in numeric ID order; rejects symlinks, duplicate IDs, and scan/read limit violations. */
 export async function readBacklogTasks(project: BacklogProject) {
@@ -265,7 +205,7 @@ export async function readBacklogTasks(project: BacklogProject) {
     throw new Error('Backlog task directory cannot be a symlink.')
   }
   const directory = await opendir(tasksPath)
-  const tasks: ReturnType<typeof parseBacklogTask>[] = []
+  const tasks: (ReturnType<typeof parseBacklogTask> & { filePath: string })[] = []
   const ids = new Set<string>()
   let entries = 0
   let bytes = 0
@@ -279,20 +219,19 @@ export async function readBacklogTasks(project: BacklogProject) {
     if (!entry.isFile() || !entry.name.endsWith('.md')) {
       continue
     }
-    const content = await readBacklogFile(path.join(tasksPath, entry.name))
+    const filePath = path.join(tasksPath, entry.name)
+    const content = await readBacklogFile(filePath)
     bytes += Buffer.byteLength(content)
     if (bytes > 16 * 1024 * 1024) {
       throw new Error('Backlog tasks exceed the 16 MiB read limit.')
     }
     const task = parseBacklogTask(content)
-    const key = /^[a-z]+-\d+(?:\.\d+)*$/i.test(task.id)
-      ? task.id.toLowerCase().replace(/([-.])0+(?=\d)/g, '$1')
-      : task.id.toLowerCase()
+    const key = backlogTaskKey(task.id)
     if (ids.has(key)) {
       throw new Error(`Duplicate Backlog task ID: ${task.id}. Run backlog doctor.`)
     }
     ids.add(key)
-    tasks.push(task)
+    tasks.push({ ...task, filePath })
   }
   const collator = new Intl.Collator(undefined, { numeric: true })
   return tasks.sort((a, b) => collator.compare(a.id, b.id))

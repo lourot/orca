@@ -2,7 +2,8 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { executeBacklogOperation } from './backlog-service'
 import { loadBacklogProject, readBacklogTasks } from './backlog-project'
 import { runBacklogMutation } from './backlog-cli'
-import { BACKLOG_OPERATION_TIMEOUT_MS } from '../../shared/backlog-types'
+import { BACKLOG_NOT_SAVED_CODE, BACKLOG_OPERATION_TIMEOUT_MS } from '../../shared/backlog-types'
+import { BacklogSaveUnconfirmedError } from './backlog-save-outcome'
 
 vi.mock('./backlog-project', () => ({
   loadBacklogProject: vi.fn(),
@@ -19,7 +20,9 @@ const project = {
   backlogPath: '/project/backlog',
   projectName: 'Test',
   statuses: ['Inbox'],
-  config: { statuses: ['Inbox'] },
+  priorities: ['High'],
+  types: ['task'],
+  config: { statuses: ['Inbox'], priorities: ['High'], types: ['task'] },
   unsafeCliConfig: false,
   configMatchesCli: true
 }
@@ -66,4 +69,21 @@ it('aborts an in-flight command at the overall deadline without retrying', async
   await result
   expect(runBacklogMutation).toHaveBeenCalledOnce()
   expect(vi.mocked(runBacklogMutation).mock.calls[0][3].aborted).toBe(true)
+})
+
+it.each([
+  [
+    'a refusal before the CLI ran',
+    new Error('A title and a configured status are required.'),
+    true
+  ],
+  ['a CLI run that did not confirm', new BacklogSaveUnconfirmedError('Backlog CLI exited 1'), false]
+])('marks only certain no-writes as not saved: %s', async (_case, failure, notSaved) => {
+  vi.mocked(loadBacklogProject).mockResolvedValueOnce(project)
+  vi.mocked(runBacklogMutation).mockRejectedValueOnce(failure)
+  const error = await executeBacklogOperation('/project', create).catch((caught: unknown) => caught)
+  expect(error).toHaveProperty('message', failure.message)
+  expect(error instanceof Error && 'code' in error && error.code === BACKLOG_NOT_SAVED_CODE).toBe(
+    notSaved
+  )
 })
