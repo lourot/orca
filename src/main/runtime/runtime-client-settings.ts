@@ -86,6 +86,8 @@ export class RuntimeClientSettingsController {
       defaultLinearTeamSelection: Array.isArray(settings.defaultLinearTeamSelection)
         ? settings.defaultLinearTeamSelection.filter((id): id is string => typeof id === 'string')
         : null,
+      defaultBacklogProject:
+        typeof settings.defaultBacklogProject === 'string' ? settings.defaultBacklogProject : null,
       githubProjects: settings.githubProjects,
       experimentalNewWorktreeCardStyle: settings.experimentalNewWorktreeCardStyle === true,
       experimentalNativeChat: settings.experimentalNativeChat === true,

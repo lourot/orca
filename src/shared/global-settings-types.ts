@@ -360,6 +360,8 @@ export type GlobalSettings = GlobalSettingsBase & {
   defaultRepoSelection: string[] | null
   /** Linear team selection: null includes all; arrays freeze selected team IDs, matching defaultRepoSelection. */
   defaultLinearTeamSelection: string[] | null
+  /** Backlog.md project last chosen in Tasks (repo id); null opens the first supported project. */
+  defaultBacklogProject: string | null
   /** Session cookie for OpenCode Go rate-limit fetching. Stored encrypted. */
   opencodeSessionCookie: string
   /** Optional OpenCode Go workspace ID override; when set, skips the workspaces lookup and fetches usage directly. */

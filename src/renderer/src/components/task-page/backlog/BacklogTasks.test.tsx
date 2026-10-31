@@ -12,10 +12,14 @@ import { BACKLOG_TASKS_CAPABILITY } from '../../../../../shared/backlog-capabili
 const mocks = vi.hoisted(
   (): {
     openModal: ReturnType<typeof vi.fn>
+    updateSettings: ReturnType<typeof vi.fn>
+    settings: { defaultBacklogProject: string | null }
     repos: Repo[]
     runtimeStatusByEnvironmentId: Map<string, RuntimeEnvironmentStatus>
   } => ({
     openModal: vi.fn(),
+    updateSettings: vi.fn(),
+    settings: { defaultBacklogProject: null },
     runtimeStatusByEnvironmentId: new Map<string, RuntimeEnvironmentStatus>(),
     repos: [
       {
@@ -69,6 +73,8 @@ beforeEach(() => {
     }
   ]
   mocks.runtimeStatusByEnvironmentId = new Map()
+  mocks.settings = { defaultBacklogProject: null }
+  mocks.updateSettings.mockResolvedValue(undefined)
   vi.mocked(callBacklog).mockResolvedValue(list)
 })
 afterEach(cleanup)
@@ -148,6 +154,19 @@ describe('Backlog Tasks UI', () => {
     )
     fireEvent.click(screen.getByRole('combobox', { name: 'Backlog project' }))
     expect(screen.queryByRole('option', { name: /Old host/ })).toBeNull()
+  })
+  it('reopens on the remembered project and remembers a new choice', async () => {
+    const first = mocks.repos[0]
+    const board = { ...first, id: 'board', path: '/board', displayName: 'Board' }
+    mocks.repos = [first, board]
+    mocks.settings = { defaultBacklogProject: 'board' }
+    render(<BacklogTasks />)
+    await screen.findByRole('button', { name: /OPS-007/ })
+    expect(callBacklog).toHaveBeenCalledWith(board, expect.objectContaining({ kind: 'list' }))
+    expect(callBacklog).not.toHaveBeenCalledWith(first, expect.anything())
+    fireEvent.click(screen.getByRole('combobox', { name: 'Backlog project' }))
+    fireEvent.click(await screen.findByRole('option', { name: /Folder project/ }))
+    expect(mocks.updateSettings).toHaveBeenCalledWith({ defaultBacklogProject: 'folder' })
   })
   it('withdraws tasks when runtime capability is lost and guards a stale start handler', async () => {
     mocks.repos = [{ ...mocks.repos[0], executionHostId: 'runtime:remote' }]

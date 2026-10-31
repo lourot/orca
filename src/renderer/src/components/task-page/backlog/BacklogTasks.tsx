@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import type { Repo } from '../../../../../shared/repo-types'
 import type { BacklogList, BacklogTask } from '../../../../../shared/backlog-types'
@@ -28,6 +29,8 @@ import { BacklogTaskEditor } from './BacklogTaskEditor'
 export function BacklogTasks(): React.JSX.Element {
   const repos = useAppStore((state) => state.repos)
   const runtimeStatusByEnvironmentId = useAppStore((state) => state.runtimeStatusByEnvironmentId)
+  const savedRepoId = useAppStore((state) => state.settings?.defaultBacklogProject ?? null)
+  const updateSettings = useAppStore((state) => state.updateSettings)
   const hosts = new Map(
     buildExecutionHostRegistry({ repos, settings: null, runtimeStatusByEnvironmentId }).map(
       (host) => [host.id, host]
@@ -36,10 +39,23 @@ export function BacklogTasks(): React.JSX.Element {
   const supportedRepos = repos.filter((candidate) => supportsBacklog(candidate, hosts))
   const [selection, setSelection] = useState('')
   const repo =
-    supportedRepos.find((candidate) => backlogRepoKey(candidate) === selection) ?? supportedRepos[0]
+    supportedRepos.find((candidate) => backlogRepoKey(candidate) === selection) ??
+    supportedRepos.find((candidate) => candidate.id === savedRepoId) ??
+    supportedRepos[0]
+  const select = (key: string): void => {
+    setSelection(key)
+    const chosen = supportedRepos.find((candidate) => backlogRepoKey(candidate) === key)
+    if (chosen) {
+      void updateSettings({ defaultBacklogProject: chosen.id }).catch(() => {
+        toast.error(
+          translate('backlog.rememberProjectFailed', 'Could not remember the Backlog project.')
+        )
+      })
+    }
+  }
   return (
     <section className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
-      <Select value={repo ? backlogRepoKey(repo) : undefined} onValueChange={setSelection}>
+      <Select value={repo ? backlogRepoKey(repo) : undefined} onValueChange={select}>
         <SelectTrigger aria-label={translate('backlog.project', 'Backlog project')}>
           <SelectValue placeholder={translate('backlog.selectProject', 'Select a project')} />
         </SelectTrigger>

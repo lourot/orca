@@ -1,6 +1,7 @@
 # Backlog.md in Tasks
 
-Select **Tasks → Backlog.md**, then choose a project and execution host. Git repositories
+Select **Tasks → Backlog.md**, then choose a project and execution host. Orca remembers
+the last chosen project (`defaultBacklogProject` setting) and reopens on it. Git repositories
 without a hosting provider and folder projects are both supported. Search matches IDs,
 titles and task bodies; status filters use the project's configured status names. Details
 show the complete Markdown body, including acceptance criteria, plan and notes.
