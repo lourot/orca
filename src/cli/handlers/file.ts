@@ -9,7 +9,7 @@ import { getOptionalStringFlag, getRequiredStringFlag } from '../flags'
 import { printResult } from '../format'
 import { RuntimeClientError } from '../runtime-client'
 import { callFileOpen } from './file-open-call'
-import { getOptionalWorktreeSelector, resolveCurrentWorktreeSelector } from '../selectors'
+import { absoluteWhenCwdOutsideWorkspace, getFileWorktreeSelector } from './file-worktree-selector'
 
 type FileOpenMode = 'edit' | 'diff'
 type OpenChangedMode = FileOpenMode | 'both'
@@ -30,24 +30,6 @@ type FileOpenChangedResult = {
   opened: FileOpenRecord[]
   skipped: FileOpenRecord[]
   totalChanged: number
-}
-
-async function getFileWorktreeSelector({ flags, cwd, client }: HandlerContext): Promise<string> {
-  const worktree = flags.get('worktree')
-  if (flags.has('worktree') && (typeof worktree !== 'string' || worktree.length === 0)) {
-    throw new RuntimeClientError('invalid_argument', 'Missing value for --worktree.')
-  }
-  const explicit = await getOptionalWorktreeSelector(flags, 'worktree', cwd, client)
-  if (explicit) {
-    return explicit
-  }
-  if (client.isRemote) {
-    throw new RuntimeClientError(
-      'invalid_argument',
-      'Remote file commands require --worktree because the client cwd cannot identify a server worktree.'
-    )
-  }
-  return await resolveCurrentWorktreeSelector(cwd, client)
 }
 
 // Only UNC roots need Linux-path translation; backslash filenames have no equivalent Windows spelling.
@@ -203,8 +185,12 @@ export const FILE_HANDLERS: Record<string, CommandHandler> = {
   'file open': async (ctx) => {
     const path = getRequiredStringFlag(ctx.flags, 'path')
     const position = getFileOpenPosition(ctx.flags)
-    const worktree = await getFileWorktreeSelector(ctx)
-    const relativePath = await resolveFilePath(ctx, worktree, path)
+    const { worktree, cwdOutsideWorkspace } = await getFileWorktreeSelector(ctx)
+    const relativePath = await resolveFilePath(
+      ctx,
+      worktree,
+      absoluteWhenCwdOutsideWorkspace(ctx.cwd, path, cwdOutsideWorkspace)
+    )
     const result = await callFileOpen(ctx, 'files.open', {
       worktree,
       relativePath,
@@ -217,7 +203,7 @@ export const FILE_HANDLERS: Record<string, CommandHandler> = {
   'file diff': async (ctx) => {
     const path = getRequiredStringFlag(ctx.flags, 'path')
     const staged = ctx.flags.get('staged') === true
-    const worktree = await getFileWorktreeSelector(ctx)
+    const { worktree } = await getFileWorktreeSelector(ctx)
     const relativePath = await resolveFilePath(ctx, worktree, path)
     const result = await callFileOpen(ctx, 'files.openDiff', {
       worktree,
@@ -230,7 +216,7 @@ export const FILE_HANDLERS: Record<string, CommandHandler> = {
   },
   'file open-changed': async (ctx) => {
     const mode = getOpenChangedMode(ctx.flags)
-    const worktree = await getFileWorktreeSelector(ctx)
+    const { worktree } = await getFileWorktreeSelector(ctx)
     const status = await ctx.client.call<GitStatusResult>('git.status', { worktree })
     const opened: FileOpenRecord[] = []
     const skipped: FileOpenRecord[] = []

@@ -312,6 +312,76 @@ describe('absolute file CLI paths', () => {
     })
   })
 
+  function mockFocusedWorkspace(focused: string | null): void {
+    callMock.mockImplementation(async (method: string, params: { relativePath?: string }) => {
+      if (method === 'worktree.list') {
+        return worktreeListFixture([buildWorktree('/tmp/repo', 'feature')])
+      }
+      if (method === 'worktree.resolveActive') {
+        return okFixture('req_active', { worktree: focused })
+      }
+      if (method === 'worktree.show') {
+        return okFixture('req_show', { worktree: buildWorktree('/tmp/repo', 'feature') })
+      }
+      return okFixture('req_open', {
+        worktree: 'wt-1',
+        relativePath: params.relativePath,
+        kind: 'text',
+        opened: true,
+        outsideWorkspace: true
+      })
+    })
+  }
+
+  it('hosts an open in the focused workspace when cwd is inside none', async () => {
+    mockFocusedWorkspace('repo::/tmp/repo')
+
+    await main(['file', 'open', '/home/alice/.zshrc'], '/home/alice')
+
+    expect(process.exitCode).toBeUndefined()
+    expect(callMock).toHaveBeenNthCalledWith(2, 'worktree.resolveActive', {})
+    expect(callMock).toHaveBeenLastCalledWith('files.open', {
+      worktree: 'id:repo::/tmp/repo',
+      relativePath: '/home/alice/.zshrc'
+    })
+  })
+
+  // Why cwd and not the focused workspace root: the caller never named that root.
+  it('resolves a relative path against cwd when cwd is inside no workspace', async () => {
+    mockFocusedWorkspace('repo::/tmp/repo')
+
+    await main(['file', 'open', '.zshrc'], '/home/alice')
+
+    expect(process.exitCode).toBeUndefined()
+    expect(callMock).toHaveBeenLastCalledWith('files.open', {
+      worktree: 'id:repo::/tmp/repo',
+      relativePath: '/home/alice/.zshrc'
+    })
+  })
+
+  it('says what to do when cwd is inside no workspace and none is focused', async () => {
+    mockFocusedWorkspace(null)
+
+    await main(['file', 'open', '/home/alice/.zshrc'], '/home/alice')
+
+    expect(process.exitCode).toBe(1)
+    expect(console.error).toHaveBeenCalledWith(
+      'No Orca-managed worktree contains the current directory: /home/alice. Pass --worktree <selector>, or focus a workspace in Orca.'
+    )
+  })
+
+  it('does not consult the focused workspace when --worktree names one', async () => {
+    mockFocusedWorkspace('repo::/tmp/repo')
+
+    await main(
+      ['file', 'open', '--path', '/home/alice/.zshrc', '--worktree', 'id:wt-1'],
+      '/home/alice'
+    )
+
+    expect(process.exitCode).toBeUndefined()
+    expect(callMock).not.toHaveBeenCalledWith('worktree.resolveActive', expect.anything())
+  })
+
   it('rejects the worktree root as a file-open target', async () => {
     queueFixtures(
       callMock,

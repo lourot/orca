@@ -223,6 +223,14 @@ orca file open-changed --mode both --worktree active --json
 
 Paths are relative to the selected worktree. `--line` and `--column` are 1-based; a column requires a line. Positions are applied when you select the file, or immediately with `--focus`. Markdown switches to source view for positioning. Older hosts open the file without positioning. `open-changed` reads git status and opens changed files in edit, diff, or both modes. Tabs open without changing what you are looking at; pass `--focus` to be brought to them.
 
+`file open` also takes an absolute path that belongs to no workspace, on a local workspace only — the
+selected workspace hosts the tab, and the file is editable and saves back to disk. When cwd is inside
+no workspace, the workspace focused in Orca hosts it and a relative path resolves against cwd:
+
+```bash
+cd ~ && orca file open .zshrc
+```
+
 ## Built-in browser
 
 Browser commands control Orca's embedded browser tab for the selected worktree. They do not control Chrome, Safari, or the Orca desktop UI.

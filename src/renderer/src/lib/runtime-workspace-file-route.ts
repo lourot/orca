@@ -55,10 +55,14 @@ export function findWorkspaceFileRoute(
   }
 
   const owner = findRuntimeWorkspaceFileOwner(roots, absolutePath, executionHostId)
-  return owner && owner.relativePath !== ''
+  // Why: git's own files belong to the worktree running git, not to the checkout whose root holds
+  // them - a linked worktree's COMMIT_EDITMSG lives in the main checkout's .git/worktrees/<id>/.
+  return owner && owner.relativePath !== '' && !GIT_DIR_SEGMENT.test(owner.relativePath)
     ? { worktreeId: owner.workspaceId, relativePath: owner.relativePath, executionHostId }
     : null
 }
+
+const GIT_DIR_SEGMENT = /(^|[\\/])\.git([\\/]|$)/
 
 export function findRuntimeWorkspaceFileRoute(
   state: AppState,

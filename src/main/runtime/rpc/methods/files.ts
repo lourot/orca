@@ -75,12 +75,15 @@ export const FILE_METHODS = [
     name: 'files.open',
     permission: 'workspace',
     params: FileOpenTab,
-    handler: async (params, { runtime }) =>
+    // Why caller: an outside-workspace path names a file on this machine, so only callers that
+    // already run here as the user (local CLI, this desktop) may open one; paired devices may not.
+    handler: async (params, { runtime, caller }) =>
       runtime.openMobileFile(
         params.worktree,
         params.relativePath,
         params.navigation,
-        ...(params.line === undefined ? [] : [{ line: params.line, column: params.column }])
+        params.line === undefined ? undefined : { line: params.line, column: params.column },
+        { allowOutsideWorkspace: caller?.kind === 'local-cli' || caller?.kind === 'desktop' }
       )
   }),
   defineMethod({

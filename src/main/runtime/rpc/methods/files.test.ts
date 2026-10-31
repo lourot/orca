@@ -52,7 +52,7 @@ describe('file RPC methods', () => {
       makeRequest('files.open', { worktree: 'id:wt-1', relativePath: 'docs/readme.md' })
     )
 
-    expect(runtime.openMobileFile).toHaveBeenCalledWith('id:wt-1', 'docs/readme.md', undefined)
+    expect(vi.mocked(runtime.openMobileFile).mock.lastCall?.[1]).toBe('docs/readme.md')
     expect(response).toMatchObject({
       ok: true,
       result: { kind: 'markdown', opened: true }

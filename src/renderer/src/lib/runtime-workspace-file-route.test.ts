@@ -108,6 +108,23 @@ describe('findRuntimeWorkspaceFileRoute', () => {
     expect(findRuntimeWorkspaceFileRoute(state(), 'runtime-a', '/srv/notes')).toBeNull()
   })
 
+  it('leaves files inside a git directory unowned, so they stay with the worktree running git', () => {
+    for (const path of [
+      '/srv/repo-b/.git/worktrees/wt/COMMIT_EDITMSG',
+      '/srv/repo-b/.git',
+      '/srv/notes/nested/.git/config'
+    ]) {
+      expect(findRuntimeWorkspaceFileRoute(state(), 'runtime-a', path)).toBeNull()
+    }
+    expect(
+      findRuntimeWorkspaceFileRoute(state(), 'runtime-a', '/srv/repo-b/.github/ci.yml')
+    ).toEqual({
+      worktreeId: 'repo-b::/srv/repo-b',
+      relativePath: '.github/ci.yml',
+      executionHostId: 'runtime:runtime-a'
+    })
+  })
+
   it('routes direct SSH siblings only on the exact SSH host', () => {
     const sshState = state()
     sshState.repos = [
