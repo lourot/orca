@@ -89,6 +89,8 @@ export type AgentHookRelayEnvelope = {
   teammateName?: string
   /** Claude agent type, used only as a lower-confidence identity fallback. */
   toolAgentType?: string
+  /** Claude auto-mode PermissionRequest; older relays omit it and the wait stays sticky. */
+  claudePromptTimesOut?: true
   /** Provider-owned conversation/session id needed to resume a sleeping agent. */
   providerSession?: AgentProviderSessionMetadata
   /** True when this envelope updates resume identity without changing turn status. */

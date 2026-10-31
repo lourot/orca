@@ -35,6 +35,7 @@ export function buildRelayHookEnvelope(
     toolAgentId: event.toolAgentId,
     teammateName: event.teammateName,
     toolAgentType: event.toolAgentType,
+    ...(event.claudePromptTimesOut ? { claudePromptTimesOut: true } : {}),
     claudeRunningNonAgentTask: event.claudeRunningNonAgentTask,
     ...(event.providerSession ? { providerSession: event.providerSession } : {}),
     ...(event.providerSessionOnly ? { providerSessionOnly: true } : {}),

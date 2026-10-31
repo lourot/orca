@@ -27,6 +27,7 @@ import {
   trackOpenCodePaneLaunchToken
 } from './agent-hook-listener/opencode-session-registry'
 import { claudeRowHasUnlistedLiveWork } from './agent-hook-listener/providers/claude-pane-hold-evidence'
+import { readClaudePromptTimesOut } from './agent-hook-listener/providers/claude-auto-mode-prompt'
 import { readString } from './agent-hook-listener/tool-input-preview'
 import { readPaneProviderSession } from './agent-hook-listener/pane-provider-session'
 /** Canonical transport-agnostic normalization entry shared by main and relay listeners. */
@@ -302,6 +303,7 @@ export function normalizeHookPayload(
         ? readString(hookPayloadRecord, 'teammate_name')
         : undefined,
     toolAgentType: readString(hookPayloadRecord, 'agent_type'),
+    claudePromptTimesOut: readClaudePromptTimesOut(source, eventName, hookPayloadRecord),
     ...(source === 'claude'
       ? {
           claudeRunningNonAgentTask: claudeRowHasUnlistedLiveWork(state, paneKey)

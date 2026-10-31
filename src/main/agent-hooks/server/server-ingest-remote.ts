@@ -28,6 +28,7 @@ import {
 } from '../../../shared/agent-status-legacy-adapter'
 import { isValidPiProviderSessionOnly } from './server-status-identity'
 import {
+  normalizeRemoteClaudeFlags,
   normalizeRemoteEnvelopeFields,
   type RemoteAgentStatusEnvelope
 } from './server-remote-envelope-normalization'
@@ -285,10 +286,7 @@ export abstract class AgentHookServerIngestRemote extends AgentHookServerIngestS
       ...(isTurnEndDisposition(envelope.turnEndDisposition)
         ? { turnEndDisposition: envelope.turnEndDisposition }
         : {}),
-      claudeRunningNonAgentTask:
-        typeof envelope.claudeRunningNonAgentTask === 'boolean'
-          ? envelope.claudeRunningNonAgentTask
-          : undefined,
+      ...normalizeRemoteClaudeFlags(envelope),
       codexRosterAuthority: this.relaySessions.codexRosterAuthority(
         trimmedConnectionId,
         normalizedPayload,

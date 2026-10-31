@@ -82,11 +82,25 @@ export function shouldKeepClaudePermissionVisible(
   if (isClaudePermissionResumingApprovedTool(previous, next)) {
     return false
   }
+  if (isClaudeAutoModePromptTimedOut(previous)) {
+    return false
+  }
   // AskUserQuestion can arrive as PermissionRequest; only actual permissions stay sticky.
   if (isAskUserQuestionTool(previous.payload.toolName)) {
     return false
   }
   return true
+}
+
+/** Claude Code (2.1.316) denies an auto-mode prompt left unanswered this long, and no hook reports it. */
+export const CLAUDE_AUTO_MODE_PROMPT_TIMEOUT_MS = 120_000
+
+/** An auto-mode dialog past its timeout is gone, so later work may replace the wait. */
+function isClaudeAutoModePromptTimedOut(previous: EnrichedAgentHookEventPayload): boolean {
+  return (
+    previous.claudePromptTimesOut === true &&
+    Date.now() - previous.receivedAt >= CLAUDE_AUTO_MODE_PROMPT_TIMEOUT_MS
+  )
 }
 
 function isClaudePermissionOwningChildEnding(

@@ -30,6 +30,7 @@ export type RemoteAgentStatusEnvelope = {
   toolAgentId?: string
   teammateName?: string
   toolAgentType?: string
+  claudePromptTimesOut?: unknown
   providerSession?: unknown
   providerSessionOnly?: unknown
   isReplay?: boolean
@@ -128,5 +129,19 @@ export function normalizeRemoteEnvelopeFields(envelope: {
         ? envelope.toolAgentType.trim()
         : undefined,
     providerSession: normalizeAgentProviderSession(envelope.providerSession) ?? undefined
+  }
+}
+
+/** Claude flags a relay sends beside the status; older relays omit them. */
+export function normalizeRemoteClaudeFlags(envelope: {
+  claudeRunningNonAgentTask?: unknown
+  claudePromptTimesOut?: unknown
+}): { claudeRunningNonAgentTask?: boolean; claudePromptTimesOut?: true } {
+  return {
+    claudeRunningNonAgentTask:
+      typeof envelope.claudeRunningNonAgentTask === 'boolean'
+        ? envelope.claudeRunningNonAgentTask
+        : undefined,
+    ...(envelope.claudePromptTimesOut === true ? { claudePromptTimesOut: true } : {})
   }
 }
