@@ -1,6 +1,7 @@
 import type * as Monaco from 'monaco-editor'
 import { describe, expect, it, vi } from 'vitest'
 import { loadNodeOniguruma } from '../syntax-highlighting/oniguruma-test-harness'
+import { MONACO_FIND_MATCH_COLORS } from '../monaco-find-match-colors'
 import { createMarkdownTokensProvider } from './markdown-textmate-tokens'
 
 vi.mock('../syntax-highlighting/oniguruma', () => ({ loadOniguruma: loadNodeOniguruma }))
@@ -35,7 +36,8 @@ describe('createMarkdownTokensProvider', () => {
       expect.objectContaining({
         rules: expect.arrayContaining([
           { token: 'md.markup.heading', foreground: '#569cd6', fontStyle: 'bold' }
-        ])
+        ]),
+        colors: expect.objectContaining(MONACO_FIND_MATCH_COLORS['vs-dark'])
       })
     )
     const [heading, list] = tokenizeLines(provider, ['## Quick', '- **State:** open'])

@@ -4,6 +4,7 @@ import type { IToken } from 'shiki/textmate'
 import type { BundledLanguageInfo } from 'shiki/types'
 import { COLD_GRAMMAR_LINE_ATTEMPTS } from '../syntax-highlighting/textmate-core'
 import { createTokensProvider, loadEditorCore } from './textmate-token-provider'
+import { MONACO_FIND_MATCH_COLORS } from '../monaco-find-match-colors'
 
 type MonacoModule = {
   editor: Pick<typeof Monaco.editor, 'defineTheme'>
@@ -97,9 +98,14 @@ export async function createMarkdownTokensProvider(
     base: 'vs-dark',
     inherit: true,
     rules: darkRules,
-    colors: {}
+    colors: MONACO_FIND_MATCH_COLORS['vs-dark']
   })
-  monaco.editor.defineTheme('vs', { base: 'vs', inherit: true, rules: lightRules, colors: {} })
+  monaco.editor.defineTheme('vs', {
+    base: 'vs',
+    inherit: true,
+    rules: lightRules,
+    colors: MONACO_FIND_MATCH_COLORS.vs
+  })
   const mapScopes = createScopeMapper(
     new Set(
       [...darkRules, ...lightRules].map((rule) => rule.token.slice(MARKDOWN_TOKEN_PREFIX.length))

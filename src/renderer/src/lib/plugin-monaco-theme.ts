@@ -2,6 +2,7 @@ import type * as Monaco from 'monaco-editor'
 import type { PluginThemeTokenColorRule } from '../../../shared/plugins/artifacts/plugin-theme-artifact'
 import { pluginMonacoTokenRules } from './plugin-monaco-token-rules'
 import { contrastRatio, type ColorProbe, type Rgba } from './plugin-theme-tokens'
+import { MONACO_FIND_MATCH_COLORS } from './monaco-find-match-colors'
 
 export type PluginMonacoTheme = { name: string; data: Monaco.editor.IStandaloneThemeData }
 
@@ -66,7 +67,9 @@ export function derivePluginMonacoTheme(input: {
   const ring = color('--ring') ?? foreground
   const popover = color('--popover')
   const border = color('--border')
+  const monacoBase = input.base === 'dark' ? 'vs-dark' : 'vs'
   const colors: Record<string, string> = {
+    ...MONACO_FIND_MATCH_COLORS[monacoBase],
     'editor.background': hex(background),
     'editor.foreground': hex(foreground),
     'editorGutter.background': hex(background),
@@ -89,7 +92,7 @@ export function derivePluginMonacoTheme(input: {
     colors['editorWidget.border'] = hex(border)
   }
   const data: Monaco.editor.IStandaloneThemeData = {
-    base: input.base === 'dark' ? 'vs-dark' : 'vs',
+    base: monacoBase,
     inherit: true,
     rules: pluginMonacoTokenRules(input.tokenColors ?? [], (value) => {
       const parsed = input.probe(value)

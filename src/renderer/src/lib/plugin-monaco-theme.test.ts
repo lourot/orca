@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { MONACO_FIND_MATCH_COLORS } from './monaco-find-match-colors'
 import { derivePluginMonacoTheme } from './plugin-monaco-theme'
 import type { ColorProbe } from './plugin-theme-tokens'
 
@@ -35,6 +36,7 @@ describe('derivePluginMonacoTheme', () => {
       inherit: true,
       colors: { 'editor.background': '#1b1430', 'editor.foreground': '#e8e0ff' }
     })
+    expect(theme?.data.colors).toMatchObject(MONACO_FIND_MATCH_COLORS['vs-dark'])
     // The name follows the colors, so an update or mode change defines a fresh theme.
     expect(derive(dusk)?.name).toBe(theme?.name)
     expect(derive({ ...dusk, '--editor-surface': '#120d22' })?.name).not.toBe(theme?.name)

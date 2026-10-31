@@ -29,6 +29,7 @@ import { installMonacoDiffEditorDisposalGuard } from './monaco-diff-editor-dispo
 import { installMonacoPeekReferencesPreviewOptions } from './monaco-peek-preview-options'
 import { installMonacoContextMenuPaste } from '@/components/editor/install-monaco-context-menu-paste'
 import { runMonacoSetupSteps } from './monaco-setup-steps'
+import { defineMonacoFindMatchThemes } from './monaco-find-match-colors'
 import { installMonacoTsWorkerIdleStop } from './monaco-ts-worker-idle-stop'
 import { installKeywordHighlights } from '@/components/editor/keyword-highlight-decorations'
 import { installMarkdownListEditing } from '@/components/editor/markdown-list-editing-commands'
@@ -89,6 +90,7 @@ runMonacoSetupSteps([
   ['JSONL language registration', () => registerJsonlLanguage(monaco)],
   ['dotenv language registration', () => registerDotenvLanguage(monaco)],
   ['Quarto language registration', () => registerQuartoLanguage(monaco)],
+  ['find match colors', () => defineMonacoFindMatchThemes(monaco)],
   ['Markdown language registration', () => registerMarkdownLanguage(monaco)],
   ['shell Markdown alias registration', () => registerShellMarkdownAliases(monaco)],
   ['delayer cancellation guard', installMonacoDelayerCancellationGuard],
