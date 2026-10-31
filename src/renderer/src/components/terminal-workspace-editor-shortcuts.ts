@@ -6,6 +6,7 @@ import {
 } from './editor/editor-autosave'
 import { getEditorCmdSaveFileId } from './editor/editor-cmd-save-target'
 import { requestEditorTabDiskReload } from './editor/editor-tab-disk-reload'
+import { formatActiveEditorLineReference } from './editor/editor-line-reference-copy'
 import { isEventTargetInsideFloatingWorkspacePanel } from '@/lib/floating-workspace-terminal-actions'
 
 type EditorShortcutContext = {
@@ -72,6 +73,19 @@ export function handleTerminalWorkspaceEditorShortcut({
       event.preventDefault()
       notifyTerminalCapture('editor.reloadFromDisk')
       requestEditorTabDiskReload(state.activeFileId)
+      return true
+    }
+  }
+  if (!event.repeat && matchShortcut('editor.copyRelativePathWithLines')) {
+    const state = useAppStore.getState()
+    const file =
+      state.activeTabType === 'editor'
+        ? state.openFiles.find((openFile) => openFile.id === state.activeFileId)
+        : undefined
+    if (file) {
+      event.preventDefault()
+      notifyTerminalCapture('editor.copyRelativePathWithLines')
+      void window.api.ui.writeClipboardText(formatActiveEditorLineReference(state, file))
       return true
     }
   }

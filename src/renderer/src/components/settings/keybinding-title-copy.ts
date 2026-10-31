@@ -107,6 +107,10 @@ const STATIC_TITLE_COPY = {
   'editor.find': () => translate('keybindings.title.editorFind', 'Find in editor'),
   'editor.replace': () => translate('keybindings.title.editorReplace', 'Replace in editor'),
   'editor.save': () => translate('keybindings.title.editorSave', 'Save File'),
+  'editor.reloadFromDisk': () =>
+    translate('keybindings.title.editorReloadFromDisk', 'Reload from Disk'),
+  'editor.copyRelativePathWithLines': () =>
+    translate('keybindings.title.editorCopyRelativePathWithLines', 'Copy Relative Path with Lines'),
   'editor.markdownPreview': () =>
     translate('keybindings.title.editorMarkdownPreview', 'Show Markdown Preview'),
   'editor.toggleWordWrap': () =>

@@ -59,7 +59,10 @@ export function MonacoGutterContextMenu({
             const file = state.openFiles.find((openFile) => openFile.id === fileId)
             const owner = file ? getOpenFileRevealOwner(state, file) : 'unresolved'
             void window.api.ui.writeClipboardText(
-              formatPathLineReference(formatClipboardFilePath(filePath, owner), line)
+              formatPathLineReference(
+                formatClipboardFilePath(filePath, owner),
+                getRemoteUrlLineRange(line, selection)
+              )
             )
           }}
         >
@@ -71,7 +74,9 @@ export function MonacoGutterContextMenu({
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() =>
-            window.api.ui.writeClipboardText(formatPathLineReference(relativePath, line))
+            window.api.ui.writeClipboardText(
+              formatPathLineReference(relativePath, getRemoteUrlLineRange(line, selection))
+            )
           }
         >
           <Copy className="w-3.5 h-3.5 mr-1.5" />

@@ -97,6 +97,7 @@ export type KeybindingActionId =
   | 'editor.markdownPreview'
   | 'editor.toggleWordWrap'
   | 'editor.reloadFromDisk'
+  | 'editor.copyRelativePathWithLines'
   | 'editor.copyContext'
   | 'editor.previousChange'
   | 'editor.nextChange'

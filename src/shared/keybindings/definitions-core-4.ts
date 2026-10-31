@@ -3,6 +3,34 @@ import { platformBindings } from './definitions-support'
 
 export const KEYBINDING_DEFINITION_CORE_4: readonly KeybindingDefinition[] = [
   {
+    id: 'editor.reloadFromDisk',
+    title: 'Reload from Disk',
+    group: 'Editors',
+    scope: 'editor',
+    searchKeywords: ['shortcut', 'editor', 'reload', 'refresh', 'revert', 'disk', 'external'],
+    // Why: unbound by default — Ctrl+R and Ctrl+Shift+R are already taken on Windows/Linux
+    // (see workspace.rename), so there is no safe cross-platform chord to claim.
+    defaultBindings: platformBindings([])
+  },
+  {
+    id: 'editor.copyRelativePathWithLines',
+    title: 'Copy Relative Path with Lines',
+    group: 'Editors',
+    scope: 'editor',
+    searchKeywords: [
+      'shortcut',
+      'editor',
+      'copy',
+      'relative',
+      'path',
+      'line',
+      'range',
+      'reference'
+    ],
+    // Same chord as the File Explorer's relative-path copy and VS Code's.
+    defaultBindings: platformBindings(['Mod+Alt+Shift+C'])
+  },
+  {
     id: 'chat.find',
     title: 'Find in chat',
     group: 'Chat',
