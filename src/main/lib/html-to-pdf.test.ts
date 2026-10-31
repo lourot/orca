@@ -205,7 +205,7 @@ describe('htmlToPdf resource ownership', () => {
     expect(fake.print).toHaveBeenCalledExactlyOnceWith({
       printBackground: true,
       pageSize: 'A4',
-      margins: { top: 0.75, bottom: 0.75, left: 0.75, right: 0.75 }
+      margins: { top: 0.4, bottom: 0.4, left: 0.5, right: 0.5 }
     })
     expect(fake.destroy).toHaveBeenCalledOnce()
     expect(fake.unlink).toHaveBeenCalledExactlyOnceWith(TEMP_PATH)

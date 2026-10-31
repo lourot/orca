@@ -108,10 +108,10 @@ export async function htmlToPdf(html: string, signal?: AbortSignal): Promise<Buf
           printBackground: true,
           pageSize: 'A4',
           margins: {
-            top: 0.75,
-            bottom: 0.75,
-            left: 0.75,
-            right: 0.75
+            top: 0.4,
+            bottom: 0.4,
+            left: 0.5,
+            right: 0.5
           }
         })
       })()

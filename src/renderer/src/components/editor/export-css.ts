@@ -9,8 +9,8 @@ html, body {
   color: #1f2328;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
     sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .orca-export-root {
@@ -26,8 +26,8 @@ html, body {
 .orca-export-root h6 {
   font-weight: 600;
   line-height: 1.25;
-  margin-top: 1.5em;
-  margin-bottom: 0.5em;
+  margin-top: 1em;
+  margin-bottom: 0.3em;
 }
 
 .orca-export-root h1 { font-size: 1.9em; }
@@ -42,7 +42,7 @@ html, body {
 .orca-export-root pre,
 .orca-export-root table {
   margin-top: 0;
-  margin-bottom: 1em;
+  margin-bottom: 0.5em;
 }
 
 .orca-export-root a {
@@ -128,18 +128,52 @@ html, body {
 }
 
 .orca-export-root ul,
-.orca-export-root ol { padding-left: 2em; }
+.orca-export-root ol { padding-left: 1.5em; }
 
-.orca-export-root li { margin: 0.25em 0; }
+.orca-export-root li { margin: 0.1em 0; }
+
+/* Why: the rich editor wraps every item's text in a paragraph; its block margin would
+   space a list like paragraphs. */
+.orca-export-root li > p,
+.orca-export-root li > div > p,
+.orca-export-root li > ul,
+.orca-export-root li > ol,
+.orca-export-root li > div > ul,
+.orca-export-root li > div > ol {
+  margin: 0;
+}
 
 .orca-export-root input[type="checkbox"] {
-  margin-right: 0.4em;
+  margin: 0 0.4em 0 0;
+}
+
+/* Rich-editor task items are a label (checkbox) beside a div (text): keep them on one row. */
+.orca-export-root ul[data-type="taskList"],
+.orca-export-root ul.contains-task-list,
+.orca-export-root li.task-list-item {
+  list-style: none;
+}
+
+.orca-export-root ul[data-type="taskList"] { padding-left: 0; }
+
+.orca-export-root ul[data-type="taskList"] ul[data-type="taskList"] { padding-left: 1.5em; }
+
+.orca-export-root ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: baseline;
+}
+
+.orca-export-root ul[data-type="taskList"] > li > label { flex-shrink: 0; }
+
+.orca-export-root ul[data-type="taskList"] > li > div {
+  flex: 1;
+  min-width: 0;
 }
 
 .orca-export-root hr {
   border: 0;
   border-top: 1px solid #d0d7de;
-  margin: 1.5em 0;
+  margin: 1em 0;
 }
 
 /* Why: the export subtree selection already excludes the big chrome (toolbar,
