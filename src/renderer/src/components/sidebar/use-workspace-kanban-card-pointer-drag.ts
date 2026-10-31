@@ -281,6 +281,7 @@ export function useWorkspaceKanbanCardPointerDrag({
       const board = boardRef.current
       if (
         !card ||
+        card.dataset.workspaceBoardPointerDraggable !== 'true' ||
         !worktreeIdentity ||
         !worktreeId ||
         !board?.contains(card) ||

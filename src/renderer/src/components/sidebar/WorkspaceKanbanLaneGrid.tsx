@@ -17,16 +17,22 @@ import type {
 import type { WorkspaceKanbanLaneView } from './workspace-kanban-search'
 import { extractWorkspaceKanbanLaneRange } from './workspace-kanban-lane-range'
 import WorkspaceKanbanStatusLane from './WorkspaceKanbanStatusLane'
+import { WORKSPACE_BOARD_LANE_GAP } from './workspace-chrome-metrics'
 
 // Reuse empty lane arrays so unrelated renders preserve memoization.
 const EMPTY_LANE_ITEMS: readonly Worktree[] = []
 const EMPTY_RENDERED_LANE_IDS: ReadonlySet<WorkspaceStatus> = new Set()
-const WORKSPACE_BOARD_LANE_GAP = 12
 const WORKSPACE_BOARD_LANE_OVERSCAN = 1
+const EMPTY_SLEEPING_VIEW: WorkspaceKanbanLaneView = { items: EMPTY_LANE_ITEMS, totalCount: 0 }
+
+type BoardLane =
+  | { kind: 'sleeping'; key: 'sleeping' }
+  | { kind: 'status'; key: string; status: WorkspaceStatusDefinition }
 
 type WorkspaceKanbanLaneGridProps = {
   laneScrollerRef: React.RefObject<HTMLDivElement | null>
   statuses: readonly WorkspaceStatusDefinition[]
+  sleepingLaneView?: WorkspaceKanbanLaneView
   laneViews: ReadonlyMap<WorkspaceStatus, WorkspaceKanbanLaneView>
   laneFullWorktreeIds: ReadonlyMap<WorkspaceStatus, readonly string[]>
   hasQuery: boolean
@@ -56,6 +62,7 @@ type WorkspaceKanbanLaneGridProps = {
 export default function WorkspaceKanbanLaneGrid({
   laneScrollerRef,
   statuses,
+  sleepingLaneView = EMPTY_SLEEPING_VIEW,
   laneViews,
   laneFullWorktreeIds,
   hasQuery,
@@ -78,6 +85,17 @@ export default function WorkspaceKanbanLaneGrid({
   onColumnResizeStart,
   onColumnResizeKeyDown
 }: WorkspaceKanbanLaneGridProps): React.JSX.Element {
+  const lanes = useMemo<BoardLane[]>(
+    () => [
+      { kind: 'sleeping', key: 'sleeping' },
+      ...statuses.map((status): BoardLane => ({
+        kind: 'status',
+        key: `status:${status.id}`,
+        status
+      }))
+    ],
+    [statuses]
+  )
   const [focusedStatusId, setFocusedStatusId] = useState<WorkspaceStatus | null>(null)
   const [renderedLaneIds, setRenderedLaneIds] =
     useState<ReadonlySet<WorkspaceStatus>>(EMPTY_RENDERED_LANE_IDS)
@@ -89,19 +107,17 @@ export default function WorkspaceKanbanLaneGrid({
   }, [renderCards, renderedLaneIds])
   const focusedIndex = useMemo(
     () =>
-      focusedStatusId === null
-        ? null
-        : statuses.findIndex((status) => status.id === focusedStatusId),
-    [focusedStatusId, statuses]
+      focusedStatusId === null ? null : lanes.findIndex((lane) => lane.key === focusedStatusId),
+    [focusedStatusId, lanes]
   )
   const estimateLaneSize = useCallback(() => columnWidth, [columnWidth])
-  const getLaneKey = useCallback((index: number) => statuses[index]?.id ?? index, [statuses])
+  const getLaneKey = useCallback((index: number) => lanes[index]?.key ?? index, [lanes])
   const rangeExtractor = useCallback(
     (range: Range) => extractWorkspaceKanbanLaneRange(range, focusedIndex),
     [focusedIndex]
   )
   const laneVirtualizer = useVirtualizer({
-    count: statuses.length,
+    count: lanes.length,
     getScrollElement: () => laneScrollerRef.current,
     estimateSize: estimateLaneSize,
     getItemKey: getLaneKey,
@@ -118,10 +134,10 @@ export default function WorkspaceKanbanLaneGrid({
   const virtualStatusIds = useMemo(
     () =>
       virtualLanes.flatMap((virtualLane) => {
-        const status = statuses[virtualLane.index]
-        return status ? [status.id] : []
+        const lane = lanes[virtualLane.index]
+        return lane ? [lane.key] : []
       }),
-    [statuses, virtualLanes]
+    [lanes, virtualLanes]
   )
   const mountedLaneIds = useMemo(() => new Set(virtualStatusIds), [virtualStatusIds])
   const mountedLaneIdsRef = useRef<ReadonlySet<WorkspaceStatus>>(mountedLaneIds)
@@ -171,8 +187,11 @@ export default function WorkspaceKanbanLaneGrid({
       data-workspace-board-lane-grid=""
       style={{ width: `${laneVirtualizer.getTotalSize()}px` }}
       onFocusCapture={(event) => {
-        const lane = (event.target as Element).closest<HTMLElement>('[data-workspace-status]')
-        setFocusedStatusId(lane?.dataset.workspaceStatus ?? null)
+        const lane =
+          event.target instanceof Element
+            ? event.target.closest<HTMLElement>('[data-workspace-board-lane-key]')
+            : null
+        setFocusedStatusId(lane?.dataset.workspaceBoardLaneKey ?? null)
       }}
       onBlurCapture={(event) => {
         const nextTarget = event.relatedTarget
@@ -182,15 +201,18 @@ export default function WorkspaceKanbanLaneGrid({
       }}
     >
       {virtualLanes.map((virtualLane) => {
-        const status = statuses[virtualLane.index]
-        if (!status) {
+        const lane = lanes[virtualLane.index]
+        if (!lane) {
           return null
         }
+        const status = lane.kind === 'status' ? lane.status : null
+        const view = status ? laneViews.get(status.id) : sleepingLaneView
         return (
           <div
             key={virtualLane.key}
             ref={laneVirtualizer.measureElement}
             data-index={virtualLane.index}
+            data-workspace-board-lane-key={lane.key}
             className="absolute left-0 top-0 h-full"
             style={{
               width: `${columnWidth}px`,
@@ -199,16 +221,16 @@ export default function WorkspaceKanbanLaneGrid({
           >
             <WorkspaceKanbanStatusLane
               status={status}
-              items={laneViews.get(status.id)?.items ?? EMPTY_LANE_ITEMS}
-              totalCount={laneViews.get(status.id)?.totalCount ?? 0}
+              items={view?.items ?? EMPTY_LANE_ITEMS}
+              totalCount={view?.totalCount ?? 0}
               hasQuery={hasQuery}
-              fullWorktreeIds={laneFullWorktreeIds.get(status.id) ?? []}
+              fullWorktreeIds={status ? (laneFullWorktreeIds.get(status.id) ?? []) : []}
               repoMap={repoMap}
               activeWorktreeIdentity={activeWorktreeIdentity}
               columnWidth={columnWidth}
               isResizingColumn={isResizingColumn}
-              isDragTarget={dragOverStatus === status.id}
-              renderCards={renderCards && renderedLaneIds.has(status.id)}
+              isDragTarget={status !== null && dragOverStatus === status.id}
+              renderCards={renderCards && renderedLaneIds.has(lane.key)}
               selectedWorktreeIds={selectedWorktreeIds}
               selectedWorktrees={selectedWorktrees}
               nativeDragEnabled={false}

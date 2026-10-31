@@ -48,11 +48,12 @@ function renderLane(props: {
   hasQuery: boolean
   fullWorktreeIds?: string[]
   activeWorktreeIdentity?: string | null
+  sleeping?: boolean
 }): void {
   act(() => {
     root.render(
       <WorkspaceKanbanStatusLane
-        status={status}
+        status={props.sleeping ? null : status}
         items={props.items}
         totalCount={props.totalCount}
         hasQuery={props.hasQuery}
@@ -101,6 +102,14 @@ afterEach(() => {
 })
 
 describe('WorkspaceKanbanStatusLane', () => {
+  it('renders Sleeping without status drop targets or workspace creation controls', () => {
+    renderLane({ items: [worktree('asleep')], totalCount: 1, hasQuery: false, sleeping: true })
+    expect(container.querySelector('[aria-label="Sleeping"]')).not.toBeNull()
+    expect(container.querySelector('[data-workspace-status-drop-target]')).toBeNull()
+    expect(container.querySelector('[data-workspace-status]')).toBeNull()
+    expect(container.querySelector('button')).toBeNull()
+    expect(container.querySelectorAll('[data-workspace-board-card-id]')).toHaveLength(1)
+  })
   it('shows a plain count without a query and a matches/total count with one', () => {
     renderLane({ items: [worktree('a'), worktree('b')], totalCount: 2, hasQuery: false })
     expect(container.textContent).toContain('2')

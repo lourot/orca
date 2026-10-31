@@ -17,6 +17,7 @@ import type {
 import type { WorktreeMetaBatchUpdate } from '../../store/slices/worktree-helpers'
 import type { WorktreeManualOrderCatalog } from './worktree-manual-order-catalog'
 import { isWorkspaceStatusAllowedOnHost } from '@/store/host-workspace-status-columns'
+import { selectIsSleepingWorktree } from './use-worktree-sleep-state'
 
 type LaneView = { items: readonly Worktree[] }
 
@@ -105,7 +106,11 @@ export function useWorkspaceKanbanWorktreeActions(args: {
       const state = useAppStore.getState()
       const worktreeIds = requestedDrop.worktreeIds.filter((worktreeId) => {
         const current = args.worktreeById.get(worktreeId)
-        return current && isWorkspaceStatusAllowedOnHost(state, current, requestedDrop.status)
+        return (
+          current &&
+          !selectIsSleepingWorktree(state, current.id) &&
+          isWorkspaceStatusAllowedOnHost(state, current, requestedDrop.status)
+        )
       })
       if (worktreeIds.length === 0) {
         return
@@ -195,7 +200,11 @@ export function useWorkspaceKanbanWorktreeActions(args: {
   const pinWorktree = useCallback(
     (worktreeId: string) => {
       const current = args.worktreeById.get(worktreeId)
-      if (!current || current.isPinned) {
+      if (
+        !current ||
+        current.isPinned ||
+        selectIsSleepingWorktree(useAppStore.getState(), current.id)
+      ) {
         return
       }
       void args.updateWorktreeMeta(
@@ -211,7 +220,11 @@ export function useWorkspaceKanbanWorktreeActions(args: {
       const updates: WorktreeMetaBatchUpdate[] = []
       for (const worktreeId of worktreeIds) {
         const current = args.worktreeById.get(worktreeId)
-        if (current && !current.isPinned) {
+        if (
+          current &&
+          !current.isPinned &&
+          !selectIsSleepingWorktree(useAppStore.getState(), current.id)
+        ) {
           updates.push({
             worktreeId,
             updates: { isPinned: true },

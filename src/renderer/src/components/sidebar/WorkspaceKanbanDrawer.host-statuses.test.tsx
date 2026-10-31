@@ -10,6 +10,7 @@ import type { WorkspaceStatusDefinition, Worktree } from '../../../../shared/wor
 import { toRuntimeExecutionHostId } from '../../../../shared/execution-host'
 import { getWorktreeHostIdentity } from '../../../../shared/worktree/host-qualified-identity'
 import WorkspaceKanbanDrawer from './WorkspaceKanbanDrawer'
+import { makeTerminalTab } from '../worktree-jump-palette-test-fixtures'
 import type { WorkspaceKanbanLaneView } from './workspace-kanban-search'
 import { makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
 
@@ -136,6 +137,12 @@ beforeEach(() => {
       ]
     },
     removedRuntimeEnvironmentIds: new Set(),
+    tabsByWorktree: Object.fromEntries(
+      [localCard, hostCard].map((row) => [row.id, [makeTerminalTab(row.id, row.id, 'Shell')]])
+    ),
+    ptyIdsByTabId: Object.fromEntries(
+      [localCard, hostCard].map((row) => [row.id, [`pty-${row.id}`]])
+    ),
     sortBy: 'manual',
     recordFeatureInteraction: vi.fn()
   })

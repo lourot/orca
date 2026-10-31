@@ -94,7 +94,9 @@ function WorkspaceKanbanDrawerContent({
     renderedBoardWorktrees,
     search: { query, setQuery, clearQuery, matchingWorktreeIds, hasQuery, isQueryTooLarge },
     worktreeById,
-    worktreesByStatus
+    worktreesByStatus,
+    sleepingLaneView,
+    sleepingWorktreeIds
   } = useWorkspaceKanbanBoardProjection({
     activeWorktreeId,
     activeWorkspaceExecutionHostId,
@@ -185,7 +187,9 @@ function WorkspaceKanbanDrawerContent({
     open,
     boardRef,
     selectedWorktreeIds,
-    selectedWorktrees: renderedSelectedWorktrees,
+    selectedWorktrees: renderedSelectedWorktrees.filter(
+      (worktree) => !sleepingWorktreeIds.has(getWorktreeHostIdentity(worktree))
+    ),
     onDropWorktreesInStatus: dropPointerDraggedWorktreesInStatus,
     onPinWorktrees: pinWorktrees,
     onDragTargetChange: setDragOverStatus,
@@ -278,6 +282,7 @@ function WorkspaceKanbanDrawerContent({
       laneGridProps={{
         laneScrollerRef,
         statuses: boardStatuses,
+        sleepingLaneView,
         laneViews,
         laneFullWorktreeIds,
         hasQuery,

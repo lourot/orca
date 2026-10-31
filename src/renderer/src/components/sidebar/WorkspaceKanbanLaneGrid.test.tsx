@@ -70,18 +70,19 @@ vi.mock('./WorkspaceKanbanStatusLane', () => ({
     renderCards,
     activeWorktreeIdentity
   }: {
-    status: WorkspaceStatusDefinition
+    status: WorkspaceStatusDefinition | null
     items: readonly Worktree[]
     renderCards: boolean
     activeWorktreeIdentity: string | null
   }) => (
     <section
-      data-workspace-status={status.id}
+      data-workspace-status={status?.id}
+      data-workspace-board-sleeping-lane={status ? undefined : ''}
       data-item-count={items.length}
       data-render-cards={renderCards ? 'true' : 'false'}
       data-active-worktree-identity={activeWorktreeIdentity ?? ''}
     >
-      <button type="button">{status.label}</button>
+      <button type="button">{status?.label ?? 'Sleeping'}</button>
     </section>
   )
 }))
@@ -168,16 +169,13 @@ describe('WorkspaceKanbanLaneGrid', () => {
   it('reserves the full workflow width while mounting only the horizontal window', () => {
     const { container } = renderGrid()
 
-    expect(mountedStatusIds(container)).toEqual([
-      'state-01',
-      'state-02',
-      'state-03',
-      'state-04',
-      'state-05'
-    ])
+    expect(mountedStatusIds(container)).toEqual(['state-01', 'state-02', 'state-03', 'state-04'])
     expect(
       container.querySelector<HTMLElement>('[data-workspace-board-lane-grid]')?.style.width
-    ).toBe(`${21 * 308 + 20 * 12}px`)
+    ).toBe(`${22 * 308 + 21 * 12}px`)
+    expect(
+      container.querySelector('[data-index="0"] [data-workspace-board-sleeping-lane]')
+    ).not.toBeNull()
   })
 
   it('mounts later ordered lanes and releases distant lanes after horizontal scroll', () => {
@@ -186,6 +184,7 @@ describe('WorkspaceKanbanLaneGrid', () => {
     rendered.rerender(makeGrid())
 
     expect(mountedStatusIds(rendered.container)).toEqual([
+      'state-16',
       'state-17',
       'state-18',
       'state-19',
@@ -204,6 +203,7 @@ describe('WorkspaceKanbanLaneGrid', () => {
 
     expect(mountedStatusIds(rendered.container)).toEqual([
       'state-01',
+      'state-16',
       'state-17',
       'state-18',
       'state-19',

@@ -23,6 +23,7 @@ type WorkspaceKanbanLaneCardListProps = {
   selectedWorktreeIds: ReadonlySet<string>
   selectedWorktrees: readonly Worktree[]
   nativeDragEnabled: boolean
+  pointerDragEnabled?: boolean
   onActivate: () => void
   onSelectionGesture: (event: React.MouseEvent<HTMLElement>, worktreeId: string) => boolean
   onContextMenuSelect: (
@@ -40,6 +41,7 @@ function WorkspaceKanbanLaneCardList({
   selectedWorktreeIds,
   selectedWorktrees,
   nativeDragEnabled,
+  pointerDragEnabled = true,
   onActivate,
   onSelectionGesture,
   onContextMenuSelect,
@@ -104,6 +106,7 @@ function WorkspaceKanbanLaneCardList({
               isActive={activeWorktreeIdentity === worktreeIdentity}
               isSelected={isSelected}
               nativeDragEnabled={nativeDragEnabled}
+              pointerDragEnabled={pointerDragEnabled}
               selectedWorktrees={
                 isSelected && selectedWorktrees.length > 0 ? selectedWorktrees : undefined
               }

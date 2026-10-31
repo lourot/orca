@@ -1,10 +1,52 @@
 import { test, expect } from './helpers/orca-app'
 import { waitForActiveWorktree, waitForSessionReady } from './helpers/store'
+import type { Page } from '@stablyai/playwright-test'
 
 const SEEDED_WORKSPACE_COUNT = 300
 const MARQUEE_WORKSPACE_COUNT = 102
 const MANY_LANE_COUNT = 21
 const CARDS_PER_LANE = 100
+
+/** Status-lane fixtures need live activity; otherwise the board correctly groups them as sleeping. */
+async function keepBoardFixturesAwake(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const store = window.__store
+    if (!store) {
+      throw new Error('Store unavailable')
+    }
+    const state = store.getState()
+    const rows = Object.values(state.worktreesByRepo)
+      .flat()
+      .filter((row) => row.path.includes('/virtual-'))
+    store.setState({
+      tabsByWorktree: {
+        ...state.tabsByWorktree,
+        ...Object.fromEntries(
+          rows.map((row) => [
+            row.id,
+            [
+              {
+                id: `board-${row.id}`,
+                worktreeId: row.id,
+                ptyId: `board-pty-${row.id}`,
+                title: 'Shell',
+                customTitle: null,
+                color: null,
+                isPinned: false,
+                sortOrder: 0,
+                createdAt: 0
+              }
+            ]
+          ])
+        )
+      },
+      ptyIdsByTabId: {
+        ...state.ptyIdsByTabId,
+        ...Object.fromEntries(rows.map((row) => [`board-${row.id}`, [`board-pty-${row.id}`]]))
+      }
+    })
+  })
+}
 
 // Window lane cards instead of mounting all in one blocking commit; retain true lane indices for drop targeting.
 test.describe('Workspace board lane virtualization', () => {
@@ -62,9 +104,12 @@ test.describe('Workspace board lane virtualization', () => {
       })
     }, SEEDED_WORKSPACE_COUNT)
 
+    await keepBoardFixturesAwake(orcaPage)
     await orcaPage.getByRole('button', { name: 'Workspace board' }).click()
 
-    const cards = orcaPage.locator('[data-workspace-board-card-id]')
+    const cards = orcaPage.locator(
+      '[data-workspace-status="in-progress"] [data-workspace-board-card-id]'
+    )
     // Require a filled window so an empty board cannot pass the upper-count bound.
     await expect.poll(() => cards.count(), { timeout: 15_000 }).toBeGreaterThan(3)
     expect(await cards.count()).toBeLessThan(SEEDED_WORKSPACE_COUNT / 2)
@@ -121,6 +166,7 @@ test.describe('Workspace board lane virtualization', () => {
       })
     }, SEEDED_WORKSPACE_COUNT)
 
+    await keepBoardFixturesAwake(orcaPage)
     await orcaPage.getByRole('button', { name: 'Workspace board' }).click()
 
     const cards = orcaPage.locator('[data-workspace-board-card-id]')
@@ -215,6 +261,7 @@ test.describe('Workspace board lane virtualization', () => {
       { cardsPerLane: CARDS_PER_LANE, ids: statusIds }
     )
 
+    await keepBoardFixturesAwake(orcaPage)
     await orcaPage.getByRole('button', { name: 'Workspace board' }).click()
 
     const board = orcaPage.locator('[data-workspace-board-selection-surface]')
@@ -357,6 +404,7 @@ test.describe('Workspace board lane virtualization', () => {
       { count: MARQUEE_WORKSPACE_COUNT, emptyStatus: emptyStatusId, status: statusId }
     )
 
+    await keepBoardFixturesAwake(orcaPage)
     await orcaPage.getByRole('button', { name: 'Workspace board' }).click()
 
     const lane = orcaPage.locator(`[data-workspace-status="${statusId}"]`)

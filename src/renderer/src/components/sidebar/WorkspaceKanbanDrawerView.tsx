@@ -4,6 +4,7 @@ import WorkspaceKanbanDrawerHeader from './WorkspaceKanbanDrawerHeader'
 import WorkspaceKanbanLaneGrid from './WorkspaceKanbanLaneGrid'
 import WorkspaceKanbanPinDropTarget from './WorkspaceKanbanPinDropTarget'
 import WorkspaceKanbanSheet from './WorkspaceKanbanSheet'
+import { WORKSPACE_BOARD_LANE_GAP } from './workspace-chrome-metrics'
 
 type WorkspaceKanbanDrawerViewProps = {
   areaSelectionOverlayRef: React.RefObject<HTMLDivElement | null>
@@ -39,6 +40,11 @@ export default function WorkspaceKanbanDrawerView(
       sidebarOpen={props.sidebarOpen}
       sidebarWidth={props.sidebarWidth}
       statusBarVisible={props.statusBarVisible}
+      contentWidth={
+        (props.laneGridProps.statuses.length + 1) * props.laneGridProps.columnWidth +
+        props.laneGridProps.statuses.length * WORKSPACE_BOARD_LANE_GAP +
+        24
+      }
     >
       <WorkspaceKanbanDrawerHeader {...props.headerProps} />
       <div

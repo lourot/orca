@@ -1,7 +1,12 @@
 import { useLayoutEffect, useMemo } from 'react'
-import type { useAppStore } from '@/store'
+import { useAppStore } from '@/store'
+import { useShallow } from 'zustand/react/shallow'
+import { selectIsSleepingWorktree } from './use-worktree-sleep-state'
 import { useVisibleWorkspaceKanbanWorktreeIds } from './use-visible-workspace-kanban-worktree-ids'
-import { groupWorkspaceKanbanWorktrees } from './workspace-kanban-worktree-groups'
+import {
+  compareWorkspaceKanbanWorktrees,
+  groupWorkspaceKanbanWorktrees
+} from './workspace-kanban-worktree-groups'
 import { buildWorkspaceKanbanLaneViews } from './workspace-kanban-search'
 import { useWorkspaceKanbanSearch } from './use-workspace-kanban-search'
 import { registerWorkspaceKanbanSidebarDropGroups } from './workspace-kanban-sidebar-drop'
@@ -28,23 +33,51 @@ export function useWorkspaceKanbanBoardProjection(args: {
     allWorktrees: args.allWorktrees,
     repoMap: args.repoMap
   })
+  const sleepingIdentities = useAppStore(
+    useShallow((state) =>
+      args.allWorktrees
+        .filter((worktree) => selectIsSleepingWorktree(state, worktree.id))
+        .map(getWorktreeHostIdentity)
+    )
+  )
+  const sleepingWorktreeIds = useMemo(() => new Set(sleepingIdentities), [sleepingIdentities])
+  const sleepingWorktrees = useMemo(
+    () =>
+      args.allWorktrees
+        .filter((worktree) => {
+          const identity = getWorktreeHostIdentity(worktree)
+          return visibleWorktreeIds.has(identity) && sleepingWorktreeIds.has(identity)
+        })
+        .sort((a, b) => compareWorkspaceKanbanWorktrees(a, b, args.sortBy)),
+    [args.allWorktrees, args.sortBy, sleepingWorktreeIds, visibleWorktreeIds]
+  )
   const worktreesByStatus = useMemo(
     () =>
       groupWorkspaceKanbanWorktrees({
         worktrees: args.allWorktrees,
         visibleWorktreeIds,
+        sleepingWorktreeIds,
         workspaceStatuses: args.workspaceStatuses,
         sortBy: args.sortBy
       }),
-    [args.allWorktrees, args.sortBy, args.workspaceStatuses, visibleWorktreeIds]
+    [
+      args.allWorktrees,
+      args.sortBy,
+      args.workspaceStatuses,
+      visibleWorktreeIds,
+      sleepingWorktreeIds
+    ]
   )
   const worktreeById = useMemo(
     () => buildUnambiguousWorktreeIdIndex(args.allWorktrees),
     [args.allWorktrees]
   )
   const boardWorktrees = useMemo(
-    () => args.workspaceStatuses.flatMap((status) => worktreesByStatus.get(status.id) ?? []),
-    [args.workspaceStatuses, worktreesByStatus]
+    () => [
+      ...sleepingWorktrees,
+      ...args.workspaceStatuses.flatMap((status) => worktreesByStatus.get(status.id) ?? [])
+    ],
+    [args.workspaceStatuses, worktreesByStatus, sleepingWorktrees]
   )
   const boardDragGroups = useMemo<WorktreeDragGroup[]>(
     () =>
@@ -86,6 +119,17 @@ export function useWorkspaceKanbanBoardProjection(args: {
         : boardWorktrees,
     [boardWorktrees, search.matchingWorktreeIds]
   )
+  const sleepingLaneView = useMemo(
+    () => ({
+      items: search.matchingWorktreeIds
+        ? sleepingWorktrees.filter((worktree) =>
+            search.matchingWorktreeIds?.has(getWorktreeHostIdentity(worktree))
+          )
+        : sleepingWorktrees,
+      totalCount: sleepingWorktrees.length
+    }),
+    [search.matchingWorktreeIds, sleepingWorktrees]
+  )
   const activeWorktreeIdentity = args.activeWorktreeId
     ? composeWorktreeHostIdentity(
         args.activeWorkspaceExecutionHostId ?? undefined,
@@ -101,6 +145,8 @@ export function useWorkspaceKanbanBoardProjection(args: {
     renderedBoardWorktrees,
     search,
     worktreeById,
-    worktreesByStatus
+    worktreesByStatus,
+    sleepingLaneView,
+    sleepingWorktreeIds
   }
 }

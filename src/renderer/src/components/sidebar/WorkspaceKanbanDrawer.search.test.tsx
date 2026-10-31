@@ -10,6 +10,7 @@ import type { WorktreeMeta } from '../../../../shared/worktree/meta-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import type { WorktreeMetaBatchUpdate } from '../../store/slices/worktree-helpers'
 import { getWorktreeHostIdentity } from '../../../../shared/worktree/host-qualified-identity'
+import { makeTerminalTab } from '../worktree-jump-palette-test-fixtures'
 import WorkspaceKanbanDrawer from './WorkspaceKanbanDrawer'
 import type { WorkspaceKanbanLaneView } from './workspace-kanban-search'
 
@@ -241,6 +242,10 @@ beforeEach(() => {
       { id: 'repo-a', path: '/repo-a', name: 'repo-a', connectionId: null } as unknown as Repo
     ],
     worktreesByRepo: { 'repo-a': allWorktrees },
+    tabsByWorktree: Object.fromEntries(
+      allWorktrees.map((row) => [row.id, [makeTerminalTab(row.id, row.id, 'Shell')]])
+    ),
+    ptyIdsByTabId: Object.fromEntries(allWorktrees.map((row) => [row.id, [`pty-${row.id}`]])),
     activeWorktreeId: alpha.id,
     workspaceStatuses: statuses,
     syncTaskStatusFromWorkspaceBoard: true,

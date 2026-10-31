@@ -7,6 +7,7 @@ import { useAppStore } from '@/store'
 import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import WorkspaceKanbanDrawer from './WorkspaceKanbanDrawer'
+import { makeTerminalTab } from '../worktree-jump-palette-test-fixtures'
 import type * as WorkspaceBoardTaskStatusSync from './workspace-board-task-status-sync'
 
 type PointerDragParams = {
@@ -233,6 +234,8 @@ function renderDrawer(item: Worktree, enabled = true, statusBarVisible = true): 
     repos: [repo()],
     worktreesByRepo: { 'repo-a': [item] },
     activeWorktreeId: item.id,
+    tabsByWorktree: { [item.id]: [makeTerminalTab(item.id, item.id, 'Shell')] },
+    ptyIdsByTabId: { [item.id]: [`pty-${item.id}`] },
     workspaceStatuses: statuses,
     syncTaskStatusFromWorkspaceBoard: enabled,
     setSyncTaskStatusFromWorkspaceBoard: vi.fn(),

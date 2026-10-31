@@ -17,6 +17,7 @@ type WorkspaceKanbanCardProps = {
   isSelected: boolean
   selectedWorktrees?: readonly Worktree[]
   nativeDragEnabled?: boolean
+  pointerDragEnabled?: boolean
   onActivate: () => void
   onSelectionGesture: (event: React.MouseEvent<HTMLElement>, worktreeId: string) => boolean
   onContextMenuSelect: (
@@ -34,6 +35,7 @@ function WorkspaceKanbanCard({
   isSelected,
   selectedWorktrees,
   nativeDragEnabled = true,
+  pointerDragEnabled = true,
   onActivate,
   onSelectionGesture,
   onContextMenuSelect,
@@ -52,7 +54,9 @@ function WorkspaceKanbanCard({
       data-workspace-board-card-index={laneIndex}
       data-workspace-board-card-mode="detailed"
       data-workspace-board-card-selected={isSelected ? 'true' : 'false'}
-      data-workspace-board-pointer-draggable={nativeDragEnabled ? undefined : 'true'}
+      data-workspace-board-pointer-draggable={
+        !nativeDragEnabled && pointerDragEnabled ? 'true' : undefined
+      }
     >
       {worktree.isPinned ? (
         <Badge

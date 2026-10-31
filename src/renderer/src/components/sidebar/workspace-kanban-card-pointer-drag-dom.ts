@@ -34,6 +34,7 @@ export type WorkspaceKanbanLaneDropRect = {
 }
 
 export type WorkspaceKanbanCardDropTarget = {
+  blocked?: boolean
   status: WorkspaceStatus | null
   isPinDrop: boolean
   dropIndex: number
@@ -138,7 +139,7 @@ export function resolveWorkspaceKanbanCardDropCommitTarget(args: {
   x: number
   y: number
 }): WorkspaceKanbanCardDropTarget {
-  if (hasWorkspaceKanbanCardDropTarget(args.currentTarget)) {
+  if (args.currentTarget.blocked || hasWorkspaceKanbanCardDropTarget(args.currentTarget)) {
     return args.currentTarget
   }
   const latest = args.latestTrackedTarget
@@ -172,10 +173,13 @@ export function getDropTarget(
   board: HTMLElement,
   x: number,
   y: number
-): { status: WorkspaceStatus | null; isPinDrop: boolean } {
+): { status: WorkspaceStatus | null; isPinDrop: boolean; blocked?: boolean } {
   const target = document.elementFromPoint(x, y)
   if (!(target instanceof Element) || !board.contains(target)) {
     return { status: null, isPinDrop: false }
+  }
+  if (target.closest('[data-workspace-board-sleeping-lane]')) {
+    return { status: null, isPinDrop: false, blocked: true }
   }
 
   const pinTarget = target.closest<HTMLElement>(PIN_DROP_TARGET)

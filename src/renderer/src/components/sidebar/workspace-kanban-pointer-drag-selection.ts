@@ -1,4 +1,5 @@
 import type { WorkspaceStatus, Worktree } from '../../../../shared/worktree/types'
+import { getWorktreeHostIdentity } from '../../../../shared/worktree/host-qualified-identity'
 
 /** Qualify by host so dragging one workspace cannot move its same-ID twin on another host. */
 export function resolveWorkspaceKanbanPointerDragSelection(args: {
@@ -13,7 +14,7 @@ export function resolveWorkspaceKanbanPointerDragSelection(args: {
   ) {
     return {
       worktreeIds: args.selectedWorktrees.map((worktree) => worktree.id),
-      worktreeIdentities: [...args.selectedWorktreeIds]
+      worktreeIdentities: args.selectedWorktrees.map(getWorktreeHostIdentity)
     }
   }
   return {

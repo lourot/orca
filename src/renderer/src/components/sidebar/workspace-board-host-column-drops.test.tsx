@@ -8,6 +8,7 @@ import { makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
 import { toRuntimeExecutionHostId } from '../../../../shared/execution-host'
 import { useWorkspaceKanbanWorktreeActions } from './use-workspace-kanban-worktree-actions'
 import { useWorktreeStatusMutations } from './worktree-list/drag/use-status-mutations'
+import { makeTerminalTab } from '../worktree-jump-palette-test-fixtures'
 
 const local = makeWorktree({ id: 'repo::/local', repoId: 'repo', path: '/local' })
 const hosted = makeWorktree({
@@ -24,6 +25,10 @@ beforeEach(() => {
   updateWorktreesMeta = vi.fn<AppState['updateWorktreesMeta']>(() => Promise.resolve())
   useAppStore.setState({
     worktreesByRepo: { repo: [local, hosted] },
+    tabsByWorktree: Object.fromEntries(
+      [local, hosted].map((row) => [row.id, [makeTerminalTab(row.id, row.id, 'Shell')]])
+    ),
+    ptyIdsByTabId: Object.fromEntries([local, hosted].map((row) => [row.id, [`pty-${row.id}`]])),
     folderWorkspaces: [],
     workspaceStatuses: [{ id: 'in-progress', label: 'In progress' }],
     hostWorkspaceStatuses: { 'env-1': [{ id: 'status-6', label: 'Today' }] },

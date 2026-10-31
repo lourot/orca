@@ -11,6 +11,7 @@ import {
   shouldWriteManualOrderForGroupDrop
 } from '../../worktree-manual-order'
 import { buildWorkspaceKanbanSidebarDropUpdates } from '../../workspace-kanban-sidebar-drop'
+import { selectIsSleepingWorktree } from '../../use-worktree-sleep-state'
 import type { SortBy } from '../../../../../../shared/sidebar-list/smart-sort'
 import { switchSortToManualAfterDrop } from '../../manual-sort-switch-toast'
 import { isWorkspaceStatusAllowedOnHost } from '@/store/host-workspace-status-columns'
@@ -181,7 +182,10 @@ export function useWorktreeStatusMutations(args: {
   const dropWorktreesOnWorkspaceBoard = useCallback(
     (dropArgs: WorktreeStatusDropAtIndexArgs) => {
       const rowsFor = dropWriteRows(useAppStore.getState(), dropArgs.draggedCopies)
-      const worktreeIds = idsAcceptingStatus(rowsFor, dropArgs.worktreeIds, dropArgs.status)
+      const state = useAppStore.getState()
+      const worktreeIds = idsAcceptingStatus(rowsFor, dropArgs.worktreeIds, dropArgs.status).filter(
+        (id) => !selectIsSleepingWorktree(state, id)
+      )
       if (worktreeIds.length === 0) {
         return
       }

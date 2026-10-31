@@ -40,6 +40,34 @@ function visibleIdentities(worktrees: readonly Worktree[]): Set<string> {
 }
 
 describe('groupWorkspaceKanbanWorktrees', () => {
+  it('excludes sleeping identities across statuses without changing their saved status', () => {
+    const sleeping = statuses.map((status) =>
+      worktree({ id: status.id, displayName: status.label, workspaceStatus: status.id })
+    )
+    const awakeTwin = worktree({
+      id: 'todo',
+      displayName: 'Awake twin',
+      workspaceStatus: 'todo',
+      hostId: 'ssh:other'
+    })
+    const items = [...sleeping, awakeTwin]
+    const grouped = groupWorkspaceKanbanWorktrees({
+      worktrees: items,
+      visibleWorktreeIds: visibleIdentities(items),
+      sleepingWorktreeIds: visibleIdentities(sleeping),
+      workspaceStatuses: statuses,
+      sortBy: 'recent'
+    })
+    expect(
+      Object.fromEntries(
+        [...grouped].map(([status, rows]) => [status, rows.map(getWorktreeHostIdentity)])
+      )
+    ).toEqual({
+      todo: [getWorktreeHostIdentity(awakeTwin)],
+      doing: []
+    })
+    expect(sleeping.map((row) => row.workspaceStatus)).toEqual(statuses.map((status) => status.id))
+  })
   it('uses manualOrder inside lanes when Manual sort is active', () => {
     const worktrees = [
       worktree({

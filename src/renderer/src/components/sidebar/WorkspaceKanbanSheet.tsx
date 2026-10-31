@@ -15,6 +15,7 @@ type WorkspaceKanbanSheetProps = {
   sidebarOpen: boolean
   sidebarWidth: number
   statusBarVisible: boolean
+  contentWidth: number
 }
 
 export default function WorkspaceKanbanSheet({
@@ -27,7 +28,8 @@ export default function WorkspaceKanbanSheet({
   preserveOpenForMenu,
   sidebarOpen,
   sidebarWidth,
-  statusBarVisible
+  statusBarVisible,
+  contentWidth
 }: WorkspaceKanbanSheetProps): React.JSX.Element {
   const drawerLeft = sidebarOpen ? sidebarWidth : 0
   const drawerLeftCss = sidebarOpen
@@ -77,16 +79,15 @@ export default function WorkspaceKanbanSheet({
           left: drawerLeftCss,
           pointerEvents: 'none'
         }}
-        style={
-          {
-            ...leftSidebarStyle,
-            left: drawerLeftCss,
-            top: WORKSPACE_TOP_CHROME_HEIGHT,
-            bottom: drawerBottom,
-            height: 'auto',
-            width: `min(calc(100vw - ${drawerLeftCss}), 1294px)`
-          } as React.CSSProperties
-        }
+        style={{
+          ...leftSidebarStyle,
+          left: drawerLeftCss,
+          top: WORKSPACE_TOP_CHROME_HEIGHT,
+          bottom: drawerBottom,
+          height: 'auto',
+          // Reserve the sheet border so a one-pixel overflow cannot add a scrollbar.
+          width: `min(calc(100vw - ${drawerLeftCss}), ${Math.max(1294, contentWidth + 1)}px)`
+        }}
         data-contextual-tour-target="workspace-board-surface"
         data-workspace-board-sheet=""
         data-workspace-board-drag-preview={dragPreview ? 'true' : undefined}
