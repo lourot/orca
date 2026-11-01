@@ -23,6 +23,7 @@ import { HideSidebarMenu } from './sidebar-nav-controls'
 import { translate } from '@/i18n/i18n'
 import { lazyWithRetry } from '@/lib/lazy-with-retry'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
+import { useRecentAgentMessages } from '../messages/recent-agent-messages'
 
 export function shouldShowMobileButton(
   settings: Partial<Pick<GlobalSettings, 'showMobileButton'>> | null | undefined
@@ -80,6 +81,8 @@ const SidebarNav = React.memo(function SidebarNav() {
   const showArtifactsButton = useAppStore((s) => shouldShowArtifactsButton(s.settings))
   const showSkillsButton = useAppStore((s) => shouldShowSkillsButton(s.settings))
   const showMessagesButton = useAppStore((s) => shouldShowMessagesButton(s.settings))
+  const recentMessages = useRecentAgentMessages(showMessagesButton)
+  const messagesRecencyId = React.useId()
   const automationsActive = activeView === 'automations'
   const mobileActive = activeView === 'mobile'
   const artifactsActive = activeView === 'artifacts'
@@ -232,6 +235,7 @@ const SidebarNav = React.memo(function SidebarNav() {
               type="button"
               onClick={openMessagesPage}
               aria-current={messagesActive ? 'page' : undefined}
+              aria-describedby={recentMessages ? messagesRecencyId : undefined}
               className={cn(
                 'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] font-medium tracking-tight transition-colors',
                 messagesActive
@@ -242,13 +246,20 @@ const SidebarNav = React.memo(function SidebarNav() {
               <MessagesSquare
                 className={cn(
                   'size-4 shrink-0',
-                  !messagesActive && 'text-worktree-sidebar-foreground/30'
+                  recentMessages
+                    ? 'text-status-warning-text'
+                    : !messagesActive && 'text-worktree-sidebar-foreground/30'
                 )}
                 strokeWidth={messagesActive ? 2.25 : 1.75}
               />
               <span className="flex-1">
                 {translate('auto.components.sidebar.SidebarNav.messages', 'Messages')}
               </span>
+              {recentMessages ? (
+                <span id={messagesRecencyId} className="sr-only">
+                  {translate('sidebar.messages.recentUnseen', 'Recent unseen messages')}
+                </span>
+              ) : null}
             </button>
           </ContextMenuTrigger>
           <HideSidebarMenu onHide={hideMessagesButton} />

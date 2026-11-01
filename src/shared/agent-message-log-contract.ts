@@ -30,3 +30,9 @@ export type AgentMessageLogListResult = {
   entries: AgentMessageLogEntry[]
   retentionDays: number
 }
+
+export type AgentMessageLogCursor = Pick<AgentMessageLogEntry, 'id' | 'sentAt'>
+
+export type AgentMessageLogLatestResult = {
+  latest: AgentMessageLogCursor | null
+}

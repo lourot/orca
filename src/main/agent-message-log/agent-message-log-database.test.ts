@@ -36,6 +36,21 @@ afterEach(() => {
 })
 
 describe('AgentMessageLogDatabase', () => {
+  it('returns only the newest retained cursor, breaking timestamp ties by id', () => {
+    let now = 100 * DAY
+    const db = new AgentMessageLogDatabase(':memory:', () => now)
+    expect(db.latest()).toBeNull()
+    db.insert(entry('first', now))
+    db.insert(entry('second', now))
+    db.insert(entry('recorded later but sent earlier', now - DAY))
+    const newest = db.list(1)[0]
+    expect(db.latest()).toEqual({ id: newest?.id, sentAt: now })
+    now += AGENT_MESSAGE_LOG_RETENTION_MS + 1
+    expect(db.latest()).toBeNull()
+    db.close()
+    expect(() => db.latest()).toThrow('Message log is unavailable')
+  })
+
   it('lists messages inside the retention window, newest first', () => {
     const now = 100 * DAY
     const db = new AgentMessageLogDatabase(':memory:', () => now)

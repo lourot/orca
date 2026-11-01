@@ -26,11 +26,16 @@ const mocks = vi.hoisted(() => ({
   agentBucketCounts: { attention: 0, working: 0, done: 0, idle: 0 },
   getAgentBucketCounts: vi.fn(),
   dismissMobileOnboardingBadge: vi.fn(),
-  setSetupGuideSidebarDismissed: vi.fn()
+  setSetupGuideSidebarDismissed: vi.fn(),
+  recentMessages: false
 }))
 
 vi.mock('@/store', () => ({
   useAppStore: (selector: (state: Record<string, unknown>) => unknown) => selector(mocks.state)
+}))
+
+vi.mock('../messages/recent-agent-messages', () => ({
+  useRecentAgentMessages: () => mocks.recentMessages
 }))
 
 vi.mock('@/store/selectors', () => ({
@@ -212,6 +217,7 @@ describe('SidebarNav', () => {
     vi.clearAllMocks()
     await i18n.changeLanguage('en')
     mocks.hasPairedMobileDevice = false
+    mocks.recentMessages = false
     mocks.agentBucketCounts = { attention: 0, working: 0, done: 0, idle: 0 }
     setSidebarState()
   })
@@ -222,6 +228,24 @@ describe('SidebarNav', () => {
     expect(queryButtonByText(container, 'Agent Dashboard')).toBeNull()
     expect(mocks.getAgentBucketCounts).not.toHaveBeenCalled()
   })
+
+  it.each(['terminal', 'messages'])(
+    'highlights recent Messages in the %s view with an accessible description',
+    async (activeView) => {
+      mocks.recentMessages = true
+      mocks.state.activeView = activeView
+      const container = await renderSidebarNav()
+      const button = container.querySelector('button[aria-describedby]')
+      const descriptionId = button?.getAttribute('aria-describedby')
+      expect(button?.querySelector('svg')?.classList.contains('text-status-warning-text')).toBe(
+        true
+      )
+      expect(button?.getAttribute('aria-current')).toBe(activeView === 'messages' ? 'page' : null)
+      const description = document.getElementById(descriptionId ?? '')
+      expect(description).not.toBeNull()
+      expect(description?.textContent?.trim().length).toBeGreaterThan(0)
+    }
+  )
 
   it('mounts the Agent Dashboard row only when its experiment is enabled', async () => {
     setSidebarState({

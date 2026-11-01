@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronRight, Loader2, MessagesSquare, RefreshCw } from 'lucide-react'
 import type {
   AgentMessageLogEntry,
@@ -17,6 +17,7 @@ import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import { useAppStore } from '@/store'
 import { getIndexedWorktreeMap } from '@/store/worktree-repo-index'
 import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
+import { acknowledgeAgentMessages } from './recent-agent-messages'
 
 const LOCAL_RUNTIME = { kind: 'local' } as const
 
@@ -27,29 +28,43 @@ export default function MessagesPage(): React.JSX.Element {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [loadedAt, setLoadedAt] = useState(0)
+  const loadRevision = useRef(0)
 
   const load = useCallback(async (): Promise<void> => {
+    const revision = ++loadRevision.current
     setLoading(true)
     try {
       const result = await callRuntimeRpc<AgentMessageLogListResult>(
         LOCAL_RUNTIME,
         'agentMessageLog.list'
       )
+      if (revision !== loadRevision.current) {
+        return
+      }
       setEntries(result.entries)
+      acknowledgeAgentMessages(result.entries[0])
       setLoadedAt(Date.now())
       setError(null)
     } catch (loadError) {
+      if (revision !== loadRevision.current) {
+        return
+      }
       console.error('Failed to load the message log:', loadError)
       setError(
         translate('auto.components.messages.MessagesPage.loadFailed', 'Could not load messages.')
       )
     } finally {
-      setLoading(false)
+      if (revision === loadRevision.current) {
+        setLoading(false)
+      }
     }
   }, [])
 
   useEffect(() => {
     void load()
+    return () => {
+      loadRevision.current += 1
+    }
   }, [load])
 
   useEffect(() => {

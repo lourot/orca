@@ -7,6 +7,7 @@ import {
 } from '../sqlite/versioned-cache-database'
 import {
   AGENT_MESSAGE_LOG_RETENTION_MS,
+  type AgentMessageLogCursor,
   type AgentMessageLogEntry,
   type AgentMessageLogOutcome
 } from '../../shared/agent-message-log-contract'
@@ -85,6 +86,24 @@ export class AgentMessageLogDatabase {
           }),
       []
     )
+  }
+
+  /** Failed reads reject so the sidebar can retain its last known recency. */
+  latest(): AgentMessageLogCursor | null {
+    const latest = this.run<AgentMessageLogCursor | null | undefined>((db) => {
+      const row = db
+        .prepare(
+          'SELECT id, sent_at FROM messages WHERE sent_at >= ? ORDER BY sent_at DESC, id DESC LIMIT 1'
+        )
+        .get(this.cutoff())
+      return row && typeof row.id === 'number' && typeof row.sent_at === 'number'
+        ? { id: row.id, sentAt: row.sent_at }
+        : null
+    }, undefined)
+    if (latest === undefined) {
+      throw new Error('Message log is unavailable')
+    }
+    return latest
   }
 
   close(): void {
