@@ -9,7 +9,14 @@ import { ORPHAN_OWNER_PRECONDITION, ownerPrecondition } from './automation-scope
 import type { AutomationHostRecoveryAction } from './automation-host-status-descriptors'
 
 /** Every action the page can start against one stored automation. */
-export type AutomationRowAction = 'edit' | 'save' | 'toggle' | 'delete' | 'run' | 'history'
+export type AutomationRowAction =
+  | 'edit'
+  | 'save'
+  | 'toggle'
+  | 'delete'
+  | 'run'
+  | 'history'
+  | 'duplicate'
 
 export type AutomationActionBlockReason = 'orphan' | 'unfenced'
 
@@ -72,6 +79,9 @@ export function automationActionAvailability(
     }
   }
   if (!captured.selector) {
+    if (action === 'duplicate') {
+      return { kind: 'blocked', block: unfencedBlock() }
+    }
     return { kind: 'uncaptured' }
   }
   if (captured.selector.kind === 'orphan') {

@@ -20,6 +20,7 @@ export function AutomationsPageListPanel({
     runActions,
     editorActions,
     managementActions,
+    duplicateAction,
     externalActions,
     presentation
   } = controller
@@ -97,13 +98,18 @@ export function AutomationsPageListPanel({
         sourceAvailability.automationSourceHostAvailabilityByRowKey
       }
       hostLabelById={presentation.hostLabelById}
-      isActionEnabled={destination.isAutomationRowActionEnabled}
+      isActionEnabled={(row, action) =>
+        action === 'duplicate'
+          ? duplicateAction.isEnabled(row)
+          : destination.isAutomationRowActionEnabled(row, action)
+      }
       externalActionKey={externalActionKey}
       selectAutomationRow={list.selectAutomationRow}
       selectExternalKey={local.selectExternalKey}
       setActivePaneTab={setActivePaneTab}
       runNow={(row) => void runActions.runNow(row)}
       openEditDialog={(row) => void editorActions.openEditDialog(row)}
+      duplicateAutomation={(row) => void duplicateAction.duplicateAutomation(row)}
       toggleAutomation={(row) => void managementActions.toggleAutomation(row)}
       requestDeleteAutomation={managementActions.requestDeleteAutomation}
       requestExternalAction={externalActions.requestExternalAction}

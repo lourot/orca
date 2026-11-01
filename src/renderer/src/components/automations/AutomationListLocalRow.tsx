@@ -1,5 +1,5 @@
 import React from 'react'
-import { MoreHorizontal, Pause, Pencil, Play, Trash2 } from 'lucide-react'
+import { Copy, MoreHorizontal, Pause, Pencil, Play, Trash2 } from 'lucide-react'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -80,6 +80,7 @@ export type AutomationListLocalRowProps = {
   onSelect: (rowKey: string) => void
   onRunNow: (row: AutomationListRow) => void
   onEdit: (row: AutomationListRow) => void
+  onDuplicate: (row: AutomationListRow) => void
   onToggle: (row: AutomationListRow) => void
   onDelete: (row: AutomationListRow) => void
 }
@@ -133,6 +134,7 @@ export function AutomationListLocalRow({
   onSelect,
   onRunNow,
   onEdit,
+  onDuplicate,
   onToggle,
   onDelete
 }: AutomationListLocalRowProps): React.JSX.Element {
@@ -197,6 +199,12 @@ export function AutomationListLocalRow({
         icon={<Pencil className="size-3.5" />}
         label={translate('auto.components.automations.AutomationsPage.f4612e3f78', 'Edit')}
         onSelect={() => onEdit(row)}
+      />
+      <MenuItem
+        disabled={!allows(row, 'duplicate')}
+        icon={<Copy className="size-3.5" />}
+        label={translate('automations.duplicate.action', 'Duplicate')}
+        onSelect={() => onDuplicate(row)}
       />
       <MenuItem
         disabled={!allows(row, 'toggle')}
@@ -312,6 +320,13 @@ export function AutomationListLocalRow({
               <DropdownMenuItem disabled={!allows(row, 'edit')} onSelect={() => onEdit(row)}>
                 <Pencil className="size-3.5" />
                 {translate('auto.components.automations.AutomationsPage.f4612e3f78', 'Edit')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!allows(row, 'duplicate')}
+                onSelect={() => onDuplicate(row)}
+              >
+                <Copy className="size-3.5" />
+                {translate('automations.duplicate.action', 'Duplicate')}
               </DropdownMenuItem>
               <DropdownMenuItem disabled={!allows(row, 'toggle')} onSelect={() => onToggle(row)}>
                 {automation.enabled ? (

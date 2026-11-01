@@ -18,6 +18,7 @@ import type {
 } from '../../../../shared/automation-owner-ref'
 import type { AutomationDestination } from '../../../../shared/automation-owner-precondition'
 import { translate } from '@/i18n/i18n'
+import { buildAutomationDuplicateInput } from './automation-duplicate-input'
 import type {
   AutomationActionAvailability,
   AutomationActionBlock
@@ -139,6 +140,38 @@ export type AutomationActionResult<TValue> =
   | AutomationActionOutcome<TValue>
   /** Preserve the caller’s unfenced fallback for rows without captured metadata. */
   | { status: 'uncaptured' }
+
+export type AutomationDuplicateOperation = { input?: AutomationCreateInput }
+
+/** Retain the request after a lost response so retrying cannot create a second copy. */
+export async function duplicateOwnedAutomation(
+  availability: AutomationActionAvailability,
+  id: string,
+  operation: AutomationDuplicateOperation
+): Promise<AutomationActionResult<Automation>> {
+  return await attempt(availability, async (owner) => {
+    const { automations } = await listAutomationsForOwner(owner)
+    const committed = operation.input?.creationKey
+      ? automations.find((automation) => automation.creationKey === operation.input?.creationKey)
+      : null
+    if (committed) {
+      return committed
+    }
+    const source = automations.find((automation) => automation.id === id)
+    if (!source) {
+      throw new Error(
+        translate(
+          'automations.duplicate.sourceMissing',
+          'This automation is no longer on this host. Refresh and try again.'
+        )
+      )
+    }
+    operation.input ??= buildAutomationDuplicateInput(source, automations)
+    return await createAutomationForDestination(owner.authority, operation.input, {
+      selector: owner.selector
+    })
+  })
+}
 
 export async function updateOwnedAutomation(
   availability: AutomationActionAvailability,

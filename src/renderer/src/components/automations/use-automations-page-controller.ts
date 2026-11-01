@@ -17,6 +17,7 @@ import { useAutomationsPageSetupState } from './use-automations-page-setup-state
 import { useAutomationsPageStoreState } from './use-automations-page-store-state'
 import { useExternalAutomationActions } from './use-external-automation-actions'
 import { useAutomationRunsDashboard } from './use-automation-runs-dashboard'
+import { useAutomationDuplicateAction } from './use-automation-duplicate-action'
 
 export function useAutomationsPageController() {
   const store = useAutomationsPageStoreState()
@@ -88,6 +89,7 @@ export function useAutomationsPageController() {
     pageRefresh
   }
   const managementActions = createAutomationManagementActions(actionContext)
+  const duplicateAction = useAutomationDuplicateAction(actionContext)
   const runActions = createAutomationRunActions(actionContext)
   const externalActions = useExternalAutomationActions(actionContext)
   const openRunWorkspace = createAutomationRunWorkspaceAction(actionContext)
@@ -109,6 +111,7 @@ export function useAutomationsPageController() {
     editorActions,
     saveAutomation,
     managementActions,
+    duplicateAction,
     runActions,
     externalActions,
     openRunWorkspace

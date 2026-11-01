@@ -144,7 +144,7 @@ export async function assertAutomationCreateIdempotencySupported(
     AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY,
     translate(
       'auto.components.automations.capabilityProbe.createIdempotencyUpdateRequired',
-      'Moving automations to this host requires a newer Orca server. Update the HUB and try again.'
+      'Creating automations on this host requires a newer Orca server. Update the HUB and try again.'
     )
   )
 }

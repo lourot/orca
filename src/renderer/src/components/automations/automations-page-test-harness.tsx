@@ -53,6 +53,7 @@ export type ListPanelProps = {
   onOpenRuns: () => void
   runNow: (row: AutomationListRow) => void
   openEditDialog: (row: AutomationListRow) => void
+  duplicateAutomation: (row: AutomationListRow) => void
   toggleAutomation: (row: AutomationListRow) => void
   requestDeleteAutomation: (row: AutomationListRow) => void
   openCreateDialog: () => void
@@ -349,6 +350,7 @@ const roots: Root[] = []
 export async function renderPage(options?: { strict?: boolean }): Promise<{
   container: HTMLDivElement
   rerender: () => Promise<void>
+  unmount: () => Promise<void>
 }> {
   const container = document.createElement('div')
   document.body.appendChild(container)
@@ -364,7 +366,12 @@ export async function renderPage(options?: { strict?: boolean }): Promise<{
     })
   }
   await rerender()
-  return { container, rerender }
+  const unmount = async (): Promise<void> => {
+    await act(async () => root.unmount())
+    roots.splice(roots.indexOf(root), 1)
+    container.remove()
+  }
+  return { container, rerender, unmount }
 }
 
 /** Lets the per-host queries, their capability probes, and the history read settle. */

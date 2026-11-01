@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -117,6 +117,8 @@ function makeRun(overrides: Partial<AutomationRun> = {}): AutomationRun {
 function renderLocalRows(handlers: {
   onSelect: (rowKey: string) => void
   onDelete?: (row: AutomationListRow) => void
+  onDuplicate?: (row: AutomationListRow) => void
+  isActionEnabled?: (row: AutomationListRow, action: string) => boolean
   runs?: AutomationRun[]
 }) {
   const row: AutomationListRow = {
@@ -143,6 +145,8 @@ function renderLocalRows(handlers: {
       onSelect={handlers.onSelect}
       onRunNow={vi.fn()}
       onEdit={vi.fn()}
+      onDuplicate={handlers.onDuplicate ?? vi.fn()}
+      isActionEnabled={handlers.isActionEnabled}
       onToggle={vi.fn()}
       onDelete={handlers.onDelete ?? vi.fn()}
     />
@@ -183,6 +187,45 @@ afterEach(() => {
 })
 
 describe('Automation list row selection', () => {
+  it.each(['dropdown', 'context'] as const)(
+    'duplicates from the %s menu without opening detail',
+    async (menu) => {
+      const onSelect = vi.fn()
+      const onDuplicate = vi.fn()
+      const { container } = renderLocalRows({ onSelect, onDuplicate })
+      const user = userEvent.setup()
+      if (menu === 'dropdown') {
+        screen.getByRole('button', { name: 'Automation actions' }).focus()
+        await user.keyboard('{Enter}')
+      } else {
+        const row = container.querySelector('[data-slot="context-menu-trigger"]')
+        if (!row) {
+          throw new Error('Row missing')
+        }
+        fireEvent.contextMenu(row)
+      }
+      const duplicate = await screen.findByRole('menuitem', { name: 'Duplicate' })
+      duplicate.focus()
+      await user.keyboard('{Enter}')
+      expect(onDuplicate).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ key: 'row|local|automation-1' })
+      )
+      expect(onSelect).not.toHaveBeenCalled()
+    }
+  )
+
+  it('disables Duplicate when the host action is unavailable', async () => {
+    renderLocalRows({
+      onSelect: vi.fn(),
+      isActionEnabled: (_row, action) => action !== 'duplicate'
+    })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Automation actions' }))
+    expect(
+      (await screen.findByRole('menuitem', { name: 'Duplicate' })).getAttribute('aria-disabled')
+    ).toBe('true')
+  })
+
   it('does not open local detail when a quick-action menu item is chosen', async () => {
     // React bubbles portaled Delete clicks through the row; onSelect must not open detail behind confirmation.
     const onSelect = vi.fn()

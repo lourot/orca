@@ -259,6 +259,8 @@ Pair with your desktop app to monitor and steer your agents from your phone.
 
 ## Developing
 
+For automation copying, see [Duplicating automations](docs/readme/automation-duplication.md).
+
 Want to contribute or run locally? See our [CONTRIBUTING.md](.github/CONTRIBUTING.md) guide.
 
 The relay that pairs the mobile app with a desktop host is also in this repository under

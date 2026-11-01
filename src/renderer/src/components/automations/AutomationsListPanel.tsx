@@ -94,6 +94,7 @@ export type AutomationsListPanelProps = {
   setActivePaneTab: (tab: AutomationPaneTab) => void
   runNow: (row: AutomationListRow) => void
   openEditDialog: (row: AutomationListRow) => void
+  duplicateAutomation: (row: AutomationListRow) => void
   toggleAutomation: (row: AutomationListRow) => void
   requestDeleteAutomation: (row: AutomationListRow) => void
   requestExternalAction: (
@@ -147,6 +148,7 @@ export function AutomationsListPanel(props: AutomationsListPanelProps): React.JS
     setActivePaneTab,
     runNow,
     openEditDialog,
+    duplicateAutomation,
     toggleAutomation,
     requestDeleteAutomation,
     requestExternalAction,
@@ -276,6 +278,7 @@ export function AutomationsListPanel(props: AutomationsListPanelProps): React.JS
     },
     onRunNow: runNow,
     onEdit: openEditDialog,
+    onDuplicate: duplicateAutomation,
     onToggle: toggleAutomation,
     onDelete: requestDeleteAutomation
   }
