@@ -21,6 +21,7 @@ Variants in priority order:
 | `secondary`   | Lower-emphasis sibling next to a `default`.                        |
 | `outline`     | Toolbar / standalone actions where a filled button feels heavy.    |
 | `ghost`       | Icon buttons, list-row triggers, anywhere chrome should disappear. |
+| `success`     | Green affirmative actions, including running ahead of schedule.    |
 | `link`        | Inline text actions inside paragraphs.                             |
 | `destructive` | Delete, discard, irreversible. Never for Cancel.                   |
 

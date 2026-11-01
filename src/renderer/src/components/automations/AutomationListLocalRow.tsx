@@ -59,6 +59,7 @@ import {
 } from '@/lib/list-table-layout'
 import { isPortaledRowMenuClick, isRowActivationKey } from '@/lib/list-row-interaction'
 import { AutomationListStatusCell } from './AutomationListStatusCell'
+import { AutomationRunAheadButton } from './AutomationRunAheadButton'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { wslMovedProjectForAutomation } from '@/store/repos/wsl-moved-projects'
@@ -81,7 +82,7 @@ export type AutomationListLocalRowProps = {
   hostLabelById?: ReadonlyMap<string, string>
   isActionEnabled?: (row: AutomationListRow, action: AutomationRowAction) => boolean
   onSelect: (rowKey: string) => void
-  onRunNow: (row: AutomationListRow) => void
+  onRunNow: (row: AutomationListRow) => void | Promise<void>
   onEdit: (row: AutomationListRow) => void
   onDuplicate: (row: AutomationListRow) => void
   onToggle: (row: AutomationListRow) => void
@@ -188,15 +189,21 @@ export function AutomationListLocalRow({
 
   const actionItems = (
     <>
-      <MenuRunItem
+      <ContextMenuItem
         disabled={!canRunNow}
-        label={
-          automationRunAvailability.canRunNow
+        onSelect={() => {
+          if (canRunNow) {
+            void onRunNow(row)
+          }
+        }}
+      >
+        <Play className="size-3.5" />
+        <span className="min-w-0 truncate">
+          {automationRunAvailability.canRunNow
             ? translate('auto.components.automations.AutomationsPage.2faecab10b', 'Run Now')
-            : automationRunAvailability.message
-        }
-        onSelect={() => onRunNow(row)}
-      />
+            : automationRunAvailability.message}
+        </span>
+      </ContextMenuItem>
       <MenuItem
         disabled={!allows(row, 'edit')}
         icon={<Pencil className="size-3.5" />}
@@ -273,8 +280,16 @@ export function AutomationListLocalRow({
           <span className="min-w-0 truncate text-muted-foreground" title={hostLabel}>
             {hostLabel}
           </span>
-          <span className="min-w-0 truncate text-muted-foreground" title={nextRunLabel}>
-            {nextRunLabel}
+          <span className="flex min-w-0 items-center gap-1">
+            <span className="min-w-0 truncate text-muted-foreground" title={nextRunLabel}>
+              {nextRunLabel}
+            </span>
+            <AutomationRunAheadButton
+              automation={automation}
+              now={relativeNow}
+              disabled={!canRunNow}
+              onRun={() => onRunNow(row)}
+            />
           </span>
           <AutomationListLastRunCell snapshot={lastRunSnapshot} now={relativeNow} />
           <AutomationListStatusCell enabled={automation.enabled} movedToDistro={movedToDistro} />
@@ -359,32 +374,6 @@ export function AutomationListLocalRow({
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">{actionItems}</ContextMenuContent>
     </ContextMenu>
-  )
-}
-
-function MenuRunItem({
-  disabled,
-  label,
-  onSelect
-}: {
-  disabled: boolean
-  label: string
-  onSelect: () => void
-}): React.JSX.Element {
-  return (
-    <ContextMenuItem
-      disabled={disabled}
-      onSelect={(event) => {
-        if (disabled) {
-          event.preventDefault()
-          return
-        }
-        onSelect()
-      }}
-    >
-      <Play className="size-3.5" />
-      <span className="min-w-0 truncate">{label}</span>
-    </ContextMenuItem>
   )
 }
 

@@ -107,7 +107,7 @@ export function AutomationsPageListPanel({
       selectAutomationRow={list.selectAutomationRow}
       selectExternalKey={local.selectExternalKey}
       setActivePaneTab={setActivePaneTab}
-      runNow={(row) => void runActions.runNow(row)}
+      runNow={runActions.runNow}
       openEditDialog={(row) => void editorActions.openEditDialog(row)}
       duplicateAutomation={(row) => void duplicateAction.duplicateAutomation(row)}
       toggleAutomation={(row) => void managementActions.toggleAutomation(row)}

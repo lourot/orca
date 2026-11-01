@@ -260,6 +260,7 @@ Pair with your desktop app to monitor and steer your agents from your phone.
 ## Developing
 
 For automation copying, see [Duplicating automations](docs/readme/automation-duplication.md).
+For early manual runs, see [Running ahead of schedule](docs/readme/automation-run-ahead.md).
 
 Want to contribute or run locally? See our [CONTRIBUTING.md](.github/CONTRIBUTING.md) guide.
 
