@@ -80,7 +80,7 @@ export function AutomationListExternalRow({
     actionInProgress: externalActionKey !== null
   })
   const actionDisabled = disabledMessage !== null
-  const scheduleLabel = getExternalAutomationScheduleDisplay(entry.manager, entry.job).label
+  const schedule = getExternalAutomationScheduleDisplay(entry.manager, entry.job)
   const hostLabel =
     entry.manager.targetLabel || entry.manager.label || getExternalTargetKindLabel(entry.manager)
   const projectLabel = entry.job.workdir ?? providerLabel
@@ -119,8 +119,11 @@ export function AutomationListExternalRow({
           <span className={LIST_TABLE_STICKY_ROW_CELL_CLASS}>
             <span className="min-w-0 truncate font-medium">{entry.job.name}</span>
           </span>
-          <span className="min-w-0 truncate text-muted-foreground" title={scheduleLabel}>
-            {scheduleLabel}
+          <span
+            className="min-w-0 truncate text-muted-foreground"
+            title={schedule.title ?? schedule.label}
+          >
+            {schedule.label}
           </span>
           <span className="min-w-0 truncate text-muted-foreground" title={projectLabel}>
             {projectLabel}

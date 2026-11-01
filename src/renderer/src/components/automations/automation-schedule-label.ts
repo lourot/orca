@@ -5,6 +5,8 @@ import {
 } from '../../../../shared/automation-schedules'
 import { translate } from '@/i18n/i18n'
 import { getUiWeekdayNames } from '@/i18n/weekday-names'
+import { describeCustomAutomationCron } from './automation-cron-description'
+import { escapeTerminalControlCharacters } from '../../../../shared/terminal-control-character-escape'
 
 /** Translate whole schedule sentences for locale grammar; the shared English formatter also serves the CLI. */
 export function formatUiAutomationScheduleDescriptor(
@@ -56,5 +58,14 @@ export function formatUiAutomationScheduleDescriptor(
 
 /** Convenience wrapper for callers that hold the raw cron/RRULE expression. */
 export function formatUiAutomationSchedule(scheduleExpression: string): string {
-  return formatUiAutomationScheduleDescriptor(describeAutomationSchedule(scheduleExpression))
+  const descriptor = describeAutomationSchedule(scheduleExpression)
+  return descriptor.kind === 'custom' && !descriptor.expression
+    ? describeCustomAutomationCron(scheduleExpression)
+    : formatUiAutomationScheduleDescriptor(descriptor)
+}
+
+/** Keep the complete label and original rule available when a schedule cell truncates. */
+export function formatUiAutomationScheduleTitle(expression: string, label: string): string {
+  const raw = escapeTerminalControlCharacters(expression.trim(), true)
+  return label === raw ? label : `${label}\n${raw}`
 }

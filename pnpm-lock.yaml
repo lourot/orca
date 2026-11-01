@@ -219,6 +219,9 @@ importers:
       agent-browser:
         specifier: ~0.39.4
         version: 0.39.4
+      cronstrue:
+        specifier: 3.38.0
+        version: 3.38.0
       electron-updater:
         specifier: ^6.8.10
         version: 6.8.10(electron@43.8.1(supports-color@7.2.0))(supports-color@7.2.0)
@@ -4834,6 +4837,10 @@ packages:
   cpu-features@0.0.10:
     resolution: {integrity: sha512-9IkYqtX3YHPCzoVg1Py+o9057a3i0fp7S530UWokCSaFVTc7CwXPRiOjRjBQQ18ZCNafx78YfnG+HALxtVmOGA==}
     engines: {node: '>=10.0.0'}
+
+  cronstrue@3.38.0:
+    resolution: {integrity: sha512-i10xR7fS4AH9LKwmt3gYdt/5lSsB2qFGSNfC8aeyYybxo48DCMz+nUrSVI4kUj8yo+SgTbMJqp/BWEem9avlcA==}
+    hasBin: true
 
   cross-dirname@0.1.0:
     resolution: {integrity: sha512-+R08/oI0nl3vfPcqftZRpytksBXDzOUveBq/NBVx0sUp1axwzPQrKinNx5yd5sxPu8j1wIy8AfnVQ+5eFdha6Q==}
@@ -11565,6 +11572,8 @@ snapshots:
       buildcheck: 0.0.7
       nan: 2.26.2
     optional: true
+
+  cronstrue@3.38.0: {}
 
   cross-dirname@0.1.0:
     optional: true

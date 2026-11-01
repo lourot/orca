@@ -229,6 +229,7 @@
     "@xterm/addon-serialize": "0.15.0-beta.301",
     "@xterm/headless": "6.1.0-beta.303",
     "agent-browser": "~0.39.4",
+    "cronstrue": "3.38.0",
     "electron-updater": "^6.8.10",
     "fflate": "0.8.3",
     "i18next": "^26.5.11",

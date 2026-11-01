@@ -77,6 +77,8 @@ Use `--project-host-setup <id>` when you already have a setup id. Optional `--so
 
 ## Manage automations across hosts
 
+Desktop schedule labels describe custom cron in the selected UI language, including Sunday aliases in ranges and lists (for example, `3 7 * * 6-7` means 7:03 AM on Saturday and Sunday), with the raw cron as a fallback when its meaning cannot be described reliably. Hover over a schedule in the list to see its full label and original expression. CLI formatting and schedule execution are unchanged.
+
 The desktop **Automations** page loads schedules from this computer and supported connected Orca hosts into one table. The **Host** column shows where each automation is stored and scheduled; use **Filters → Host** to show one or more hosts, or return to **All hosts**.
 
 When you create an automation in the desktop UI, **Create on** chooses its host before you choose a project. The project picker then shows projects available on that destination. Connected hosts that need a newer Orca server stay visible but disabled, with an **Update server** message, instead of disappearing from the picker.

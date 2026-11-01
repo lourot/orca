@@ -25,6 +25,7 @@ import {
   type ExternalAutomationListEntry
 } from './external-automation-list-entries'
 import type { AutomationPaneTab } from './automation-page-state'
+import { formatUiAutomationSchedule } from './automation-schedule-label'
 
 let container: HTMLDivElement
 let root: Root
@@ -146,6 +147,31 @@ function searchField(): HTMLInputElement | null {
 }
 
 describe('AutomationsListPanel search field persistence', () => {
+  it('renders custom cron descriptions and raw hover titles for local and external rows', () => {
+    const expression = '*/15 * * * *'
+    const label = formatUiAutomationSchedule(expression)
+    const manager = makeScopedExternalManager()
+    const job = manager.manager.jobs[0]
+    if (!job) {
+      throw new Error('Missing external job fixture')
+    }
+    manager.manager.jobs = [{ ...job, rawSchedule: expression }]
+    renderPanel(
+      [makeAutomationListRow({ automation: makeAutomation({ rrule: expression }) })],
+      '',
+      undefined,
+      null,
+      { externalEntries: buildExternalAutomationListEntries([manager]) }
+    )
+    const cells = container.querySelectorAll('span[title]')
+    const scheduleCells = [...cells].filter((cell) => cell.textContent === label)
+    expect(scheduleCells).toHaveLength(2)
+    for (const cell of scheduleCells) {
+      expect(cell.getAttribute('title')).toBe(`${label}\n${expression}`)
+      expect(cell.classList.contains('truncate')).toBe(true)
+    }
+  })
+
   it('keeps the search field on screen when the host has no rows', () => {
     renderPanel([], '')
 

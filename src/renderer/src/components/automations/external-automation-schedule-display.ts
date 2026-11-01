@@ -3,11 +3,15 @@ import type {
   ExternalAutomationManager
 } from '../../../../shared/automations-types'
 import { isRunnableAutomationCronSchedule } from '../../../../shared/automation-schedule-parsing'
-import { formatUiAutomationSchedule } from './automation-schedule-label'
+import {
+  formatUiAutomationSchedule,
+  formatUiAutomationScheduleTitle
+} from './automation-schedule-label'
 import { translate } from '@/i18n/i18n'
 
 export type ExternalAutomationScheduleDisplay = {
   label: string
+  title?: string
 }
 
 function getDisplayableProviderSchedule(schedule: string): string | null {
@@ -28,7 +32,8 @@ export function getExternalAutomationScheduleDisplay(
 
   for (const candidate of candidateSchedules) {
     if (candidate && isRunnableAutomationCronSchedule(candidate)) {
-      return { label: formatUiAutomationSchedule(candidate) }
+      const label = formatUiAutomationSchedule(candidate)
+      return { label, title: formatUiAutomationScheduleTitle(candidate, label) }
     }
   }
 

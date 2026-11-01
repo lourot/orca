@@ -20,7 +20,10 @@ import { AgentIcon } from '@/lib/agent-catalog'
 import { cn } from '@/lib/utils'
 import type { AutomationRun } from '../../../../shared/automations-types'
 import { getAutomationRunRepoId } from '../../../../shared/automation-run-identity'
-import { formatUiAutomationSchedule } from './automation-schedule-label'
+import {
+  formatUiAutomationSchedule,
+  formatUiAutomationScheduleTitle
+} from './automation-schedule-label'
 import {
   getExecutionHostLabel,
   getLocalExecutionHostLabel,
@@ -258,7 +261,10 @@ export function AutomationListLocalRow({
           <span className={LIST_TABLE_STICKY_ROW_CELL_CLASS}>
             <span className="min-w-0 truncate font-medium">{automation.name}</span>
           </span>
-          <span className="min-w-0 truncate text-muted-foreground" title={scheduleLabel}>
+          <span
+            className="min-w-0 truncate text-muted-foreground"
+            title={formatUiAutomationScheduleTitle(automation.rrule, scheduleLabel)}
+          >
             {scheduleLabel}
           </span>
           <span className="min-w-0 truncate text-muted-foreground" title={projectLabel}>
