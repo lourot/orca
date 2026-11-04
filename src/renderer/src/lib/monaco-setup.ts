@@ -31,6 +31,7 @@ import { installMonacoContextMenuPaste } from '@/components/editor/install-monac
 import { runMonacoSetupSteps } from './monaco-setup-steps'
 import { installMonacoTsWorkerIdleStop } from './monaco-ts-worker-idle-stop'
 import { installKeywordHighlights } from '@/components/editor/keyword-highlight-decorations'
+import { installMarkdownListEditing } from '@/components/editor/markdown-list-editing-commands'
 
 globalThis.MonacoEnvironment = {
   getWorker(_workerId, label) {
@@ -96,7 +97,8 @@ runMonacoSetupSteps([
   // Sandboxed navigator.clipboard blocks Monaco Paste; use trusted IPC as native Cmd+V does.
   ['context-menu paste', () => installMonacoContextMenuPaste(monaco)],
   ['TS worker idle stop', () => installMonacoTsWorkerIdleStop(monaco)],
-  ['keyword highlights', () => installKeywordHighlights(monaco)]
+  ['keyword highlights', () => installKeywordHighlights(monaco)],
+  ['Markdown list editing', () => installMarkdownListEditing(monaco)]
 ])
 
 loader.config({ monaco })
