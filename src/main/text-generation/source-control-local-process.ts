@@ -11,6 +11,7 @@ import { WindowsCommandLineBudgetError } from '../../shared/windows-command-line
 import { supervisedProviderSpawnFailure } from '../provider-process/provider-spawn-failure-report'
 import {
   finalizeFromAgentOutput,
+  includesStdoutDetail,
   userFacingUnsafeWindowsBatchArgs
 } from './source-control-agent-failure'
 import {
@@ -237,7 +238,7 @@ export function runLocalSourceControlPlan(
           label: plan.label,
           outputFormat: plan.outputFormat,
           operation,
-          includeStdoutDetail: operation !== 'branch-name' && operation !== 'conversation-name'
+          includeStdoutDetail: includesStdoutDetail(operation)
         })
       )
     }

@@ -55,7 +55,11 @@ export type SpeechErrorEvent = {
   sessionId: string
 }
 
-export type DictationState = 'idle' | 'starting' | 'listening' | 'stopping' | 'error'
+export type DictationState = 'idle' | 'starting' | 'listening' | 'stopping' | 'polishing' | 'error'
+
+export type DictationCleanupResult =
+  | { ok: true; text: string }
+  | { ok: false; error: string; canceled?: boolean }
 
 export type UserModelConfig = {
   id: string
@@ -73,6 +77,8 @@ export type VoiceSettings = {
   language: string
   dictationMode: DictationMode
   terminalConfirmBeforeInsert: boolean
+  /** Send the finished transcript to the dictation-cleanup agent before inserting it. */
+  transcriptCleanupEnabled: boolean
   userModels: UserModelConfig[]
   openAiApiKeyConfigured: boolean
   /** null = system default input device */

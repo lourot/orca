@@ -5,6 +5,8 @@ import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { getDefaultVoiceSettings } from '../../../../shared/constants'
 import type { SpeechModelManifest, VoiceSettings } from '../../../../shared/speech-types'
 import { Separator } from '../ui/separator'
+import { Label } from '../ui/label'
+import { Switch } from '../ui/switch'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { OpenAiTranscriptionKeyDialog } from './OpenAiTranscriptionKeyDialog'
@@ -13,7 +15,12 @@ import { handleVoiceDictationToggle } from './voice-dictation-toggle'
 import { VoiceDictationSettingsSection } from './VoiceDictationSettingsSection'
 import { VoiceSpeechModelSection } from './VoiceSpeechModelSection'
 import { matchesSettingsSearch } from './settings-search'
-import { getOpenaiTranscriptionSearchEntry } from './voice-pane-search'
+import {
+  getOpenaiTranscriptionSearchEntry,
+  getTranscriptCleanupSearchEntry
+} from './voice-pane-search'
+import { AiTextActionRecipeSetting } from './AiTextActionRecipeSetting'
+import type { SourceControlAiSettingsPatch } from '../../../../shared/source-control-ai-types'
 import { translate } from '@/i18n/i18n'
 
 export { handleVoiceDictationToggle }
@@ -21,9 +28,14 @@ export { handleVoiceDictationToggle }
 type VoicePaneProps = {
   settings: GlobalSettings
   updateSettings: (updates: Partial<GlobalSettings>) => void
+  writeSourceControlAiSettings: (patch: SourceControlAiSettingsPatch) => Promise<void>
 }
 
-export function VoicePane({ settings, updateSettings }: VoicePaneProps): React.JSX.Element {
+export function VoicePane({
+  settings,
+  updateSettings,
+  writeSourceControlAiSettings
+}: VoicePaneProps): React.JSX.Element {
   // Keep fallback identity stable so parent renders cannot repeat fetch effects.
   const [defaultVoiceSettings] = useState(getDefaultVoiceSettings)
   const voiceSettings = settings.voice ?? defaultVoiceSettings
@@ -250,6 +262,47 @@ export function VoicePane({ settings, updateSettings }: VoicePaneProps): React.J
           />
         </>
       )}
+
+      <Separator />
+      <AiTextActionRecipeSetting
+        actionId="dictationCleanup"
+        sectionId="transcript-cleanup"
+        searchEntry={getTranscriptCleanupSearchEntry()}
+        enabled={voiceSettings.transcriptCleanupEnabled}
+        onEnabledChange={(checked) => updateVoiceSettings({ transcriptCleanupEnabled: checked })}
+        enableLabel={translate('settings.voice.cleanup.enable', 'Clean up dictated text')}
+        saveFailedMessage={translate(
+          'settings.voice.cleanup.saveFailed',
+          'Could not save transcript cleanup settings.'
+        )}
+        note={translate(
+          'settings.voice.cleanup.modelNote',
+          'Runs on this computer. To choose the model, add --model <id> to the extra arguments; otherwise the agent’s default model is used.'
+        )}
+        settings={settings}
+        writeSourceControlAiSettings={writeSourceControlAiSettings}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <Label htmlFor="mark-dictated-text-for-agents">
+              {translate('settings.voice.cleanup.markForAgents', 'Mark dictated text for agents')}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {translate(
+                'settings.voice.cleanup.markForAgentsDescription',
+                'Wraps text inserted into agent terminals and chats in a note that it was dictated and may contain misspellings.'
+              )}
+            </p>
+          </div>
+          <Switch
+            id="mark-dictated-text-for-agents"
+            checked={voiceSettings.markDictatedTextForAgents !== false}
+            onCheckedChange={(checked) =>
+              updateVoiceSettings({ markDictatedTextForAgents: checked })
+            }
+          />
+        </div>
+      </AiTextActionRecipeSetting>
 
       <OpenAiTranscriptionKeyDialog
         open={openAiDialogOpen}

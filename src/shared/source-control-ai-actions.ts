@@ -18,7 +18,8 @@ export { normalizeSourceControlActionLaunchPreferences } from './source-control-
 // Keep the variable registry separate for max-lines headroom; no re-export so consumer searches stay complete.
 
 export type SourceControlTextActionId = 'commitMessage' | 'pullRequest' | 'branchName'
-export type AiTextActionId = SourceControlTextActionId | 'conversationName'
+export type RepoIndependentAiTextActionId = 'conversationName' | 'dictationCleanup'
+export type AiTextActionId = SourceControlTextActionId | RepoIndependentAiTextActionId
 
 export type SourceControlLaunchActionId =
   | 'fixCommitFailure'
@@ -95,8 +96,16 @@ export const SOURCE_CONTROL_ACTION_IDS = [
 
 export const AI_TEXT_ACTION_IDS = [
   ...SOURCE_CONTROL_TEXT_ACTION_IDS,
-  'conversationName'
+  'conversationName',
+  'dictationCleanup'
 ] as const satisfies readonly AiTextActionId[]
+
+/** Whether the action runs outside any repo, so per-repo Source Control AI overrides never apply. */
+export function isRepoIndependentAiTextAction(
+  actionId: AiActionId
+): actionId is RepoIndependentAiTextActionId {
+  return actionId === 'conversationName' || actionId === 'dictationCleanup'
+}
 
 export const AI_ACTION_IDS = [
   ...AI_TEXT_ACTION_IDS,
@@ -127,6 +136,7 @@ export const DEFAULT_SOURCE_CONTROL_ACTION_COMMAND_TEMPLATES: Record<AiActionId,
   pullRequest: '{basePrompt}',
   branchName: '{basePrompt}',
   conversationName: '{basePrompt}',
+  dictationCleanup: '{basePrompt}',
   fixCommitFailure: '{basePrompt}',
   fixPushFailure: '{basePrompt}',
   fixChecks: '{basePrompt}',

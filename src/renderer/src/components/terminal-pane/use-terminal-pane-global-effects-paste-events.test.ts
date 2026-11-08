@@ -238,4 +238,69 @@ describe('useTerminalPaneGlobalEffects', () => {
     expect(mocks.recordTerminalUserInputForLeaf).toHaveBeenCalledWith('tab-1', 'leaf-1')
     expect(terminal.focus).toHaveBeenCalledOnce()
   })
+
+  it('delivers targeted dictation to its own tab even after the user switched away, without focusing it', async () => {
+    const documentListeners = new Map<string, EventListener>()
+    vi.stubGlobal('document', {
+      addEventListener: vi.fn((name: string, listener: EventListener) =>
+        documentListeners.set(name, listener)
+      ),
+      removeEventListener: vi.fn()
+    })
+    const terminal = { name: 'terminal-a', focus: vi.fn(), modes: { bracketedPasteMode: false } }
+    const pane = { id: 1, leafId: 'leaf-1', terminal }
+    const manager = {
+      getPanes: vi.fn(() => [pane]),
+      resumeRendering: vi.fn(),
+      resetWebglTextureAtlases: vi.fn(),
+      scheduleRevealRepaint: vi.fn(),
+      scheduleRevealPresent: vi.fn(),
+      suspendRendering: vi.fn(),
+      fitAllRevealedPanes: vi.fn(),
+      getActivePane: vi.fn(() => pane)
+    }
+    const transport = {
+      getPtyId: vi.fn(() => 'pty-1'),
+      isConnected: vi.fn(() => true),
+      sendInput: vi.fn<(data: string) => boolean>(() => true)
+    }
+
+    beginHookRender()
+    useTerminalPaneGlobalEffects({
+      tabId: 'tab-1',
+      isActive: false,
+      isVisible: false,
+      isSyncFitEnabled: true,
+      paneCount: 1,
+      managerRef: { current: manager as never },
+      containerRef: { current: null },
+      paneTransportsRef: { current: new Map([[pane.id, transport]]) as never },
+      isActiveRef: { current: false },
+      isVisibleRef: { current: false },
+      toggleExpandPane: vi.fn()
+    })
+    const listener = documentListeners.get('dictation:insertText')
+    if (!listener) {
+      throw new Error('expected dictation listener')
+    }
+    const dispatch = (detail: unknown): boolean => {
+      const event = new CustomEvent('dictation:insertText', { cancelable: true, detail })
+      listener(event)
+      return event.defaultPrevented
+    }
+
+    expect({
+      otherTab: dispatch({ text: 'other', tabId: 'tab-2', paneId: 1 }),
+      untargetedWhileInactive: dispatch('untargeted'),
+      ownTab: dispatch({ text: 'git status', tabId: 'tab-1', paneId: 1 })
+    }).toEqual({ otherTab: false, untargetedWhileInactive: false, ownTab: true })
+
+    await flushPasteTasks()
+
+    expect(mocks.pasteTerminalText).toHaveBeenCalledOnce()
+    expect(mocks.pasteTerminalText).toHaveBeenCalledWith(terminal, 'git status', {
+      forceBracketedPaste: false
+    })
+    expect(terminal.focus).not.toHaveBeenCalled()
+  })
 })

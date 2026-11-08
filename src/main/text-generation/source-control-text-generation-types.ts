@@ -50,6 +50,7 @@ export type TextGenerationOperation =
   | 'branch-name'
   | 'jira-issue-summary'
   | 'conversation-name'
+  | 'dictation-cleanup'
 
 export type CommitMessageGenerationTarget =
   | { kind: 'local'; cwd: string; env?: NodeJS.ProcessEnv; wslDistro?: string }
@@ -84,6 +85,15 @@ export type GenerateBranchNameResult =
 
 export type GenerateConversationNameResult =
   | { success: true; name: string; agentLabel?: string }
+  | {
+      success: false
+      error: string
+      canceled?: boolean
+      failureOutput?: AgentGenerationFailureOutput
+    }
+
+export type GenerateDictationCleanupResult =
+  | { success: true; text: string; agentLabel?: string }
   | {
       success: false
       error: string

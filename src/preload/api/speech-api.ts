@@ -1,5 +1,6 @@
 import type { SecretAtRestProtection } from '../../shared/secret-at-rest-protection'
 import type {
+  DictationCleanupResult,
   SpeechErrorEvent,
   SpeechLifecycleEvent,
   SpeechModelManifest,
@@ -26,6 +27,8 @@ export type SpeechApi = {
   ) => Promise<void>
   feedAudio: (samples: Float32Array, sampleRate: number, sessionId?: string) => Promise<void>
   stopDictation: (sessionId?: string) => Promise<void>
+  cleanupTranscript: (sessionId: string, transcript: string) => Promise<DictationCleanupResult>
+  cancelCleanup: (sessionId: string) => Promise<void>
   onPartialTranscript: (callback: (data: SpeechTranscriptEvent) => void) => () => void
   onFinalTranscript: (callback: (data: SpeechTranscriptEvent) => void) => () => void
   onDownloadProgress: (

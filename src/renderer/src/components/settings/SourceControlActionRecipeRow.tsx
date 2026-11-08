@@ -82,8 +82,11 @@ function resolveAgentArgsPlaceholderAgent(
 }
 
 function getActionLabel(actionId: AiActionId): string {
-  return actionId === 'conversationName'
-    ? translate('settings.chat.names.recipe', 'Chat name')
+  if (actionId === 'conversationName') {
+    return translate('settings.chat.names.recipe', 'Chat name')
+  }
+  return actionId === 'dictationCleanup'
+    ? translate('settings.voice.cleanup.recipe', 'Transcript cleanup')
     : SOURCE_CONTROL_ACTION_LABELS[actionId]
 }
 

@@ -43,6 +43,10 @@ import {
   sourceControlAiSettingsFromLegacy as settingsFromLegacy
 } from './source-control-ai-settings'
 import { hasActionAgentRecipe } from './source-control-ai-command-template'
+import {
+  isRepoIndependentAiTextAction,
+  type RepoIndependentAiTextActionId
+} from './source-control-ai-actions'
 import type { AiTextOperation, SourceControlAiPrCreationDefaults } from './source-control-ai-types'
 
 export const DEFAULT_SOURCE_CONTROL_AI_PR_CREATION_DEFAULTS = DEFAULT_PR_CREATION_DEFAULTS
@@ -112,15 +116,31 @@ const COMMAND_TEMPLATE_EMPTY = {
   commitMessage: 'commandTemplateEmptyCommitMessage',
   pullRequest: 'commandTemplateEmptyPullRequest',
   branchName: 'commandTemplateEmptyBranchName',
-  conversationName: 'commandTemplateEmptyChatName'
+  conversationName: 'commandTemplateEmptyChatName',
+  dictationCleanup: 'commandTemplateEmptyDictationCleanup'
 } as const satisfies Record<AiTextOperation, TextGenerationFailureCode>
 
 const AGENT_CANNOT_GENERATE = {
   commitMessage: 'agentCannotGenerateCommitMessage',
   pullRequest: 'agentCannotGeneratePullRequest',
   branchName: 'agentCannotGenerateBranchName',
-  conversationName: 'agentCannotGenerateChatName'
+  conversationName: 'agentCannotGenerateChatName',
+  dictationCleanup: 'agentCannotGenerateDictationCleanup'
 } as const satisfies Record<AiTextOperation, TextGenerationFailureCode>
+
+const REPO_INDEPENDENT_FAILURES = {
+  conversationName: {
+    agentUnsupported: 'chatNameAgentUnsupported',
+    customCommandEmpty: 'chatNameCustomCommandEmpty'
+  },
+  dictationCleanup: {
+    agentUnsupported: 'dictationCleanupAgentUnsupported',
+    customCommandEmpty: 'dictationCleanupCustomCommandEmpty'
+  }
+} as const satisfies Record<
+  RepoIndependentAiTextActionId,
+  { agentUnsupported: TextGenerationFailureCode; customCommandEmpty: TextGenerationFailureCode }
+>
 
 function supportedAgentLabels(): string {
   return listCommitMessageAgentCapabilities()
@@ -139,17 +159,15 @@ export function resolveSourceControlAiForOperation(
 ): ResolveSourceControlAiResult {
   const legacy = input.settings.commitMessageAi
   const source = normalizeSettings(input.settings.sourceControlAi, legacy)
-  const repoOverrides =
-    input.operation === 'conversationName'
-      ? null
-      : normalizeRepoOverrides(input.repo?.sourceControlAi)
-  const forChatNames = input.operation === 'conversationName'
+  const repoIndependent = isRepoIndependentAiTextAction(input.operation)
+    ? REPO_INDEPENDENT_FAILURES[input.operation]
+    : null
+  const repoOverrides = repoIndependent ? null : normalizeRepoOverrides(input.repo?.sourceControlAi)
   const agentUnsupported = (): { ok: false } & TextGenerationFailureFields =>
     resolveFailure(
-      textGenerationFailure(
-        forChatNames ? 'chatNameAgentUnsupported' : 'sourceControlAgentUnsupported',
-        { agents: supportedAgentLabels() }
-      )
+      textGenerationFailure(repoIndependent?.agentUnsupported ?? 'sourceControlAgentUnsupported', {
+        agents: supportedAgentLabels()
+      })
     )
   const prCreationDefaults = resolvePrCreationDefaults(
     source,
@@ -186,7 +204,7 @@ export function resolveSourceControlAiForOperation(
     if (!customAgentCommand) {
       return resolveFailure(
         textGenerationFailure(
-          forChatNames ? 'chatNameCustomCommandEmpty' : 'sourceControlCustomCommandEmpty'
+          repoIndependent?.customCommandEmpty ?? 'sourceControlCustomCommandEmpty'
         )
       )
     }

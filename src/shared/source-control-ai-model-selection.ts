@@ -3,6 +3,7 @@ import type {
   CommitMessageAiModelCapability
 } from './commit-message-ai-types'
 import { LOCAL_COMMIT_MESSAGE_HOST_KEY } from './commit-message-host-key'
+import { isRepoIndependentAiTextAction } from './source-control-ai-actions'
 import type { TuiAgent } from './tui-agent'
 import type {
   RepoSourceControlAiOverrides,
@@ -121,7 +122,7 @@ export function selectPersistedModelId(args: {
 }): string {
   const { source, legacy, repoOverrides, operation, hostKey, agentId, defaultModelId } = args
   return (
-    (operation === 'conversationName'
+    (isRepoIndependentAiTextAction(operation)
       ? undefined
       : readSourceControlAiModelChoiceForHost(
           repoOverrides?.modelOverridesByOperation?.[operation],
@@ -160,7 +161,7 @@ export function resolveThinkingLevel(args: {
     return undefined
   }
   const persisted =
-    (args.operation === 'conversationName'
+    (isRepoIndependentAiTextAction(args.operation)
       ? undefined
       : args.repoOverrides?.modelOverridesByOperation?.[args.operation]?.selectedThinkingByModel?.[
           args.model.id

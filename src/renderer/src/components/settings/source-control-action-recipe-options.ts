@@ -26,6 +26,10 @@ export const getActionDescriptions = createLocalizedCatalog((): Record<AiActionI
     'settings.chat.names.recipeDescription',
     'Generate a short name from the first message in a new chat.'
   ),
+  dictationCleanup: translate(
+    'settings.voice.cleanup.recipeDescription',
+    'Fix recognition errors in the dictated text before it is inserted.'
+  ),
   commitMessage: translate(
     'auto.components.settings.source.control.action.recipe.options.commitMessage',
     'Generate the commit message from staged changes.'

@@ -15,6 +15,7 @@ import { showDictationStartErrorToast } from './dictation-start-error-toast'
 import { useHoldDictationGesture } from './use-hold-dictation-gesture'
 import { DICTATION_CONTROL_EVENT, type DictationControlAction } from './dictation-control-events'
 import { publishDictationMeter } from './dictation-meter-store'
+import { useDictationTranscriptBuffer } from './use-dictation-transcript-buffer'
 
 export function DictationController() {
   const dictationState = useAppStore((s) => s.dictationState)
@@ -44,6 +45,7 @@ export function DictationController() {
   const erroredSessionIdsRef = useRef(new Set<string>())
   const intentionalTargetCancellationRef = useRef(false)
   const insertedFinalTranscriptRef = useRef('')
+  const transcriptBuffer = useDictationTranscriptBuffer()
   // Push-to-talk restarts per utterance; report a missing preferred microphone once per preference.
   const micFallbackNotifiedForRef = useRef<string | null>(null)
   const stopDictationRef = useRef<(() => void) | null>(null)
@@ -73,6 +75,10 @@ export function DictationController() {
           )
         )
       }
+      await transcriptBuffer.finish(sessionId, insertionTargetRef.current, () => {
+        dictationStateRef.current = 'polishing'
+        setDictationState('polishing')
+      })
       insertionTargetRef.current = null
       finalTranscriptReceivedRef.current = false
       insertedFinalTranscriptRef.current = ''
@@ -85,7 +91,7 @@ export function DictationController() {
       setDictationState('idle')
       setPartialTranscript('')
     },
-    [setDictationState, setPartialTranscript, stopCapture, getCapturedChunkCount]
+    [setDictationState, setPartialTranscript, stopCapture, getCapturedChunkCount, transcriptBuffer]
   )
 
   const startDictation = useCallback(async () => {
@@ -126,6 +132,10 @@ export function DictationController() {
     finalTranscriptReceivedRef.current = false
     erroredSessionIdsRef.current.clear()
     insertedFinalTranscriptRef.current = ''
+    transcriptBuffer.reset(
+      settings.voice.transcriptCleanupEnabled === true,
+      settings.voice.markDictatedTextForAgents !== false
+    )
     intentionalTargetCancellationRef.current = false
     dictationStateRef.current = 'starting'
     setDictationState('starting')
@@ -225,6 +235,7 @@ export function DictationController() {
       finalTranscriptReceivedRef.current = false
       erroredSessionIdsRef.current.clear()
       insertedFinalTranscriptRef.current = ''
+      transcriptBuffer.reset(false, false)
       activeSessionIdRef.current = null
       setPartialTranscript('')
       if (message.includes('dictation_canceled')) {
@@ -248,7 +259,8 @@ export function DictationController() {
     finishDictationSession,
     drainStoppedSession,
     setPartialTranscript,
-    recordFeatureInteraction
+    recordFeatureInteraction,
+    transcriptBuffer
   ])
 
   const stopDictation = useCallback(async () => {
@@ -351,14 +363,14 @@ export function DictationController() {
       setPartialTranscript('')
       finalTranscriptReceivedRef.current = true
       const target = insertionTargetRef.current
-      if (target) {
+      if (target && !transcriptBuffer.buffer(data.text)) {
         const textToInsert = formatFinalTranscriptSegment(
           data.text,
           insertedFinalTranscriptRef.current
         )
         insertText(textToInsert, target)
         insertedFinalTranscriptRef.current += textToInsert
-      } else if (!intentionalTargetCancellationRef.current) {
+      } else if (!target && !intentionalTargetCancellationRef.current) {
         toast.message(
           translate(
             'auto.components.dictation.DictationController.7afff43472',
@@ -394,6 +406,7 @@ export function DictationController() {
       void (async () => {
         await window.api.speech.stopDictation(sessionId).catch(() => undefined)
         await waitForStoppedSession(sessionId, stoppedSessionIdsRef, stoppedResolversRef)
+        transcriptBuffer.insertRaw(insertionTargetRef.current)
         insertionTargetRef.current = null
         intentionalTargetCancellationRef.current = false
         stopRequestedDuringStartRef.current = false
@@ -411,7 +424,7 @@ export function DictationController() {
       cleanupStopped()
       cleanupError()
     }
-  }, [setPartialTranscript, setDictationState, stopCapture, discardBufferedAudio])
+  }, [setPartialTranscript, setDictationState, stopCapture, discardBufferedAudio, transcriptBuffer])
 
-  return <DictationIndicator />
+  return <DictationIndicator onSkipPolish={transcriptBuffer.skip} />
 }

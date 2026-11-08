@@ -28,6 +28,20 @@ export const getOpenaiTranscriptionSearchEntry = createLocalizedCatalog(
   })
 )
 
+export const getTranscriptCleanupSearchEntry = createLocalizedCatalog((): SettingsSearchEntry => ({
+  targetSectionId: 'transcript-cleanup',
+  title: translate('settings.voice.cleanup.title', 'Transcript cleanup'),
+  description: translate(
+    'settings.voice.cleanup.description',
+    'After you stop dictating, an agent fixes recognition errors before the text is inserted. Takes a few seconds; the raw text is inserted if it fails.'
+  ),
+  keywords: [
+    ...translateSearchKeyword('auto.components.settings.voice.pane.search.089d31a45b', 'dictation'),
+    ...translateSearchKeyword('settings.voice.cleanup.searchPolish', 'polish'),
+    ...translateSearchKeyword('settings.voice.cleanup.searchAgent', 'agent')
+  ]
+}))
+
 export const getVoicePaneSearchEntries = createLocalizedCatalog(() => [
   {
     title: translate(
@@ -99,6 +113,7 @@ export const getVoicePaneSearchEntries = createLocalizedCatalog(() => [
     ]
   },
   getOpenaiTranscriptionSearchEntry(),
+  getTranscriptCleanupSearchEntry(),
   {
     title: translate('auto.components.settings.voice.pane.search.7e62cd7c41', 'Speech Model'),
     description: translate(

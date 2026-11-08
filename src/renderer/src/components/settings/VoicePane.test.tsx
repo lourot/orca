@@ -6,8 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DeveloperPermissionRequestResult } from '../../../../shared/developer-permissions-types'
 import type { SpeechModelManifest } from '../../../../shared/speech-types'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
-import { getDefaultVoiceSettings } from '../../../../shared/constants'
+import { getDefaultSettings, getDefaultVoiceSettings } from '../../../../shared/constants'
 import { handleVoiceDictationToggle, VoicePane } from './VoicePane'
+
+const writeSourceControlAiSettings = async (): Promise<void> => undefined
 
 const { useAppStoreMock, useShortcutLabelMock } = vi.hoisted(() => ({
   useAppStoreMock: vi.fn(),
@@ -82,6 +84,7 @@ async function renderVoicePane(args: {
   const refreshModelStates = vi.fn()
   useAppStoreMock.mockImplementation((selector: (state: Record<string, unknown>) => unknown) =>
     selector({
+      settingsSearchQuery: '',
       modelStates: [],
       refreshModelStates,
       markFeatureTipsSeen: args.markFeatureTipsSeen,
@@ -96,7 +99,11 @@ async function renderVoicePane(args: {
   const root = createRoot(container)
   await act(async () => {
     root.render(
-      <VoicePane settings={makeSettings(args.voiceEnabled)} updateSettings={args.updateSettings} />
+      <VoicePane
+        settings={makeSettings(args.voiceEnabled)}
+        updateSettings={args.updateSettings}
+        writeSourceControlAiSettings={writeSourceControlAiSettings}
+      />
     )
   })
 
@@ -137,7 +144,13 @@ describe('VoicePane', () => {
 
     for (let i = 0; i < 4; i++) {
       await act(async () => {
-        root.render(<VoicePane settings={{} as GlobalSettings} updateSettings={updateSettings} />)
+        root.render(
+          <VoicePane
+            settings={{ ...getDefaultSettings('/tmp'), voice: undefined }}
+            updateSettings={updateSettings}
+            writeSourceControlAiSettings={writeSourceControlAiSettings}
+          />
+        )
       })
     }
     act(() => root.unmount())
@@ -262,6 +275,7 @@ describe('VoicePane', () => {
     })
     useAppStoreMock.mockImplementation((selector: (state: Record<string, unknown>) => unknown) =>
       selector({
+        settingsSearchQuery: '',
         modelStates: [],
         refreshModelStates: vi.fn(),
         markFeatureTipsSeen: vi.fn(),
@@ -291,7 +305,13 @@ describe('VoicePane', () => {
     document.body.appendChild(container)
     const root = createRoot(container)
     await act(async () => {
-      root.render(<VoicePane settings={settingsWithKey(true)} updateSettings={updateSettings} />)
+      root.render(
+        <VoicePane
+          settings={settingsWithKey(true)}
+          updateSettings={updateSettings}
+          writeSourceControlAiSettings={writeSourceControlAiSettings}
+        />
+      )
     })
 
     const disconnect = container.querySelector<HTMLButtonElement>(
@@ -305,7 +325,13 @@ describe('VoicePane', () => {
     })
 
     await act(async () => {
-      root.render(<VoicePane settings={settingsWithKey(false)} updateSettings={updateSettings} />)
+      root.render(
+        <VoicePane
+          settings={settingsWithKey(false)}
+          updateSettings={updateSettings}
+          writeSourceControlAiSettings={writeSourceControlAiSettings}
+        />
+      )
     })
 
     await act(async () => {

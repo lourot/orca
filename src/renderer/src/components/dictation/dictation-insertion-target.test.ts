@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getUtf8ByteLength } from '../../../../shared/utf8-byte-limits'
 
 import {
@@ -15,6 +15,12 @@ type DocumentWithExecCommand = Document & {
 }
 
 const originalExecCommand = (document as DocumentWithExecCommand).execCommand
+const writeClipboardText = vi.fn<(text: string) => Promise<void>>()
+
+beforeEach(() => {
+  writeClipboardText.mockReset().mockResolvedValue(undefined)
+  Object.assign(window, { api: { ui: { writeClipboardText } } })
+})
 
 afterEach(() => {
   document.body.replaceChildren()
@@ -55,10 +61,11 @@ function installExecCommandMock(
 
 describe('dictation insertion target', () => {
   it('dispatches terminal dictation with the captured pane target', () => {
-    const listener = vi.fn()
+    const listener = vi.fn((event: Event) => event.preventDefault())
     document.addEventListener('dictation:insertText', listener)
 
     insertText('git status', { kind: 'terminal', tabId: 'tab-1', paneId: 7 })
+    document.removeEventListener('dictation:insertText', listener)
 
     expect(listener).toHaveBeenCalledTimes(1)
     expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({
@@ -66,6 +73,24 @@ describe('dictation insertion target', () => {
       tabId: 'tab-1',
       paneId: 7
     })
+    expect(writeClipboardText).not.toHaveBeenCalled()
+  })
+
+  it('copies dictation to the clipboard when no target can take it', async () => {
+    const unfocused = appendTextarea()
+    appendTextarea()
+    const detached = document.createElement('textarea')
+
+    insertText('to terminal', { kind: 'terminal', tabId: 'gone', paneId: 1 })
+    insertText('to detached', { kind: 'text', element: detached })
+    insertText('to unfocused', { kind: 'text', element: unfocused })
+    await vi.waitFor(() => expect(writeClipboardText).toHaveBeenCalledTimes(3))
+
+    expect(writeClipboardText.mock.calls.map(([text]) => text).sort()).toEqual([
+      'to detached',
+      'to terminal',
+      'to unfocused'
+    ])
   })
 
   it('chunks large textarea dictation without one large input event', async () => {
@@ -133,6 +158,7 @@ describe('dictation insertion target', () => {
     await vi.runAllTimersAsync()
 
     expect(execCommand).toHaveBeenCalledTimes(1)
+    expect(writeClipboardText).toHaveBeenCalledWith(text)
   })
 
   it('rejects oversized multibyte contenteditable dictation before inserting', async () => {
@@ -149,5 +175,6 @@ describe('dictation insertion target', () => {
     expect(execCommand).not.toHaveBeenCalled()
     expect(beforeInputEvents).toHaveLength(0)
     expect(editor.textContent).toBe('')
+    expect(writeClipboardText).toHaveBeenCalledWith(text)
   })
 })

@@ -1,6 +1,7 @@
 import type { SecretAtRestProtection } from '../../shared/secret-at-rest-protection'
 import { ipcRenderer } from 'electron'
 import type {
+  DictationCleanupResult,
   SpeechErrorEvent,
   SpeechLifecycleEvent,
   SpeechModelManifest,
@@ -41,6 +42,10 @@ export const speechApi = {
     ),
   stopDictation: (sessionId = 'desktop'): Promise<void> =>
     ipcRenderer.invoke('speech:stopDictation', sessionId),
+  cleanupTranscript: (sessionId: string, transcript: string): Promise<DictationCleanupResult> =>
+    ipcRenderer.invoke('speech:cleanupTranscript', { sessionId, transcript }),
+  cancelCleanup: (sessionId: string): Promise<void> =>
+    ipcRenderer.invoke('speech:cancelCleanup', { sessionId }),
 
   onPartialTranscript: (callback: (data: SpeechTranscriptEvent) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, data: SpeechTranscriptEvent): void =>

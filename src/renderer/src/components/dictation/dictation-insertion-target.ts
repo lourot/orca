@@ -1,3 +1,5 @@
+import { toast } from 'sonner'
+import { translate } from '@/i18n/i18n'
 import { yieldToEventLoop } from '../../../../shared/event-loop-yield'
 import { getUtf8ChunkEndIndex } from '../../../../shared/utf8-byte-limits'
 import {
@@ -82,79 +84,121 @@ export function insertText(text: string, target: DictationInsertionTarget): void
     return
   }
   if (target.kind === 'terminal') {
-    document.dispatchEvent(
+    // The target tab's listener cancels the event once a pane takes the text.
+    const notDelivered = document.dispatchEvent(
       new CustomEvent('dictation:insertText', {
+        cancelable: true,
         detail: { text, tabId: target.tabId, paneId: target.paneId }
       })
     )
+    if (notDelivered) {
+      copyUndeliveredDictation(text)
+    }
     return
   }
 
   if (target.kind === 'text') {
     const element = target.element
     if (!element.isConnected) {
+      copyUndeliveredDictation(text)
       return
     }
     void pasteTextIntoTextControl(element, text, {
       source: 'programmatic',
       inputType: 'insertText',
       canContinue: (candidate) => candidate.ownerDocument.activeElement === candidate
-    }).catch(() => {})
+    }).then(
+      (result) => {
+        if (result.status !== 'pasted' && result.reason !== 'empty') {
+          copyUndeliveredDictation(text)
+        }
+      },
+      () => copyUndeliveredDictation(text)
+    )
     return
   }
 
   if (target.kind === 'contentEditable') {
-    void insertTextIntoContentEditableTarget(target.element, text).catch(() => {})
+    void insertTextIntoContentEditableTarget(target.element, text).then(
+      (inserted) => {
+        if (!inserted) {
+          copyUndeliveredDictation(text)
+        }
+      },
+      () => copyUndeliveredDictation(text)
+    )
   }
+}
+
+/** Keeps dictated words that no target could take, e.g. after focus moved away during polishing. */
+function copyUndeliveredDictation(text: string): void {
+  void window.api.ui.writeClipboardText(text).then(
+    () =>
+      toast.message(
+        translate(
+          'dictation.insert.copiedToClipboard',
+          'Could not insert the dictated text, so it was copied to the clipboard.'
+        )
+      ),
+    () =>
+      toast.error(
+        translate(
+          'dictation.insert.lost',
+          'Could not insert the dictated text or copy it to the clipboard.'
+        )
+      )
+  )
 }
 
 function findClosestEditorElement(element: HTMLElement): HTMLElement | null {
   return element.closest('.ProseMirror, [contenteditable="true"]')
 }
 
+/** False when the editor lost focus or the text is too large, i.e. the words did not land. */
 async function insertTextIntoContentEditableTarget(
   element: HTMLElement,
   text: string
-): Promise<void> {
+): Promise<boolean> {
   const directByteLength = measureTextControlPasteByteLength(text, {
     stopAfterBytes: TEXT_CONTROL_PASTE_DIRECT_MAX_BYTES
   })
   if (directByteLength.byteLength === 0) {
-    return
+    return true
   }
   if (!isContentEditableDictationTargetCurrent(element)) {
-    return
+    return false
   }
   const editorElement = findClosestEditorElement(element) ?? element
   if (!directByteLength.exceededLimit) {
     insertContentEditableDictationChunk(element, editorElement, text)
-    return
+    return true
   }
 
   const maxByteLength = await measureTextControlPasteByteLengthWithYield(text, {
     stopAfterBytes: TEXT_CONTROL_PASTE_MAX_BYTES
   })
   if (maxByteLength.exceededLimit) {
-    return
+    return false
   }
 
   let textIndex = 0
   // Chunk paste-sized dictation while preserving editor beforeinput/input semantics.
   while (textIndex < text.length) {
     if (!isContentEditableDictationTargetCurrent(element)) {
-      return
+      return false
     }
     const nextIndex = getUtf8ChunkEndIndex(text, textIndex, TEXT_CONTROL_PASTE_CHUNK_MAX_BYTES)
     if (
       !insertContentEditableDictationChunk(element, editorElement, text.slice(textIndex, nextIndex))
     ) {
-      return
+      return true
     }
     textIndex = nextIndex
     if (textIndex < text.length) {
       await yieldToEventLoop()
     }
   }
+  return true
 }
 
 function insertContentEditableDictationChunk(

@@ -280,15 +280,11 @@ export function useTerminalPaneGlobalEffects({
     return () => window.removeEventListener(PASTE_TERMINAL_TEXT_EVENT, onPasteText)
   }, [tabId, managerRef, paneTransportsRef])
 
-  // Global dictation events must reach only the active pane or every mounted tab inserts the text.
   useEffect(() => {
     if (typeof document === 'undefined') {
       return
     }
     const onDictationInsert = (event: Event): void => {
-      if (!isActiveRef.current) {
-        return
-      }
       const detail = (
         event as CustomEvent<string | { text?: string; tabId?: string; paneId?: number }>
       ).detail
@@ -296,11 +292,14 @@ export function useTerminalPaneGlobalEffects({
       if (!text) {
         return
       }
-      if (typeof detail === 'object' && detail.tabId && detail.tabId !== tabId) {
+      const targetTabId = typeof detail === 'object' ? detail.tabId : undefined
+      // Why: polished text lands after the user may have switched tabs, so a targeted insert must
+      // still reach its tab; untargeted events go to the active tab only, or every mounted tab inserts.
+      if (targetTabId ? targetTabId !== tabId : !isActiveRef.current) {
         return
       }
       const requestedPaneId = typeof detail === 'object' ? detail.paneId : undefined
-      handleTerminalProgrammaticTextPaste({
+      const delivered = handleTerminalProgrammaticTextPaste({
         detail: {
           tabId,
           text,
@@ -308,8 +307,13 @@ export function useTerminalPaneGlobalEffects({
         },
         tabId,
         getManager: () => managerRef.current,
-        getPaneTransports: () => paneTransportsRef.current
+        getPaneTransports: () => paneTransportsRef.current,
+        focusAfterPaste: isActiveRef.current
       })
+      // Cancelling tells the dispatcher a pane took the text, so it skips its clipboard fallback.
+      if (delivered) {
+        event.preventDefault()
+      }
     }
     document.addEventListener('dictation:insertText', onDictationInsert)
     return () => document.removeEventListener('dictation:insertText', onDictationInsert)

@@ -10,14 +10,19 @@ import { dispatchDictationControl } from './dictation-control-events'
 import { DictationGrapes } from './DictationGrapes'
 import { useDictationMeter } from './dictation-meter-store'
 
-export function DictationIndicator() {
+export function DictationIndicator({
+  onSkipPolish
+}: {
+  /** Inserts the raw transcript instead of waiting for the cleanup agent. */
+  onSkipPolish?: () => void
+}) {
   const dictationState = useAppStore((state) => state.dictationState)
   const partialTranscript = useAppStore((state) => state.partialTranscript)
   const dictationMeter = useDictationMeter()
   const isHoldMode = useAppStore((state) => state.settings?.voice?.dictationMode === 'hold')
   const shortcut = useShortcutKeyDetails('voice.dictation')
 
-  const isVisible = ['listening', 'starting', 'stopping'].includes(dictationState)
+  const isVisible = ['listening', 'starting', 'stopping', 'polishing'].includes(dictationState)
   if (!isVisible) {
     return null
   }
@@ -30,14 +35,17 @@ export function DictationIndicator() {
       ? translate('auto.components.dictation.DictationIndicator.7f3660a7ba', 'Starting mic…')
       : dictationState === 'stopping'
         ? translate('auto.components.dictation.DictationIndicator.f082d0cb9d', 'Processing…')
-        : translate('auto.components.dictation.DictationIndicator.3de5a129e7', 'Listening')
+        : dictationState === 'polishing'
+          ? translate('dictation.indicator.polishing', 'Polishing…')
+          : translate('auto.components.dictation.DictationIndicator.3de5a129e7', 'Listening')
   const label = isClipping
     ? translate('auto.components.dictation.DictationIndicator.4977162383', 'Too loud')
     : isSpeaking
       ? translate('auto.components.dictation.DictationIndicator.25f2b7a6a5', 'Speaking')
       : lifecycleLabel
   const announcedLabel = isClipping ? label : lifecycleLabel
-  const canStop = dictationState !== 'stopping'
+  const isPolishing = dictationState === 'polishing'
+  const canStop = dictationState !== 'stopping' && !isPolishing
   const showShortcut = !isHoldMode && shortcut.keys.length > 0
   const transcript = partialTranscript.trim()
   const stopLabel = translate(
@@ -61,7 +69,7 @@ export function DictationIndicator() {
       <div className="flex h-10 items-center gap-2 px-2">
         <DictationGrapes
           level={dictationMeter.level}
-          active={dictationState !== 'stopping'}
+          active={dictationState !== 'stopping' && !isPolishing}
           transitioning={dictationState !== 'listening'}
         />
         <span aria-hidden className="min-w-0 truncate font-medium">
@@ -94,6 +102,21 @@ export function DictationIndicator() {
                 ) : null}
               </TooltipContent>
             </Tooltip>
+          </>
+        ) : null}
+        {isPolishing && onSkipPolish ? (
+          <>
+            <span aria-hidden className="ml-0.5 h-4 w-px shrink-0 bg-border" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              className="shrink-0 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={onSkipPolish}
+            >
+              {translate('dictation.indicator.skipPolish', 'Skip')}
+            </Button>
           </>
         ) : null}
       </div>

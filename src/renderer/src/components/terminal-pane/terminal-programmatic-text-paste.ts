@@ -12,20 +12,24 @@ type HandleTerminalProgrammaticTextPasteArgs = {
   tabId: string
   getManager: () => PaneManager | null
   getPaneTransports: () => Map<number, PtyTransport>
+  /** False for a background tab, so a late paste cannot pull focus away from where the user is typing. */
+  focusAfterPaste?: boolean
 }
 
+/** Pastes into this tab's target pane; false when the event is not for this tab or no pane can take it. */
 export function handleTerminalProgrammaticTextPaste({
   detail,
   tabId,
   getManager,
-  getPaneTransports
-}: HandleTerminalProgrammaticTextPasteArgs): void {
+  getPaneTransports,
+  focusAfterPaste = true
+}: HandleTerminalProgrammaticTextPasteArgs): boolean {
   if (!detail?.tabId || detail.tabId !== tabId || !detail.text) {
-    return
+    return false
   }
   const manager = getManager()
   if (!manager) {
-    return
+    return false
   }
   const panes = manager.getPanes()
   const pane =
@@ -33,7 +37,7 @@ export function handleTerminalProgrammaticTextPaste({
       ? (panes.find((candidate) => candidate.id === detail.paneId) ?? null)
       : (manager.getActivePane() ?? panes[0])
   if (!pane) {
-    return
+    return false
   }
   const paneTransports = getPaneTransports()
   const transport = paneTransports.get(pane.id)
@@ -66,6 +70,9 @@ export function handleTerminalProgrammaticTextPaste({
       return
     }
     recordTerminalUserInputForLeaf(tabId, pane.leafId)
-    pane.terminal.focus()
+    if (focusAfterPaste) {
+      pane.terminal.focus()
+    }
   })
+  return true
 }

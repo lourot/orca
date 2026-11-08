@@ -16,6 +16,7 @@ export const SOURCE_CONTROL_ACTION_VARIABLES: Record<AiActionId, SourceControlAc
   ],
   branchName: ['basePrompt', 'firstPrompt', 'assistantMessage'],
   conversationName: ['basePrompt', 'firstPrompt'],
+  dictationCleanup: ['basePrompt', 'transcript'],
   fixCommitFailure: ['basePrompt'],
   fixPushFailure: ['basePrompt'],
   fixChecks: ['basePrompt'],
@@ -75,6 +76,10 @@ export const SOURCE_CONTROL_ACTION_VARIABLE_INFO = {
   firstPrompt: {
     description: 'The first user request for this workspace or chat.',
     example: 'Fix CI and commit the result'
+  },
+  transcript: {
+    description: 'The raw dictated text, before cleanup.',
+    example: 'so I want to open the work tree in or car and run p n p m test'
   },
   assistantMessage: {
     description: 'The initial agent response, when Orca has one available.',
