@@ -22,6 +22,7 @@ import {
 } from 'react'
 import { shallow } from 'zustand/shallow'
 import { EditorContent, useEditor } from '@tiptap/react'
+import { DICTATION_AGENT_INPUT_ATTRIBUTE } from '../dictation/dictation-agent-disclaimer'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import {
@@ -115,6 +116,7 @@ function NativePromptEditor({
         attributes: {
           role: 'textbox',
           'aria-multiline': 'true',
+          [DICTATION_AGENT_INPUT_ATTRIBUTE]: 'true',
           'aria-label': placeholder,
           class: `${className ?? ''} whitespace-pre-wrap break-words [&_p]:m-0 [&_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)] [&_p.is-editor-empty:first-child]:before:text-chat-foreground-faint [&_p.is-editor-empty:first-child]:before:float-left [&_p.is-editor-empty:first-child]:before:h-0 [&_p.is-editor-empty:first-child]:before:pointer-events-none`,
           ...Object.fromEntries(Object.entries(events).filter(([key]) => key.startsWith('aria-')))

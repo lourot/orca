@@ -78,9 +78,18 @@ function readFocusedInsertionTarget(): DictationInsertionTarget | null {
   return null
 }
 
-export function insertText(text: string, target: DictationInsertionTarget): void {
+/**
+ * Inserts dictated text into its target. `agentText`, the same words wrapped for an agent, replaces
+ * `text` where the target can take it; a terminal decides per pane (see `terminalDictationText`).
+ */
+export function insertText(
+  text: string,
+  target: DictationInsertionTarget,
+  agentText?: string
+): void {
+  const preferred = agentText ?? text
   if (target.kind === 'composer') {
-    target.insert(text)
+    target.insert(preferred)
     return
   }
   if (target.kind === 'terminal') {
@@ -88,11 +97,11 @@ export function insertText(text: string, target: DictationInsertionTarget): void
     const notDelivered = document.dispatchEvent(
       new CustomEvent('dictation:insertText', {
         cancelable: true,
-        detail: { text, tabId: target.tabId, paneId: target.paneId }
+        detail: { text, agentText, tabId: target.tabId, paneId: target.paneId }
       })
     )
     if (notDelivered) {
-      copyUndeliveredDictation(text)
+      copyUndeliveredDictation(preferred)
     }
     return
   }
@@ -100,32 +109,32 @@ export function insertText(text: string, target: DictationInsertionTarget): void
   if (target.kind === 'text') {
     const element = target.element
     if (!element.isConnected) {
-      copyUndeliveredDictation(text)
+      copyUndeliveredDictation(preferred)
       return
     }
-    void pasteTextIntoTextControl(element, text, {
+    void pasteTextIntoTextControl(element, preferred, {
       source: 'programmatic',
       inputType: 'insertText',
       canContinue: (candidate) => candidate.ownerDocument.activeElement === candidate
     }).then(
       (result) => {
         if (result.status !== 'pasted' && result.reason !== 'empty') {
-          copyUndeliveredDictation(text)
+          copyUndeliveredDictation(preferred)
         }
       },
-      () => copyUndeliveredDictation(text)
+      () => copyUndeliveredDictation(preferred)
     )
     return
   }
 
   if (target.kind === 'contentEditable') {
-    void insertTextIntoContentEditableTarget(target.element, text).then(
+    void insertTextIntoContentEditableTarget(target.element, preferred).then(
       (inserted) => {
         if (!inserted) {
-          copyUndeliveredDictation(text)
+          copyUndeliveredDictation(preferred)
         }
       },
-      () => copyUndeliveredDictation(text)
+      () => copyUndeliveredDictation(preferred)
     )
   }
 }

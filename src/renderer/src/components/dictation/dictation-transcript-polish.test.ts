@@ -17,9 +17,14 @@ describe('polishDictationTranscript', () => {
       api: { speech: { cleanupTranscript: () => new Promise(() => undefined), cancelCleanup } }
     })
 
-    const text = await polishDictationTranscript('7', 'raw words', new AbortController().signal, 5)
+    const result = await polishDictationTranscript(
+      '7',
+      'raw words',
+      new AbortController().signal,
+      5
+    )
 
-    expect(text).toBe('raw words')
+    expect(result).toEqual({ text: 'raw words', polished: false })
     expect(cancelCleanup).toHaveBeenCalledWith('7')
   })
 })

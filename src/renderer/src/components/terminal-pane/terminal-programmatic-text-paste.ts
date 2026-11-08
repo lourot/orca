@@ -14,6 +14,8 @@ type HandleTerminalProgrammaticTextPasteArgs = {
   getPaneTransports: () => Map<number, PtyTransport>
   /** False for a background tab, so a late paste cannot pull focus away from where the user is typing. */
   focusAfterPaste?: boolean
+  /** Rewrites the text for the resolved pane, from whether it is in bracketed-paste mode. */
+  textForPane?: (bracketedPasteMode: boolean) => string
 }
 
 /** Pastes into this tab's target pane; false when the event is not for this tab or no pane can take it. */
@@ -22,7 +24,8 @@ export function handleTerminalProgrammaticTextPaste({
   tabId,
   getManager,
   getPaneTransports,
-  focusAfterPaste = true
+  focusAfterPaste = true,
+  textForPane
 }: HandleTerminalProgrammaticTextPasteArgs): boolean {
   if (!detail?.tabId || detail.tabId !== tabId || !detail.text) {
     return false
@@ -53,7 +56,7 @@ export function handleTerminalProgrammaticTextPaste({
     })
   void pasteTextIntoTerminalPane({
     pane,
-    text: detail.text,
+    text: textForPane ? textForPane(pane.terminal.modes?.bracketedPasteMode === true) : detail.text,
     source: 'programmatic',
     ptyId,
     runtime: resolveTerminalPasteRuntime({

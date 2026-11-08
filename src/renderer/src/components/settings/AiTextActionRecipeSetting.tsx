@@ -35,6 +35,8 @@ type AiTextActionRecipeSettingProps = {
   writeSourceControlAiSettings: (patch: SourceControlAiSettingsPatch) => Promise<void>
   onDirtyChange?: (dirty: boolean) => void
   forceVisible?: boolean
+  /** Extra options shown while the action is enabled, above the recipe. */
+  children?: React.ReactNode
 }
 
 /** An on/off switch plus agent and prompt recipe for an AI text action that runs outside any repo. */
@@ -50,7 +52,8 @@ export function AiTextActionRecipeSetting({
   settings,
   writeSourceControlAiSettings,
   onDirtyChange,
-  forceVisible = false
+  forceVisible = false,
+  children
 }: AiTextActionRecipeSettingProps): React.JSX.Element {
   const config = normalizeSourceControlAiSettings(
     settings.sourceControlAi,
@@ -166,6 +169,7 @@ export function AiTextActionRecipeSetting({
                 onCheckedChange={onEnabledChange}
               />
             </div>
+            {enabled ? children : null}
             {enabled || dirty ? (
               <>
                 {recipe?.agentId === CUSTOM_AGENT_ID || customCommandDirty ? (

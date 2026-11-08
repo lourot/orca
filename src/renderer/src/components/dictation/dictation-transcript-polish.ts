@@ -5,16 +5,19 @@ import type { DictationCleanupResult } from '../../../../shared/speech-types'
 // Why: Codex answers in ~5 s, but its runs are serialized per CODEX_HOME and can queue behind a commit message.
 export const DICTATION_POLISH_TIMEOUT_MS = 20_000
 
+export type PolishedDictation = { text: string; polished: boolean }
+
 /**
  * Asks the dictation-cleanup agent to fix the transcript. Resolves to the cleaned text, or to the raw
- * transcript on failure, timeout or skip, so dictated words are never lost.
+ * transcript (`polished: false`) on failure, timeout or skip, so dictated words are never lost.
  */
 export async function polishDictationTranscript(
   sessionId: string,
   transcript: string,
   skipSignal: AbortSignal,
   timeoutMs = DICTATION_POLISH_TIMEOUT_MS
-): Promise<string> {
+): Promise<PolishedDictation> {
+  const raw: PolishedDictation = { text: transcript, polished: false }
   let timer: ReturnType<typeof setTimeout> | undefined
   let onSkip: (() => void) | undefined
   const stopped = new Promise<'timeout' | 'skip'>((resolve) => {
@@ -42,10 +45,10 @@ export async function polishDictationTranscript(
           )
         )
       }
-      return transcript
+      return raw
     }
     if (outcome.ok) {
-      return outcome.text
+      return { text: outcome.text, polished: true }
     }
     if (!outcome.canceled) {
       toast.error(
@@ -56,7 +59,7 @@ export async function polishDictationTranscript(
         )
       )
     }
-    return transcript
+    return raw
   } finally {
     clearTimeout(timer)
     if (onSkip) {

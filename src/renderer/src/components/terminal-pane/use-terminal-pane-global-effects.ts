@@ -8,6 +8,8 @@ import {
   type PasteTerminalTextDetail
 } from '@/constants/terminal'
 import type { PaneManager } from '@/lib/pane-manager/pane-manager'
+import { terminalDictationText } from '../dictation/dictation-agent-disclaimer'
+import { readDictationTerminalInsert } from '../dictation/dictation-control-events'
 import type { PtyTransport } from './pty-transport-types'
 import type { IDisposable } from '@xterm/xterm'
 import { handleFocusTerminalPaneDetail } from './focus-terminal-pane-event'
@@ -285,20 +287,16 @@ export function useTerminalPaneGlobalEffects({
       return
     }
     const onDictationInsert = (event: Event): void => {
-      const detail = (
-        event as CustomEvent<string | { text?: string; tabId?: string; paneId?: number }>
-      ).detail
-      const text = typeof detail === 'string' ? detail : detail?.text
-      if (!text) {
+      const insert = readDictationTerminalInsert(event)
+      if (!insert) {
         return
       }
-      const targetTabId = typeof detail === 'object' ? detail.tabId : undefined
+      const { text, agentText, tabId: targetTabId, paneId: requestedPaneId } = insert
       // Why: polished text lands after the user may have switched tabs, so a targeted insert must
       // still reach its tab; untargeted events go to the active tab only, or every mounted tab inserts.
       if (targetTabId ? targetTabId !== tabId : !isActiveRef.current) {
         return
       }
-      const requestedPaneId = typeof detail === 'object' ? detail.paneId : undefined
       const delivered = handleTerminalProgrammaticTextPaste({
         detail: {
           tabId,
@@ -308,7 +306,9 @@ export function useTerminalPaneGlobalEffects({
         tabId,
         getManager: () => managerRef.current,
         getPaneTransports: () => paneTransportsRef.current,
-        focusAfterPaste: isActiveRef.current
+        focusAfterPaste: isActiveRef.current,
+        textForPane: (bracketedPasteMode) =>
+          terminalDictationText(text, agentText, bracketedPasteMode)
       })
       // Cancelling tells the dispatcher a pane took the text, so it skips its clipboard fallback.
       if (delivered) {

@@ -38,7 +38,9 @@ export const getTranscriptCleanupSearchEntry = createLocalizedCatalog((): Settin
   keywords: [
     ...translateSearchKeyword('auto.components.settings.voice.pane.search.089d31a45b', 'dictation'),
     ...translateSearchKeyword('settings.voice.cleanup.searchPolish', 'polish'),
-    ...translateSearchKeyword('settings.voice.cleanup.searchAgent', 'agent')
+    ...translateSearchKeyword('settings.voice.cleanup.searchAgent', 'agent'),
+    ...translateSearchKeyword('settings.voice.cleanup.searchDisclaimer', 'disclaimer'),
+    ...translateSearchKeyword('settings.voice.cleanup.searchMisspelled', 'misspelled')
   ]
 }))
 

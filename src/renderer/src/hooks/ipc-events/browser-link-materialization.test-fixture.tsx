@@ -88,7 +88,9 @@ export function installBrowserLinkMaterializationProbe() {
         userModels: [],
         openAiApiKeyConfigured: false,
         microphoneDeviceId: null,
-        microphoneDeviceLabel: null
+        microphoneDeviceLabel: null,
+        transcriptCleanupEnabled: false,
+        markDictatedTextForAgents: true
       }
     })
   useAppStore.setState({

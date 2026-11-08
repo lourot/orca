@@ -71,6 +71,7 @@ vi.mock('sonner', () => ({
 }))
 
 import { DictationController } from './DictationController'
+import { wrapDictationForAgent } from './dictation-agent-disclaimer'
 
 let root: Root | null = null
 let pressDictationKey: () => void
@@ -83,9 +84,19 @@ let cleanupTranscript: ReturnType<
 >
 let cancelCleanup: ReturnType<typeof vi.fn<(sessionId: string) => Promise<void>>>
 
-async function mount(transcriptCleanupEnabled: boolean): Promise<void> {
+/** `'absent'` stands for settings saved before the switch existed. */
+async function mount(
+  transcriptCleanupEnabled: boolean,
+  markDictatedTextForAgents: boolean | 'absent' = false
+): Promise<void> {
   mocks.state.settings = {
-    voice: { enabled: true, sttModel: 'model', dictationMode: 'toggle', transcriptCleanupEnabled }
+    voice: {
+      enabled: true,
+      sttModel: 'model',
+      dictationMode: 'toggle',
+      transcriptCleanupEnabled,
+      ...(markDictatedTextForAgents === 'absent' ? {} : { markDictatedTextForAgents })
+    }
   }
   const container = document.createElement('div')
   root = createRoot(container)
@@ -162,7 +173,7 @@ describe('DictationController transcript cleanup', () => {
     await waitForIdle()
 
     expect(cleanupTranscript).toHaveBeenCalledExactlyOnceWith('1', 'so I want open or car')
-    expect(mocks.insertText.mock.calls).toEqual([['Cleaned text.', mocks.target]])
+    expect(mocks.insertText.mock.calls).toEqual([['Cleaned text.', mocks.target, undefined]])
   })
 
   it.each([
@@ -179,7 +190,9 @@ describe('DictationController transcript cleanup', () => {
     await dictate(['so I want'], ['open or car'])
     await waitForIdle()
 
-    expect(mocks.insertText.mock.calls).toEqual([['so I want open or car', mocks.target]])
+    expect(mocks.insertText.mock.calls).toEqual([
+      ['so I want open or car', mocks.target, undefined]
+    ])
   })
 
   it('inserts the raw text once and cancels the agent when skipped', async () => {
@@ -190,7 +203,7 @@ describe('DictationController transcript cleanup', () => {
     await act(async () => mocks.indicatorProps.onSkipPolish?.())
     await waitForIdle()
 
-    expect(mocks.insertText.mock.calls).toEqual([['so I want', mocks.target]])
+    expect(mocks.insertText.mock.calls).toEqual([['so I want', mocks.target, undefined]])
     expect(cancelCleanup).toHaveBeenCalledWith('1')
   })
 
@@ -204,11 +217,49 @@ describe('DictationController transcript cleanup', () => {
     await waitForIdle()
 
     expect(cleanupTranscript).not.toHaveBeenCalled()
-    expect(mocks.insertText.mock.calls).toEqual([['so I want', mocks.target]])
+    expect(mocks.insertText.mock.calls).toEqual([['so I want', mocks.target, undefined]])
   })
 
-  it('inserts each final as it arrives when cleanup is off', async () => {
-    await mount(false)
+  it('marks polished text for the agent by default, including settings saved before the switch', async () => {
+    await mount(true, 'absent')
+    await dictate(['so I want'], [])
+    await waitForIdle()
+
+    expect(mocks.insertText.mock.calls).toEqual([
+      ['Cleaned text.', mocks.target, wrapDictationForAgent('Cleaned text.', mocks.target, true)]
+    ])
+  })
+
+  it('marks the raw fallback as not cleaned up', async () => {
+    cleanupTranscript.mockImplementation(async () => ({
+      ok: false as const,
+      error: 'agent missing'
+    }))
+    await mount(true, true)
+    await dictate(['so I want'], [])
+    await waitForIdle()
+
+    expect(mocks.insertText.mock.calls).toEqual([
+      ['so I want', mocks.target, wrapDictationForAgent('so I want', mocks.target, false)]
+    ])
+  })
+
+  it('marks the buffered raw text as not cleaned up when speech fails mid-dictation', async () => {
+    await mount(true, true)
+    finalsAfterStop = []
+    await act(async () => pressDictationKey())
+    await vi.waitFor(() => expect(mocks.state.dictationState).toBe('listening'))
+    emitFinal({ sessionId: '1', text: 'so I want' })
+    await act(async () => emitError({ sessionId: '1', error: 'worker crashed' }))
+    await waitForIdle()
+
+    expect(mocks.insertText.mock.calls).toEqual([
+      ['so I want', mocks.target, wrapDictationForAgent('so I want', mocks.target, false)]
+    ])
+  })
+
+  it('inserts each final as it arrives, unmarked, when cleanup is off', async () => {
+    await mount(false, true)
     await dictate(['so I want'], ['open or car'])
     await waitForIdle()
 

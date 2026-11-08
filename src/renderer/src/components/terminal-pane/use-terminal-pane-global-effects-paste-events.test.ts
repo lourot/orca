@@ -303,4 +303,67 @@ describe('useTerminalPaneGlobalEffects', () => {
     })
     expect(terminal.focus).not.toHaveBeenCalled()
   })
+
+  it('sends the agent-wrapped dictation only to a bracketed-paste pane, and one line elsewhere', async () => {
+    const documentListeners = new Map<string, EventListener>()
+    vi.stubGlobal('document', {
+      addEventListener: vi.fn((name: string, listener: EventListener) =>
+        documentListeners.set(name, listener)
+      ),
+      removeEventListener: vi.fn()
+    })
+    const terminal = { name: 'terminal-a', focus: vi.fn(), modes: { bracketedPasteMode: false } }
+    const pane = { id: 1, leafId: 'leaf-1', terminal }
+    const manager = {
+      getPanes: vi.fn(() => [pane]),
+      resumeRendering: vi.fn(),
+      resetWebglTextureAtlases: vi.fn(),
+      scheduleRevealRepaint: vi.fn(),
+      scheduleRevealPresent: vi.fn(),
+      suspendRendering: vi.fn(),
+      fitAllRevealedPanes: vi.fn(),
+      getActivePane: vi.fn(() => pane)
+    }
+    const transport = {
+      getPtyId: vi.fn(() => 'pty-1'),
+      isConnected: vi.fn(() => true),
+      sendInput: vi.fn<(data: string) => boolean>(() => true)
+    }
+
+    beginHookRender()
+    useTerminalPaneGlobalEffects({
+      tabId: 'tab-1',
+      isActive: true,
+      isVisible: true,
+      isSyncFitEnabled: true,
+      paneCount: 1,
+      managerRef: { current: manager as never },
+      containerRef: { current: null },
+      paneTransportsRef: { current: new Map([[pane.id, transport]]) as never },
+      isActiveRef: { current: true },
+      isVisibleRef: { current: true },
+      toggleExpandPane: vi.fn()
+    })
+    const listener = documentListeners.get('dictation:insertText')
+    if (!listener) {
+      throw new Error('expected dictation listener')
+    }
+    const detail = {
+      text: 'rm old\nlist files',
+      agentText: '<wrapped/>',
+      tabId: 'tab-1',
+      paneId: 1
+    }
+
+    listener(new CustomEvent('dictation:insertText', { cancelable: true, detail }))
+    await flushPasteTasks()
+    terminal.modes.bracketedPasteMode = true
+    listener(new CustomEvent('dictation:insertText', { cancelable: true, detail }))
+    await flushPasteTasks()
+
+    expect(mocks.pasteTerminalText.mock.calls.map((call) => call[1])).toEqual([
+      'rm old list files',
+      '<wrapped/>'
+    ])
+  })
 })

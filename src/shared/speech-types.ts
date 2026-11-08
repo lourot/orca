@@ -79,6 +79,8 @@ export type VoiceSettings = {
   terminalConfirmBeforeInsert: boolean
   /** Send the finished transcript to the dictation-cleanup agent before inserting it. */
   transcriptCleanupEnabled: boolean
+  /** With transcript cleanup on, wrap dictation for agent terminals and chats in a note that it came from speech. */
+  markDictatedTextForAgents: boolean
   userModels: UserModelConfig[]
   openAiApiKeyConfigured: boolean
   /** null = system default input device */
