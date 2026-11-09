@@ -151,6 +151,25 @@ export const getGeneralEditorSearchEntries = createLocalizedCatalog(() => [
     ]
   },
   {
+    title: translate(
+      'auto.components.settings.general.search.jiraKeyLinksTitle',
+      'Jira Issue Key Links'
+    ),
+    description: translate(
+      'auto.components.settings.general.search.jiraKeyLinksDescription',
+      'Turn issue keys such as PROJ-123 into links to your Jira site in Markdown files.'
+    ),
+    keywords: [
+      ...translateSearchKeyword('auto.components.settings.general.search.jiraKeyLinksJira', 'jira'),
+      ...translateSearchKeyword('auto.components.settings.general.search.d05f629d2c', 'markdown'),
+      ...translateSearchKeyword('auto.components.settings.general.search.jiraKeyLinksLink', 'link'),
+      ...translateSearchKeyword(
+        'auto.components.settings.general.search.jiraKeyLinksTicket',
+        'ticket'
+      )
+    ]
+  },
+  {
     title: translate('auto.components.settings.general.search.128bc09325', 'Markdown Review Notes'),
     description: translate(
       'auto.components.settings.general.search.694613d47f',

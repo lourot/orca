@@ -18,6 +18,7 @@ import {
 } from './SettingsFormControls'
 import { translate } from '@/i18n/i18n'
 import { RichMarkdownSpellcheckSetting } from './RichMarkdownSpellcheckSetting'
+import { JiraKeyLinksSetting } from './JiraKeyLinksSetting'
 import { DiffShowWhitespaceSetting } from './DiffShowWhitespaceSetting'
 import { EditorWordWrapSetting } from './EditorWordWrapSetting'
 import { EditorFontFamilySetting } from './EditorFontFamilySetting'
@@ -369,6 +370,8 @@ export function GeneralEditorSettingsSection({
       </SearchableSetting>
 
       <RichMarkdownSpellcheckSetting settings={settings} updateSettings={updateSettings} />
+
+      <JiraKeyLinksSetting settings={settings} updateSettings={updateSettings} />
 
       <SearchableSetting
         title={translate(

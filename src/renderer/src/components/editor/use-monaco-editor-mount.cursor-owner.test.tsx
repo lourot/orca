@@ -24,6 +24,9 @@ vi.mock('./monaco-markdown-doc-link-decorations', () => ({
 vi.mock('./monaco-markdown-doc-completions', () => ({
   ensureMarkdownDocCompletionProvider: vi.fn()
 }))
+vi.mock('./monaco-markdown-jira-key-links', () => ({
+  ensureMarkdownJiraKeyLinkProvider: vi.fn()
+}))
 vi.mock('./monaco-e2e-probe', () => ({ installMonacoE2EProbe: () => vi.fn() }))
 vi.mock('./monaco-editor-input-bindings', () => ({
   installMonacoEditorInputBindings: () => ({ disposeInputBindings: vi.fn() })

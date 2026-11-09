@@ -16,6 +16,7 @@ import {
   resolveMarkdownLinkTarget
 } from './markdown-internal-links'
 import { scrollToAnchorInEditor } from './markdown-anchor-scroll'
+import { JIRA_KEY_LINK_HREF_ATTRIBUTE } from './rich-markdown-jira-key-links'
 import { getRichMarkdownCommentAtPos } from './rich-markdown-review-annotations'
 import type { DiffComment } from '../../../../shared/diff-comment-types'
 import {
@@ -189,6 +190,10 @@ function getClickedLinkHref(view: EditorView, event: MouseEvent): string {
   const link = target?.closest('a')
   if (!link || !view.dom.contains(link)) {
     return ''
+  }
+  const jiraKeyHref = link.getAttribute(JIRA_KEY_LINK_HREF_ATTRIBUTE)
+  if (jiraKeyHref) {
+    return jiraKeyHref
   }
   // The rendered href is blanked for file:, drive-path and custom schemes, so read the mark instead.
   let linkPos: number

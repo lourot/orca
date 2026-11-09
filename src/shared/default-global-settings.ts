@@ -40,6 +40,7 @@ export function buildDefaultSettings(args: {
     branchPrefix: 'git-username',
     branchPrefixCustom: '',
     jiraIssueKeyCasing: 'lowercase',
+    jiraKeyLinks: { baseUrl: '', projectKeys: [] },
     theme: 'system',
     pluginAppTheme: null,
     pluginAppThemeLight: null,

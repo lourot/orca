@@ -10,6 +10,7 @@ import {
 } from './monaco-programmatic-sync'
 import { createMarkdownDocLinkDecorationController } from './monaco-markdown-doc-link-decorations'
 import { ensureMarkdownDocCompletionProvider } from './monaco-markdown-doc-completions'
+import { ensureMarkdownJiraKeyLinkProvider } from './monaco-markdown-jira-key-links'
 import { clampMonacoAutoHeight } from './monaco-auto-height'
 import { installMonacoE2EProbe } from './monaco-e2e-probe'
 import { matchesPendingEditorFocusRequest } from './pending-editor-focus-request'
@@ -110,6 +111,7 @@ export function useMonacoEditorMount(params: MonacoEditorMountParams): OnMount {
         () => languageRef.current
       )
       ensureMarkdownDocCompletionProvider(monaco)
+      ensureMarkdownJiraKeyLinkProvider(monaco)
       updateMarkdownCompletionDocuments()
 
       // Reconcile retained models before interaction so edits made while unmounted become visible.
