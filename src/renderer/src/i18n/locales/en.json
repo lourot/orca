@@ -16502,6 +16502,9 @@
         "ReviewNotesSendOtherWorkspacesMenu": {
           "otherWorkspaces": "Other workspaces"
         },
+        "ReviewNotesSendOtherWorkspacesMenu": {
+          "otherWorkspaces": "Other workspaces"
+        },
         "RichMarkdownAnnotationOverlay": {
           "069b5677b8": "Selected text",
           "6f2f3a6001": "Add review note"

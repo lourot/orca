@@ -234,35 +234,54 @@ describe('running agent send targets', () => {
     })
   })
 
-  it('keeps stale agent status rows disabled when only a bare agent title remains', () => {
-    const stalePaneKey = makePaneKey(TAB_ID, RIGHT_LEAF_ID)
-    const target = resolveRunningAgentSendTarget(
-      state({
-        agentStatusByPaneKey: {
-          [stalePaneKey]: entry(stalePaneKey, 'done', NOW - 31 * 60 * 1000)
-        },
-        tabsByWorktree: { [WORKTREE_ID]: [{ ...tab(TAB_ID), title: 'Codex' }] },
-        terminalLayoutsByTabId: {
-          [TAB_ID]: {
-            root: { type: 'leaf', leafId: RIGHT_LEAF_ID },
-            activeLeafId: RIGHT_LEAF_ID,
-            expandedLeafId: null,
-            ptyIdsByLeafId: { [RIGHT_LEAF_ID]: 'pty-right' }
-          }
-        }
-      }),
-      WORKTREE_ID,
-      stalePaneKey,
-      NOW
+  it.each(
+    (['codex', 'claude'] as const).flatMap((agentType) =>
+      (['done', 'working'] as const).flatMap((agentState) =>
+        [29, 31, 24 * 60].flatMap((ageMinutes) =>
+          ['', 'project-name', agentType].map((title) => ({
+            agentType,
+            agentState,
+            ageMinutes,
+            title
+          }))
+        )
+      )
     )
+  )(
+    'keeps $agentType $agentState selectable after $ageMinutes minutes with title "$title"',
+    ({ agentType, agentState, ageMinutes, title }) => {
+      const stalePaneKey = makePaneKey(TAB_ID, RIGHT_LEAF_ID)
+      const target = resolveRunningAgentSendTarget(
+        state({
+          agentStatusByPaneKey: {
+            [stalePaneKey]: {
+              ...entry(stalePaneKey, agentState, NOW - ageMinutes * 60 * 1000),
+              agentType
+            }
+          },
+          tabsByWorktree: { [WORKTREE_ID]: [{ ...tab(TAB_ID), title }] },
+          terminalLayoutsByTabId: {
+            [TAB_ID]: {
+              root: { type: 'leaf', leafId: RIGHT_LEAF_ID },
+              activeLeafId: RIGHT_LEAF_ID,
+              expandedLeafId: null,
+              ptyIdsByLeafId: { [RIGHT_LEAF_ID]: 'pty-right' }
+            }
+          }
+        }),
+        WORKTREE_ID,
+        stalePaneKey,
+        NOW
+      )
 
-    expect(target).toMatchObject({
-      paneKey: stalePaneKey,
-      ptyId: 'pty-right',
-      status: 'disabled',
-      disabledReason: 'Agent status is stale'
-    })
-  })
+      expect(target).toMatchObject({
+        paneKey: stalePaneKey,
+        ptyId: 'pty-right',
+        status: 'eligible'
+      })
+      expect(target).not.toHaveProperty('disabledReason')
+    }
+  )
 
   it('promotes stale agent status rows when a live pane title proves the agent is sendable', () => {
     const stalePaneKey = makePaneKey(TAB_ID, RIGHT_LEAF_ID)

@@ -21,6 +21,7 @@ import {
   type RunningAgentTargetState
 } from './running-agent-targets'
 import type { AgentMessageTarget } from './agent-message-target'
+import { isAgentStatusFresh } from '../../../shared/agent-status-freshness'
 
 export type NotesSendAgentTargetState = RunningAgentTargetState &
   Pick<AppState, 'runtimePaneTitlesByTabId'>
@@ -83,7 +84,7 @@ export function deriveNotesSendAgentTargets(
 
     // Launch ownership permits fresh titles to override stale same-pane status; manual hints may only add missing rows.
     if (tab.launchAgent) {
-      mergeLaunchAgentTitleTarget(targets, titleHintTarget)
+      mergeLaunchAgentTitleTarget(targets, titleHintTarget, state, now)
     } else {
       mergeManualAgentTitleTarget(targets, titleHintTarget)
     }
@@ -169,7 +170,9 @@ function mergeManualAgentTitleTarget(
 
 function mergeLaunchAgentTitleTarget(
   targets: NotesSendAgentTarget[],
-  target: NotesSendAgentTarget
+  target: NotesSendAgentTarget,
+  state: NotesSendAgentTargetState,
+  now: number
 ): void {
   const samePaneIndex = targets.findIndex((existing) => existing.paneKey === target.paneKey)
   if (samePaneIndex !== -1) {
@@ -192,11 +195,14 @@ function mergeLaunchAgentTitleTarget(
 
   // Deduplicate fresh/permission rows by tab or an active split shell could create a bogus second target.
   if (
-    targets.some(
-      (existing) =>
+    targets.some((existing) => {
+      const entry = state.agentStatusByPaneKey[existing.paneKey]
+      return (
         existing.tabId === target.tabId &&
-        (existing.status === 'eligible' || existing.disabledReason === 'Agent needs permission')
-    )
+        (existing.disabledReason === 'Agent needs permission' ||
+          (existing.status === 'eligible' && (!entry || isAgentStatusFresh(entry, now))))
+      )
+    })
   ) {
     return
   }

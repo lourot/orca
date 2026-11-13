@@ -34,6 +34,7 @@ for (const host of ['local', 'ssh'] as const) {
             }
             const target = hiddenBy === 'parent' ? child! : parent
             const now = Date.now()
+            const statusAt = now - 31 * 60 * 1000
             const noted = await state.updateWorktreeMeta(
               target,
               {
@@ -127,8 +128,8 @@ for (const host of ['local', 'ssh'] as const) {
                 [paneKey]: {
                   state: 'working',
                   prompt: 'Check sidebar disclosure',
-                  updatedAt: now,
-                  stateStartedAt: now,
+                  updatedAt: statusAt,
+                  stateStartedAt: statusAt,
                   agentType: 'claude',
                   paneKey,
                   worktreeId: target,
@@ -138,6 +139,7 @@ for (const host of ['local', 'ssh'] as const) {
             })
             return {
               target,
+              tabId,
               control: host === 'local' ? ssh.worktreeIds.parent! : localWorktreeId,
               collapsedGroups
             }
@@ -187,6 +189,22 @@ for (const host of ['local', 'ssh'] as const) {
         expect(
           await page.evaluate(async () => (await window.api.ui.get()).collapsedGroups)
         ).toEqual(ids.collapsedGroups)
+        await page.evaluate(({ target, tabId }) => {
+          const store = window.__store!
+          store.setState({
+            collapsedGroups: new Set(),
+            ptyIdsByTabId: { ...store.getState().ptyIdsByTabId, [tabId]: [] }
+          })
+          store.getState().openAgentSendPopoverTargetMode({
+            id: 'missing-terminal-check',
+            worktreeId: target,
+            source: 'browser-annotations',
+            prompt: 'Check missing terminal',
+            label: 'Browser annotations',
+            launchSource: 'notes_send'
+          })
+        }, ids)
+        await expect(targetRow.locator('[data-agent-send-target="disabled"]')).toBeVisible()
       } finally {
         await launched.dispose()
       }

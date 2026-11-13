@@ -125,14 +125,15 @@ function deriveTerminalAgentSendTargets(
       : null
     if (entry.restoredUnconfirmed) {
       disabledReason = 'Agent status is stale'
+    } else if (!ptyId) {
+      disabledReason = 'Terminal is no longer available'
     } else if (decision.hookState === null) {
       if (liveTitleStatus === 'permission') {
         disabledReason = 'Agent needs permission'
-      } else if (liveTitleStatus === null) {
+      } else if (liveTitleStatus === null && entry.state !== 'done' && entry.state !== 'working') {
         disabledReason = 'Agent status is stale'
       }
-    } else if (!ptyId) {
-      disabledReason = 'Terminal is no longer available'
+      // Quiet agents remain candidates; the host verifies presence before paste and Enter.
     } else if (decision.hookState === 'blocked' || decision.hookState === 'waiting') {
       disabledReason = 'Agent needs permission'
     } else if (liveTitleStatus === 'permission') {

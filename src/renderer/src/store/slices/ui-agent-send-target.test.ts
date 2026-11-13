@@ -130,8 +130,9 @@ describe('createUISlice agent send target mode', () => {
   const readyPaneKey = makePaneKey(tabId, readyLeafId)
   const workingPaneKey = makePaneKey(tabId, workingLeafId)
 
-  function seedAgentSendState(store: StoreApi<AppState>): void {
+  function seedAgentSendState(store: StoreApi<AppState>, statusAgeMinutes = 0): void {
     const now = Date.now()
+    const statusAt = now - statusAgeMinutes * 60 * 1000
     store.setState({
       tabsByWorktree: {
         [worktreeId]: [
@@ -170,8 +171,8 @@ describe('createUISlice agent send target mode', () => {
         [readyPaneKey]: {
           state: 'done',
           prompt: 'previous',
-          updatedAt: now,
-          stateStartedAt: now,
+          updatedAt: statusAt,
+          stateStartedAt: statusAt,
           agentType: 'codex',
           paneKey: readyPaneKey,
           stateHistory: []
@@ -179,8 +180,8 @@ describe('createUISlice agent send target mode', () => {
         [workingPaneKey]: {
           state: 'working',
           prompt: 'busy',
-          updatedAt: now,
-          stateStartedAt: now,
+          updatedAt: statusAt,
+          stateStartedAt: statusAt,
           agentType: 'codex',
           paneKey: workingPaneKey,
           stateHistory: []
@@ -315,42 +316,47 @@ describe('createUISlice agent send target mode', () => {
     expect(store.getState().pendingRevealWorktree).toBeNull()
   })
 
-  it('sends to the live leaf PTY, runs delivery callback, tracks followup, and closes', async () => {
-    const store = createAgentSendStore()
-    const onPromptDelivered = vi.fn()
-    const onPromptHandedOff = vi.fn()
-    seedAgentSendState(store)
-    store.getState().openAgentSendPopoverTargetMode({
-      id: 'send-1',
-      worktreeId,
-      source: 'diff-notes',
-      prompt: 'Review this',
-      label: 'All unsent notes',
-      launchSource: 'notes_send',
-      onPromptDelivered,
-      onPromptHandedOff
-    })
+  it.each([0, 31])(
+    'sends to the live leaf PTY after %i idle minutes and settles delivery',
+    async (ageMinutes) => {
+      const store = createAgentSendStore()
+      const onPromptDelivered = vi.fn()
+      const onPromptHandedOff = vi.fn()
+      seedAgentSendState(store, ageMinutes)
+      store.getState().openAgentSendPopoverTargetMode({
+        id: 'send-1',
+        worktreeId,
+        source: 'diff-notes',
+        prompt: 'Review this',
+        label: 'All unsent notes',
+        launchSource: 'notes_send',
+        onPromptDelivered,
+        onPromptHandedOff
+      })
 
-    await expect(store.getState().sendPromptToSidebarAgentTarget(readyPaneKey)).resolves.toBe(true)
+      await expect(store.getState().sendPromptToSidebarAgentTarget(readyPaneKey)).resolves.toBe(
+        true
+      )
 
-    // The notes leave the next send for exactly this send's lifetime.
-    expect(onPromptHandedOff).toHaveBeenCalledOnce()
-    await expect(onPromptHandedOff.mock.calls[0][0]).resolves.toMatchObject({ status: 'sent' })
+      // The notes leave the next send for exactly this send's lifetime.
+      expect(onPromptHandedOff).toHaveBeenCalledOnce()
+      await expect(onPromptHandedOff.mock.calls[0][0]).resolves.toMatchObject({ status: 'sent' })
 
-    expect(mocks.sendNotesToActiveAgentSession).toHaveBeenCalledWith({
-      worktreeId,
-      prompt: 'Review this',
-      noteTarget: { tabId, leafId: readyLeafId }
-    })
-    expect(onPromptDelivered).toHaveBeenCalledTimes(1)
-    expect(mocks.track).toHaveBeenCalledWith('agent_prompt_sent', {
-      agent_kind: 'codex',
-      launch_source: 'notes_send',
-      request_kind: 'followup'
-    })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith('Sent to Codex')
-    expect(store.getState().agentSendPopoverTargetMode).toBeNull()
-  })
+      expect(mocks.sendNotesToActiveAgentSession).toHaveBeenCalledWith({
+        worktreeId,
+        prompt: 'Review this',
+        noteTarget: { tabId, leafId: readyLeafId }
+      })
+      expect(onPromptDelivered).toHaveBeenCalledTimes(1)
+      expect(mocks.track).toHaveBeenCalledWith('agent_prompt_sent', {
+        agent_kind: 'codex',
+        launch_source: 'notes_send',
+        request_kind: 'followup'
+      })
+      expect(mocks.toastSuccess).toHaveBeenCalledWith('Sent to Codex')
+      expect(store.getState().agentSendPopoverTargetMode).toBeNull()
+    }
+  )
 
   const chatTabId = 'structured-agent-session-claude_1'
   const chatPaneKey = structuredAgentSessionPaneKey(chatTabId, 'claude_1')
@@ -466,34 +472,39 @@ describe('createUISlice agent send target mode', () => {
     expect(onPromptHandedOff).not.toHaveBeenCalled()
   })
 
-  it('keeps target mode open and does not run delivery callback when send fails', async () => {
-    const store = createAgentSendStore()
-    const onPromptDelivered = vi.fn()
-    seedAgentSendState(store)
-    mocks.sendNotesToActiveAgentSession.mockResolvedValue({ status: 'not-ready' })
-    store.getState().openAgentSendPopoverTargetMode({
-      id: 'send-1',
-      worktreeId,
-      source: 'diff-notes',
-      prompt: 'Review this',
-      label: 'All unsent notes',
-      launchSource: 'notes_send',
-      onPromptDelivered
-    })
+  it.each(['not-ready', 'no-agent', 'permission', 'partial-submit-failed'] as const)(
+    'keeps notes after a stale target refuses delivery: %s',
+    async (status) => {
+      const store = createAgentSendStore()
+      const onPromptDelivered = vi.fn()
+      seedAgentSendState(store, 31)
+      mocks.sendNotesToActiveAgentSession.mockResolvedValue({ status })
+      store.getState().openAgentSendPopoverTargetMode({
+        id: 'send-1',
+        worktreeId,
+        source: 'diff-notes',
+        prompt: 'Review this',
+        label: 'All unsent notes',
+        launchSource: 'notes_send',
+        onPromptDelivered
+      })
 
-    await expect(store.getState().sendPromptToSidebarAgentTarget(readyPaneKey)).resolves.toBe(false)
+      await expect(store.getState().sendPromptToSidebarAgentTarget(readyPaneKey)).resolves.toBe(
+        false
+      )
 
-    expect(onPromptDelivered).not.toHaveBeenCalled()
-    expect(mocks.track).not.toHaveBeenCalled()
-    expect(mocks.toastError).toHaveBeenCalledWith("Couldn't send to Codex", {
-      description: 'selected:not-ready'
-    })
-    expect(store.getState().agentSendPopoverTargetMode).toMatchObject({
-      id: 'send-1',
-      status: 'error',
-      error: 'selected:not-ready'
-    })
-  })
+      expect(onPromptDelivered).not.toHaveBeenCalled()
+      expect(mocks.track).not.toHaveBeenCalled()
+      expect(mocks.toastError).toHaveBeenCalledWith("Couldn't send to Codex", {
+        description: `selected:${status}`
+      })
+      expect(store.getState().agentSendPopoverTargetMode).toMatchObject({
+        id: 'send-1',
+        status: 'error',
+        error: `selected:${status}`
+      })
+    }
+  )
 
   it('sends to a working agent row through the selected-target note helper', async () => {
     const store = createAgentSendStore()

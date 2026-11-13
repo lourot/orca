@@ -78,6 +78,8 @@ Ghostty-class terminals with WebGL rendering, infinite splits, and scrollback th
 
 Click any UI element in a real Chromium window to send its HTML, CSS, and a cropped screenshot straight into your agent's prompt.
 
+Idle agents with attached terminals remain selectable after their activity status expires. Orca verifies the agent before sending and keeps your notes if delivery fails.
+
 [Docs →](https://www.onorca.dev/docs/browser/design-mode)
 
 </td>

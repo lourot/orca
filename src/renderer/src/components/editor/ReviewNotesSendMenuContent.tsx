@@ -7,13 +7,7 @@ import {
   getStructuredChatTabNames
 } from '@/runtime/structured-chat-name-observation'
 import { QuickLaunchAgentMenuItems } from '@/components/tab-bar/QuickLaunchButton'
-import { AgentStateDot, agentStateLabel } from '@/components/AgentStateDot'
-import { AgentTypeIcon } from '@/lib/agent-type-icon'
-import {
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
 import {
   activeAgentNotesSendFailureMessage,
@@ -24,24 +18,20 @@ import {
   deriveNotesSendAgentTargets,
   type NotesSendAgentTarget
 } from '@/lib/notes-send-agent-targets'
-import { agentKindForAgentType, formatAgentTypeLabel } from '@/lib/agent-status'
+import { agentKindForAgentType } from '@/lib/agent-status'
 import { track } from '@/lib/telemetry'
 import { useNow } from '@/hooks/use-now'
-import type { DashboardAgentRow as DashboardAgentRowData } from '@/components/dashboard/useDashboardData'
-import { lastEnteredDoneAt } from '@/components/dashboard/agent-finished-timestamp'
 import { selectLivePtyIdsForWorktree } from '@/components/sidebar/worktree-card-status-inputs'
 import { useWorktreeAgentRows } from '@/components/sidebar/useWorktreeAgentRows'
-import { useAgentRowConversationName } from '@/components/dashboard/use-agent-row-conversation-name'
-import { getAgentRowPrimaryText } from '../../../../shared/agent-row-primary-text'
 import type { LaunchSource } from '../../../../shared/telemetry-events'
-import { agentRowDisplayDotState } from '@/lib/agent-row-dot-state'
 import { translate } from '@/i18n/i18n'
 import { agentSendDisabledReasonLabel } from '@/lib/agent-send-disabled-reason-label'
-
-type OrderedSendTarget = {
-  target: NotesSendAgentTarget
-  agent: DashboardAgentRowData | null
-}
+import {
+  AgentRowTargetMenuItem,
+  AgentTargetMenuItem,
+  orderSendTargetsByWorktreeAgentRows
+} from './ReviewNotesSendAgentTargetItem'
+import { ReviewNotesSendOtherWorkspacesMenu } from './ReviewNotesSendOtherWorkspacesMenu'
 
 export function ReviewNotesSendMenuContent({
   worktreeId,
@@ -158,19 +148,26 @@ export function ReviewNotesSendMenuContent({
   )
 
   const sendToAgentTarget = useCallback(
-    (target: NotesSendAgentTarget) => {
+    // Why: another workspace's agent gets its own worktree id and a headed prompt; delivery
+    // callbacks still settle this workspace's notes.
+    (target: NotesSendAgentTarget, targetWorktreeId = worktreeId, targetPrompt = prompt) => {
       if (!hasPrompt || target.status !== 'eligible') {
         return
       }
 
-      const currentEligibility = resolveCurrentSendTargetEligibility(target, worktreeId)
+      const currentEligibility = resolveCurrentSendTargetEligibility(target, targetWorktreeId)
       if (currentEligibility.status !== 'eligible') {
         toast.message(currentEligibility.disabledReason)
         return
       }
 
       runNotesSend(
-        () => sendMessageToAgent({ worktreeId, prompt, target: target.messageTarget }),
+        () =>
+          sendMessageToAgent({
+            worktreeId: targetWorktreeId,
+            prompt: targetPrompt,
+            target: target.messageTarget
+          }),
         () => {
           onPromptDelivered?.()
           // Match sidebar telemetry for follow-up notes sent through the dropdown.
@@ -204,6 +201,13 @@ export function ReviewNotesSendMenuContent({
           <AgentTargetMenuItem key={target.paneKey} {...itemProps} agent={null} name="" />
         )
       })}
+      <ReviewNotesSendOtherWorkspacesMenu
+        sourceWorktreeId={worktreeId}
+        prompt={prompt}
+        now={now}
+        disabled={!hasPrompt}
+        onSend={sendToAgentTarget}
+      />
       <DropdownMenuSeparator />
       <DropdownMenuLabel>
         {translate('auto.components.editor.ReviewNotesSendMenuContent.a49800405b', 'New agent')}
@@ -252,128 +256,4 @@ function resolveCurrentSendTargetEligibility(
   }
 
   return { status: 'disabled', disabledReason: goneReason }
-}
-
-type AgentTargetMenuItemProps = {
-  target: NotesSendAgentTarget
-  agent: DashboardAgentRowData | null
-  now: number
-  disabled: boolean
-  onSend: (target: NotesSendAgentTarget) => void
-}
-
-function AgentRowTargetMenuItem(
-  props: AgentTargetMenuItemProps & { agent: DashboardAgentRowData }
-): React.JSX.Element {
-  const conversationName = useAgentRowConversationName(props.agent)
-  // Same name as the agent's sidebar row, so same-type agents stay distinguishable.
-  const name = conversationName ?? getAgentRowPrimaryText(props.agent.entry)
-  return <AgentTargetMenuItem {...props} name={name} />
-}
-
-function AgentTargetMenuItem({
-  target,
-  agent,
-  name,
-  now,
-  disabled,
-  onSend
-}: AgentTargetMenuItemProps & { name: string }): React.JSX.Element {
-  const tabTitle = target.tabTitle.trim()
-  const typeLabel = formatAgentTypeLabel(target.agentType ?? agent?.agentType)
-  // Use the sidebar’s display state so failed/stopped agents agree across surfaces.
-  const state = agent ? agentRowDisplayDotState(agent) : 'idle'
-  const timeAgo = agent ? formatAgentRelativeTime(agent, now) : null
-  const disabledReason =
-    target.status === 'disabled' && target.disabledReason
-      ? agentSendDisabledReasonLabel(target.disabledReason)
-      : undefined
-  const secondaryParts = [
-    ...(name ? [typeLabel] : []),
-    agentStateLabel(state),
-    ...(timeAgo ? [timeAgo] : []),
-    // Why: unnamed rows keep the raw tab title as their only differentiator.
-    ...(!name && tabTitle ? [tabTitle] : [])
-  ]
-  return (
-    <DropdownMenuItem
-      disabled={disabled}
-      onSelect={() => onSend(target)}
-      // Match dashboard tooltips for disabled reasons; otherwise show the full, possibly truncated, name.
-      title={disabledReason ?? (name || undefined)}
-      className="min-w-[240px] gap-2 rounded-[7px] px-2 py-1.5 text-[12px] leading-5 font-medium"
-    >
-      {/* Why: the ancestor's actionable disabled reason must win on every hit area. */}
-      <AgentStateDot
-        state={state}
-        size="sm"
-        className="shrink-0"
-        title={disabledReason ? null : undefined}
-      />
-      <AgentTypeIcon agentType={target.agentType ?? agent?.agentType} size={14} />
-      <span className="grid max-w-[300px] min-w-0 flex-1 text-left">
-        <span className="truncate">{name || typeLabel}</span>
-        <span className="truncate text-[11px] font-normal text-muted-foreground">
-          {secondaryParts.join(' · ')}
-        </span>
-      </span>
-    </DropdownMenuItem>
-  )
-}
-
-function orderSendTargetsByWorktreeAgentRows(
-  sendTargets: NotesSendAgentTarget[],
-  agentRows: DashboardAgentRowData[]
-): OrderedSendTarget[] {
-  const targetsByPaneKey = new Map(sendTargets.map((target) => [target.paneKey, target]))
-  const usedPaneKeys = new Set<string>()
-  const ordered: OrderedSendTarget[] = []
-
-  for (const agent of agentRows) {
-    const target = targetsByPaneKey.get(agent.paneKey)
-    if (!target) {
-      continue
-    }
-    ordered.push({ target: { ...target, agentType: agent.agentType }, agent })
-    usedPaneKeys.add(target.paneKey)
-  }
-
-  for (const target of sendTargets) {
-    if (!usedPaneKeys.has(target.paneKey)) {
-      ordered.push({ target, agent: null })
-    }
-  }
-
-  return ordered
-}
-
-function formatAgentRelativeTime(agent: DashboardAgentRowData, now: number): string | null {
-  const doneAt = lastEnteredDoneAt(agent)
-  if (doneAt !== null) {
-    return `${formatTimeAgo(doneAt, now)}`
-  }
-  const startedAt = agent.startedAt > 0 ? agent.startedAt : agent.entry.stateStartedAt
-  return startedAt > 0 ? `${formatTimeAgo(startedAt, now)}` : null
-}
-
-function formatTimeAgo(ts: number, now: number): string {
-  const delta = now - ts
-  if (delta < 60_000) {
-    return translate('auto.components.editor.ReviewNotesSendMenu.justNow', 'just now')
-  }
-  const minutes = Math.floor(delta / 60_000)
-  if (minutes < 60) {
-    return translate('auto.components.editor.ReviewNotesSendMenu.minutesAgo', '{{minutes}}m ago', {
-      minutes
-    })
-  }
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    return translate('auto.components.editor.ReviewNotesSendMenu.hoursAgo', '{{hours}}h ago', {
-      hours
-    })
-  }
-  return translate('auto.components.editor.ReviewNotesSendMenu.daysAgo', '{{days}}d ago', {
-    days: Math.floor(hours / 24)
-  })
 }
