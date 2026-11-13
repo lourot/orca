@@ -7,10 +7,11 @@ import { clampGrabPayload } from './browser-grab-payload'
 
 describe('buildGuestOverlayScript', () => {
   it.each([
-    ['arm', '6aeefde63c7ca2d90a75777f06042bf2694a2b0b5636d23d02c304c7ed739b23'],
+    ['arm', 'd4c66bec067daadcbd9cf27e54939e560497ee18c1e51312e014e675144375bd'],
     ['awaitClick', '4e7c30a9382cd18bf6286fbdbdfa70f7571cdddfc4914a9d9ffd4f9b0e430adb'],
     ['finalize', '91bd9836b0536c9579e0d4648d30679c0b4a5893d9a43110a70e67d6804fd291'],
     ['extractHover', 'cf0ee3ac61669daefa7db9389233c1abfe9f0fb9e7257300c761987aac914b02'],
+    ['readSelectedText', '0d5ec40b6db11f35a3db5d007e28105e61633728f947a0ba9ed2ed457f355353'],
     ['teardown', 'b794f7e6baadefdce1b34f4a68d744a765e5519312b228fae57628cf34a9a152']
   ] as const)('preserves the serialized %s guest script', (action, expectedSha256) => {
     expect(createHash('sha256').update(buildGuestOverlayScript(action)).digest('hex')).toBe(

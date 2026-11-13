@@ -14,6 +14,9 @@ import { releaseDocPreviewGrant } from '@/lib/doc-preview-grants'
 import { isLocalBrowserPageOwner } from './browser-host-state'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../../shared/layout-owner-switch'
 import { sendBrowserLayoutCommand } from './browser-layout-owner-commands'
+import { rehomeBrowserPageAnnotations } from './browser-page-annotation'
+import { attachDetachedNoteGroups } from './browser-detached-annotations'
+import { omitRecordKeys } from '../worktrees/teardown/record-key-omission'
 
 export function createBrowserPageConversionActions(
   set: BrowserSliceSet,
@@ -62,8 +65,16 @@ export function createBrowserPageConversionActions(
           delete nextRemoteBrowserPageHandlesByPageId[plan.oldPage.id]
           const nextBrowserAnnotationsByPageId = { ...s.browserAnnotationsByPageId }
           const nextBrowserAnnotationMarkerIdsByPageId = { ...s.browserAnnotationMarkerIdsByPageId }
+          const carriedAnnotations = nextBrowserAnnotationsByPageId[plan.oldPage.id]
           delete nextBrowserAnnotationsByPageId[plan.oldPage.id]
           delete nextBrowserAnnotationMarkerIdsByPageId[plan.oldPage.id]
+          // Why: the conversion replaces the page in place, so its unsent notes follow it; badges re-pin on load.
+          if (carriedAnnotations?.length) {
+            nextBrowserAnnotationsByPageId[plan.newPage.id] = rehomeBrowserPageAnnotations(
+              carriedAnnotations,
+              plan.newPage.id
+            )
+          }
           const nextBrowserCertificateFailuresByPageId = { ...s.browserCertificateFailuresByPageId }
           delete nextBrowserCertificateFailuresByPageId[plan.oldPage.id]
           return {
@@ -90,7 +101,10 @@ export function createBrowserPageConversionActions(
             remoteBrowserPageHandlesByPageId: nextRemoteBrowserPageHandlesByPageId,
             browserCertificateFailuresByPageId: nextBrowserCertificateFailuresByPageId,
             browserAnnotationsByPageId: nextBrowserAnnotationsByPageId,
-            browserAnnotationMarkerIdsByPageId: nextBrowserAnnotationMarkerIdsByPageId
+            browserAnnotationMarkerIdsByPageId: nextBrowserAnnotationMarkerIdsByPageId,
+            browserAnnotationAnchorsByPageId: omitRecordKeys(s.browserAnnotationAnchorsByPageId, [
+              plan.oldPage.id
+            ])
           }
         })
         // Why the casts: the assignments happen inside set()'s callback, which TS's flow analysis does
@@ -175,12 +189,23 @@ export function createBrowserPageConversionActions(
         return null
       }
 
-      return get().createBrowserPage(workspaceId, pageToRestore.url, {
-        title: pageToRestore.title,
+      const closedPage = pageToRestore
+      const reopened = get().createBrowserPage(workspaceId, closedPage.url, {
+        title: closedPage.title,
         activate: true,
-        browserRuntimeEnvironmentId: pageToRestore.browserRuntimeEnvironmentId,
-        ...(pageToRestore.docLocation ? { docLocation: pageToRestore.docLocation } : {})
+        browserRuntimeEnvironmentId: closedPage.browserRuntimeEnvironmentId,
+        ...(closedPage.docLocation ? { docLocation: closedPage.docLocation } : {})
       })
+      // Only onto a page that exists; otherwise the notes stay detached and visible.
+      if (reopened && findPage(get().browserPagesByWorkspace, reopened.id)) {
+        set(
+          (s) =>
+            attachDetachedNoteGroups(s, closedPage.worktreeId, (group) =>
+              group.origin.pageId === closedPage.id ? reopened.id : null
+            ) ?? s
+        )
+      }
+      return reopened
     },
 
     setActiveBrowserPage: (workspaceId, pageId) => {

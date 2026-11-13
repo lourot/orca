@@ -242,3 +242,28 @@ it('drops terminal-free chrome when an authoritative scan proves deletion', () =
   expect(state.openFiles).toEqual([])
   expect(state.browserTabsByWorktree[WORKTREE_ID]).toBeUndefined()
 })
+
+it('keeps unsent notes of a degraded worktree whose browser tabs were all closed', () => {
+  const groups = [
+    {
+      id: 'notes-1',
+      detachedAt: 1,
+      origin: {
+        pageId: 'page-closed',
+        workspaceId: 'browser-closed',
+        url: 'https://example.com',
+        title: 'Example'
+      },
+      annotations: []
+    }
+  ]
+  const session: WorkspaceSessionState = {
+    ...getDefaultWorkspaceSession(),
+    detachedBrowserAnnotationsByWorktree: { [WORKTREE_ID]: groups }
+  }
+  const store = createTestStore()
+
+  hydrateWithRepoScan(store, session)
+
+  expect(store.getState().detachedBrowserAnnotationsByWorktree).toEqual({ [WORKTREE_ID]: groups })
+})

@@ -66,6 +66,8 @@ export type BrowserPageGrabAnnotations = {
   grabIntent: GrabIntent
   startGrabIntent: (nextIntent: GrabIntent) => void
   pendingAnnotationPayload: BrowserGrabPayload | null
+  /** True when the draft's element went away with a reload; the card then floats in the pane. */
+  pendingAnnotationUnanchored: boolean
   setPendingAnnotationPayload: Dispatch<SetStateAction<BrowserGrabPayload | null>>
   grabToast: BrowserPageGrabToastState | null
   setGrabToast: Dispatch<SetStateAction<BrowserPageGrabToastState | null>>
@@ -78,9 +80,10 @@ export type BrowserPageGrabAnnotations = {
     comment: string,
     intent: BrowserAnnotationIntent,
     imagePaths?: string[]
-  ) => void
+  ) => Promise<void>
   handleCancelPendingBrowserAnnotation: () => void
   cancelPendingBrowserCapture: () => void
+  detachPendingBrowserCapture: () => void
   handleGrabActionShortcut: (key: 'c' | 's') => void
 }
 
@@ -105,6 +108,10 @@ export type BrowserPageFailLoadEvent = {
 export type BrowserPageAnnotationTrayProps = {
   browserAnnotations: BrowserPageAnnotation[]
   currentUrl?: string
+  /** True for a note whose element was not found again in the current document. */
+  isNotFound?: (annotation: BrowserPageAnnotation) => boolean
+  /** Notes from closed pages of this worktree, listed under the tray's header. */
+  detachedNotes?: React.ReactNode
   annotationTraySendOpen: boolean
   handleAnnotationTraySendOpenChange: (open: boolean) => void
   worktreeId: string

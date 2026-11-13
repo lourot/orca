@@ -4,12 +4,17 @@ import type { WorkspaceKey } from './folder-workspace-types'
 import type { Tab, TabGroup, TabGroupLayoutNode, WorkspaceVisibleTabType } from './tab-types'
 import type { TerminalLayoutSnapshot, TerminalTab } from './terminal-tab-types'
 import type { BrowserHistoryEntry, BrowserPage, BrowserWorkspace } from './browser-workspace-types'
+import type { BrowserPageAnnotation } from './browser-grab-types'
+import type { DetachedBrowserNoteGroup } from './browser-detached-annotation-schema'
 import type { WorkspaceDocHistoryEntry } from './workspace-doc-history'
 import type { ClientHostedBrowserCloseIntent } from './client-hosted-browser-close-intent'
 import type { PairedTerminalTabCloseIntent } from './paired-terminal-tab-close-intent'
 import type { PersistedClientHostedBrowserPage } from './client-hosted-browser-page-record'
 import type { ClosedTerminalTabTombstonesByTabId } from './closed-terminal-tab-tombstones'
 import type { ClosedTerminalPanesByPaneKey } from './closed-terminal-panes'
+
+/** A saved page carries its unsent notes; the store keeps them in browserAnnotationsByPageId. */
+export type PersistedBrowserPage = BrowserPage & { annotations?: BrowserPageAnnotation[] }
 
 /** Persist edit-mode files only; reconstruct transient diffs/conflicts from git state. */
 export type PersistedOpenFile = {
@@ -56,9 +61,11 @@ export type WorkspaceSessionState = {
   /** Persisted browser workspaces, keyed by worktree ID. */
   browserTabsByWorktree?: Record<string, BrowserWorkspace[]>
   /** Persisted browser pages, keyed by workspace ID. */
-  browserPagesByWorkspace?: Record<string, BrowserPage[]>
+  browserPagesByWorkspace?: Record<string, PersistedBrowserPage[]>
   /** Per-worktree active browser workspace ID at shutdown. */
   activeBrowserTabIdByWorktree?: Record<string, string | null>
+  /** Unsent notes of closed browser pages, kept until reattached, discarded or the worktree is deleted. */
+  detachedBrowserAnnotationsByWorktree?: Record<string, DetachedBrowserNoteGroup[]>
   /** Runtime-authoritative logical client-hosted pages; desktop browserPagesByWorkspace holds the client half. */
   clientHostedBrowserPagesByWorktree?: Record<string, PersistedClientHostedBrowserPage[]>
   /** Undelivered client-hosted page closes by runtime environment; replay on reconnect to prevent persistence resurrecting closed tabs. */

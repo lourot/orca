@@ -22,6 +22,7 @@ import {
   browserPageSchema,
   browserWorkspaceSchema
 } from './workspace-session-browser-schema'
+import { detachedBrowserNoteGroupSchema } from './browser-detached-annotation-schema'
 import { workspaceSessionCloseIntentFieldSchemas } from './workspace-session-close-intent-schema'
 import { persistedClientHostedBrowserPageSchema } from './client-hosted-browser-page-record'
 import { persistedOpenFileSchema } from './workspace-session-editor-schema'
@@ -190,6 +191,10 @@ export const workspaceSessionStateSchema: z.ZodType<WorkspaceSessionState> = z.o
   activeBrowserTabIdByWorktree: salvagedOptional(
     'activeBrowserTabIdByWorktree',
     salvagingRecord(worktreeIdSchema, z.string().nullable())
+  ),
+  detachedBrowserAnnotationsByWorktree: salvagedOptional(
+    'detachedBrowserAnnotationsByWorktree',
+    salvagingRecord(worktreeIdSchema, salvagingArray(detachedBrowserNoteGroupSchema))
   ),
   clientHostedBrowserPagesByWorktree: salvagedOptional(
     'clientHostedBrowserPagesByWorktree',

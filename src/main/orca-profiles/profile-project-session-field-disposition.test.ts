@@ -247,6 +247,7 @@ describe('workspace session field disposition census', () => {
       'openFilesByWorktree',
       'activeFileIdByWorktree',
       'activeBrowserTabIdByWorktree',
+      'detachedBrowserAnnotationsByWorktree',
       'clientHostedBrowserPagesByWorktree',
       'activeTabTypeByWorktree',
       'activeTabIdByWorktree',

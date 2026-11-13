@@ -90,6 +90,18 @@ const REFERENCE_FIXTURES: Partial<Record<SessionField, Partial<WorkspaceSessionS
     }
   },
   activeBrowserTabIdByWorktree: { activeBrowserTabIdByWorktree: { [OLD]: 'bw' } },
+  detachedBrowserAnnotationsByWorktree: {
+    detachedBrowserAnnotationsByWorktree: {
+      [OLD]: [
+        {
+          id: 'group',
+          detachedAt: 1,
+          origin: { pageId: 'bp', workspaceId: 'bw', url: 'about:blank', title: '' },
+          annotations: []
+        }
+      ]
+    }
+  },
   clientHostedBrowserPagesByWorktree: {
     clientHostedBrowserPagesByWorktree: {
       [OLD]: [

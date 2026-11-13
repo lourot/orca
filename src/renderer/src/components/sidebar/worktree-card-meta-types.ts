@@ -53,6 +53,8 @@ export type WorktreeCardMetaBadgesRootProps = WorktreeCardMetaBadgesProps &
   React.HTMLAttributes<HTMLDivElement> & {
     /** Opens the Source Control notes shelf; the click still bubbles so the card activates its worktree. */
     onOpenReviewNotes?: () => void
+    /** Notes from closed browser pages; shown even when no other metadata is. */
+    detachedBrowserNotes?: React.ReactNode
   }
 
 export type WorktreeCardDetailsHoverProps = WorktreeCardMetaBadgesProps & {

@@ -11,6 +11,8 @@ import {
 } from '../../../../../shared/browser-grab-types'
 import { useGrabMode } from './useGrabMode'
 import { useBrowserPageGrabAnnotations } from './use-browser-page-grab-annotations'
+import { useBrowserAnnotationDraftSync } from './use-browser-annotation-draft-sync'
+import { deleteBrowserAnnotationDrafts } from '@/store/slices/browser/browser-annotation-drafts'
 
 const state = vi.hoisted((): { store?: ReturnType<typeof createTestStore> } => ({}))
 vi.mock('@/store', () => ({
@@ -38,6 +40,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
+  deleteBrowserAnnotationDrafts(['page-1'])
   Reflect.deleteProperty(window, 'api')
 })
 
@@ -81,7 +84,8 @@ function mount(invalidateBeforePendingEffect = false, browserAnnotationsLength =
         cancelPendingBrowserCapture()
       }
     }, [grab.state, cancelPendingBrowserCapture])
-    return { grab, annotations }
+    const draft = useBrowserAnnotationDraftSync('page-1', annotations.pendingAnnotationPayload)
+    return { grab, annotations, draft }
   })
   return {
     ...hook,
@@ -109,7 +113,9 @@ describe('capture cancellation on a document boundary', () => {
     })
     expect(h.result.current.grab.state).toBe('idle')
     expect(h.result.current.annotations.pendingAnnotationPayload).toBeNull()
-    act(() => h.result.current.annotations.handleAddBrowserAnnotation('Canceled capture', 'fix'))
+    await act(() =>
+      h.result.current.annotations.handleAddBrowserAnnotation('Canceled capture', 'fix')
+    )
     expect(state.store?.getState().browserAnnotationsByPageId['page-1']).toBeUndefined()
     expect(state.store?.getState().browserAnnotationMarkerIdsByPageId['page-1']).toBeUndefined()
   })
@@ -179,13 +185,96 @@ describe('capture cancellation on a document boundary', () => {
     await waitFor(() =>
       expect(h.result.current.annotations.pendingAnnotationPayload).not.toBeNull()
     )
-    act(() => h.result.current.annotations.handleAddBrowserAnnotation('Fresh note', 'change'))
+    await act(() => h.result.current.annotations.handleAddBrowserAnnotation('Fresh note', 'change'))
     const saved = state.store?.getState().browserAnnotationsByPageId['page-1']
     expect(saved).toHaveLength(1)
     expect(saved?.[0].comment).toBe('Fresh note')
     expect(state.store?.getState().browserAnnotationMarkerIdsByPageId['page-1']).toEqual([
       saved?.[0].id
     ])
+  })
+})
+
+describe('draft kept across a document reload', () => {
+  it('keeps a typed draft unanchored when its document reloads, and still saves it', async () => {
+    const h = mount()
+    act(() => h.result.current.annotations.startGrabIntent('annotate'))
+    await waitFor(() => expect(h.awaitGrabSelection).toHaveBeenCalledOnce())
+    await act(async () => {
+      h.selection.resolve(selected())
+      h.screenshot.resolve({ ok: false, reason: 'fixture' })
+      await h.screenshot.promise
+    })
+    await waitFor(() =>
+      expect(h.result.current.annotations.pendingAnnotationPayload).not.toBeNull()
+    )
+    act(() => h.result.current.annotations.detachPendingBrowserCapture())
+    expect(h.result.current.grab.state).toBe('idle')
+    expect(h.result.current.annotations.pendingAnnotationPayload).not.toBeNull()
+    expect(h.result.current.annotations.pendingAnnotationUnanchored).toBe(true)
+
+    await act(() =>
+      h.result.current.annotations.handleAddBrowserAnnotation('Survived reload', 'fix')
+    )
+    const saved = state.store?.getState().browserAnnotationsByPageId['page-1']
+    expect(saved?.map((annotation) => annotation.comment)).toEqual(['Survived reload'])
+    // Its geometry predates this document, so it must be found again rather than drawn there.
+    expect(state.store?.getState().browserAnnotationMarkerIdsByPageId['page-1']).toBeUndefined()
+    expect(h.result.current.annotations.pendingAnnotationPayload).toBeNull()
+    expect(h.result.current.annotations.pendingAnnotationUnanchored).toBe(false)
+  })
+})
+
+describe('draft kept while its worktree is inactive', () => {
+  async function openDraft() {
+    const h = mount()
+    act(() => h.result.current.annotations.startGrabIntent('annotate'))
+    await waitFor(() => expect(h.awaitGrabSelection).toHaveBeenCalledOnce())
+    await act(async () => {
+      h.selection.resolve(selected())
+      h.screenshot.resolve({ ok: false, reason: 'fixture' })
+      await h.screenshot.promise
+    })
+    await waitFor(() =>
+      expect(h.result.current.annotations.pendingAnnotationPayload).not.toBeNull()
+    )
+    return h
+  }
+
+  it('brings the typed draft back unanchored when the pane mounts again, and still saves it', async () => {
+    const h = await openDraft()
+    act(() =>
+      h.result.current.draft.onDraftChange({
+        comment: 'Half typed',
+        intent: 'question',
+        imagePaths: ['/tmp/pasted.png']
+      })
+    )
+    h.unmount()
+
+    const back = mount()
+    expect(back.result.current.annotations.pendingAnnotationUnanchored).toBe(true)
+    expect(back.result.current.draft.initialDraft).toEqual({
+      comment: 'Half typed',
+      intent: 'question',
+      imagePaths: ['/tmp/pasted.png']
+    })
+    await act(() =>
+      back.result.current.annotations.handleAddBrowserAnnotation('Half typed, done', 'question')
+    )
+    const saved = state.store?.getState().browserAnnotationsByPageId['page-1']
+    expect(saved?.map((annotation) => annotation.comment)).toEqual(['Half typed, done'])
+    expect(state.store?.getState().browserAnnotationMarkerIdsByPageId['page-1']).toBeUndefined()
+  })
+
+  it('does not bring back a draft that was cancelled', async () => {
+    const h = await openDraft()
+    act(() => h.result.current.annotations.handleCancelPendingBrowserAnnotation())
+    h.unmount()
+
+    const back = mount()
+    expect(back.result.current.annotations.pendingAnnotationPayload).toBeNull()
+    expect(back.result.current.draft.initialDraft).toBeUndefined()
   })
 })
 

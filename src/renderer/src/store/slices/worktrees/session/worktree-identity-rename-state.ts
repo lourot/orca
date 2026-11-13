@@ -4,6 +4,7 @@ import type {
   BrowserWorkspace
 } from '../../../../../../shared/browser-workspace-types'
 import { remapBrowserPageDocLocation } from '../../../../../../shared/browser-page-doc-location'
+import type { DetachedBrowserNoteGroup } from '../../../../../../shared/browser-detached-annotation-schema'
 import { splitWorktreeIdForFilesystem } from '../../../../../../shared/worktree/id'
 import { worktreeWorkspaceKey } from '../../../../../../shared/workspace-scope'
 import { getWorktreeIdFromVisitKey } from '@/lib/worktree-visit-recency'
@@ -22,6 +23,7 @@ const WORKTREE_ID_KEYED_MAP_KEYS = [
   'remoteBranchConflictByWorktreeId',
   'fileSearchStateByWorktree',
   'recentlyClosedBrowserTabsByWorktree',
+  'detachedBrowserAnnotationsByWorktree',
   'pendingReconnectTabByWorktree',
   'rightSidebarTabByWorktree',
   'rightSidebarExplorerViewByWorktree',
@@ -95,6 +97,24 @@ export function buildWorktreeRenameState(
         workspace: withNewBrowserWorktreeId(snapshot.workspace),
         pages: snapshot.pages.map(withNewBrowserWorktreeId)
       })),
+    detachedBrowserAnnotationsByWorktree: (groups: DetachedBrowserNoteGroup[]) =>
+      groups.map((group) =>
+        group.origin.docLocation?.worktreeId === oldWorktreeId
+          ? {
+              ...group,
+              origin: {
+                ...group.origin,
+                docLocation: remapBrowserPageDocLocation(
+                  group.origin.docLocation,
+                  oldWorktreeId,
+                  newWorktreeId,
+                  oldWorktreePath,
+                  newWorktreePath
+                )
+              }
+            }
+          : group
+      ),
     fileSearchStateByWorktree: (searchState: AppState['fileSearchStateByWorktree'][string]) => ({
       ...searchState,
       resultOwner: searchState.resultOwner ? withNewWorktreeId(searchState.resultOwner) : null

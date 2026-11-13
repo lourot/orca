@@ -155,14 +155,22 @@ export function buildWorkspaceSessionPatch(
       snapshot.browserTabsByWorktree
     )
   }
-  if (stagedVisibilityChanged || changed.has('browserPagesByWorkspace')) {
+  if (
+    stagedVisibilityChanged ||
+    changed.has('browserPagesByWorkspace') ||
+    changed.has('browserAnnotationsByPageId')
+  ) {
     patch.browserPagesByWorkspace = buildPersistedBrowserPagesByWorkspace(
       snapshot.browserPagesByWorkspace,
-      snapshot.remoteBrowserPageHandlesByPageId
+      snapshot.remoteBrowserPageHandlesByPageId,
+      snapshot.browserAnnotationsByPageId
     )
   }
   if (stagedVisibilityChanged || changed.has('activeBrowserTabIdByWorktree')) {
     patch.activeBrowserTabIdByWorktree = snapshot.activeBrowserTabIdByWorktree
+  }
+  if (changed.has('detachedBrowserAnnotationsByWorktree')) {
+    patch.detachedBrowserAnnotationsByWorktree = snapshot.detachedBrowserAnnotationsByWorktree
   }
   if (changed.has('browserUrlHistory')) {
     patch.browserUrlHistory = normalizeBrowserHistoryEntries(snapshot.browserUrlHistory)

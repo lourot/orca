@@ -114,6 +114,26 @@ describe('profile project session state', () => {
             }
           }
         ]
+      },
+      detachedBrowserAnnotationsByWorktree: {
+        [REMOVED_WORKTREE_ID]: [
+          {
+            id: 'notes-1',
+            detachedAt: 1,
+            origin: {
+              pageId: 'page-closed',
+              workspaceId: 'browser-closed',
+              url: 'about:blank',
+              title: 'Report',
+              docLocation: {
+                kind: 'workspace-doc',
+                worktreeId: REMOVED_WORKTREE_ID,
+                filePath: '/removed/docs/report.html'
+              }
+            },
+            annotations: []
+          }
+        ]
       }
     }
 
@@ -130,6 +150,13 @@ describe('profile project session state', () => {
       filePath: '/removed/docs/report.html'
     })
     expect(result.browserPagesByWorkspace?.['browser-1']?.[0]?.docLocation).toEqual({
+      kind: 'workspace-doc',
+      worktreeId: transferredWorktreeId,
+      filePath: '/removed/docs/report.html'
+    })
+    expect(
+      result.detachedBrowserAnnotationsByWorktree?.[transferredWorktreeId]?.[0]?.origin.docLocation
+    ).toEqual({
       kind: 'workspace-doc',
       worktreeId: transferredWorktreeId,
       filePath: '/removed/docs/report.html'
@@ -205,5 +232,28 @@ describe('profile project session state', () => {
     expect(result.terminalPtyIncarnationsByPaneKey).toEqual({
       'retained-tab:retained-leaf': 'retained-incarnation'
     })
+  })
+
+  it('keeps unsent notes from both sides when merging the same worktree', () => {
+    const group = (id: string) => ({
+      id,
+      detachedAt: 1,
+      origin: { pageId: `page-${id}`, workspaceId: 'tab', url: 'about:blank', title: '' },
+      annotations: []
+    })
+    const base = {
+      ...getDefaultWorkspaceSession(),
+      detachedBrowserAnnotationsByWorktree: { 'repo::/wt': [group('shared'), group('base')] }
+    }
+    const incoming = {
+      ...getDefaultWorkspaceSession(),
+      detachedBrowserAnnotationsByWorktree: { 'repo::/wt': [group('incoming'), group('shared')] }
+    }
+
+    const ids = mergeWorkspaceSessions(base, incoming).detachedBrowserAnnotationsByWorktree?.[
+      'repo::/wt'
+    ]?.map((entry) => entry.id)
+
+    expect(ids).toEqual(['incoming', 'shared', 'base'])
   })
 })

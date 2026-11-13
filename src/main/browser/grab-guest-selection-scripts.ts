@@ -100,6 +100,13 @@ export const EXTRACT_HOVER_SCRIPT = `(function() {
   }
 })()`
 
+// Read-only: the picked element stays outlined and armed.
+export const READ_SELECTED_TEXT_SCRIPT = `(function() {
+  'use strict';
+  var grab = window.__orcaGrab;
+  return grab && typeof grab.readSelectedText === 'function' ? grab.readSelectedText() : null;
+})()`
+
 export const TEARDOWN_SCRIPT = `(function() {
   'use strict';
   var grab = window.__orcaGrab;

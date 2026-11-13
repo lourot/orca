@@ -44,10 +44,11 @@ export function createBrowserHydrationActions(
       }
 
       set((s) => {
-        const validWorktreeIds = buildValidWorktreeIdsForSessionHydration(
-          s,
-          Object.keys(persistedTabsByWorktree)
-        )
+        // A degraded scan keeps only listed ids; a worktree whose tabs all closed still has notes.
+        const validWorktreeIds = buildValidWorktreeIdsForSessionHydration(s, [
+          ...Object.keys(persistedTabsByWorktree),
+          ...Object.keys(session.detachedBrowserAnnotationsByWorktree ?? {})
+        ])
         validWorktreeIds.add(FLOATING_TERMINAL_WORKTREE_ID)
         for (const workspace of selectFolderWorkspaces(s)) {
           validWorktreeIds.add(folderWorkspaceKey(workspace.id))

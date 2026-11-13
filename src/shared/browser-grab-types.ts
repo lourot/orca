@@ -147,6 +147,8 @@ export type BrowserAnnotationIntent = 'fix' | 'change' | 'question' | 'approve'
 
 export type BrowserAnnotationPriority = 'blocking' | 'important' | 'suggestion'
 
+export const DEFAULT_BROWSER_ANNOTATION_PRIORITY: BrowserAnnotationPriority = 'important'
+
 export type BrowserPageAnnotation = {
   id: string
   browserPageId: string

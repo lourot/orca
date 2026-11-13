@@ -90,6 +90,17 @@ export const ORCAD_MIGRATION_PATH_FIELDS: readonly {
   ),
   { at: 'dormantState.workspaceSession.activeBrowserTabIdByWorktree{key}', kind: 'owner-key' },
   {
+    at: 'dormantState.workspaceSession.detachedBrowserAnnotationsByWorktree{key}',
+    kind: 'owner-key'
+  },
+  {
+    at: 'dormantState.workspaceSession.detachedBrowserAnnotationsByWorktree{}[].origin.url',
+    kind: 'url'
+  },
+  ...docLocationFields(
+    'dormantState.workspaceSession.detachedBrowserAnnotationsByWorktree{}[].origin.docLocation'
+  ),
+  {
     at: 'dormantState.workspaceSession.clientHostedBrowserPagesByWorktree{key}',
     kind: 'owner-key'
   },

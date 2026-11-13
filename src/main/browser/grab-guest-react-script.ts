@@ -116,7 +116,7 @@ export const GRAB_GUEST_REACT_SCRIPT = `  function isElementFixed(el) {
           ? '[redacted]'
           : clampStr(el.getAttribute('class') || '', BUDGET.cssClassesMaxLength),
         nearbyElements: getNearbyElements(el),
-        selectedText: getSelectedText() || null,
+        selectedText: getSelectedText(el) || null,
         isFixed: isElementFixed(el),
         reactComponents: react.reactComponents,
         sourceFile: react.sourceFile,

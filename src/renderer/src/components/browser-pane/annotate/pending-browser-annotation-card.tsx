@@ -18,12 +18,15 @@ import {
 } from '../describe-page/browser-annotation-geometry'
 import { useBrowserAnnotationImages } from './use-browser-annotation-images'
 import { BrowserAnnotationImageStrip } from './browser-annotation-image-strip'
+import type { BrowserAnnotationDraftText } from '@/store/slices/browser/browser-annotation-drafts'
 
 export function PendingBrowserAnnotationCard({
   payload,
   worktreeId,
   resolveAnchor,
   portalContainer,
+  initialDraft,
+  onDraftChange,
   onAdd,
   onCancel
 }: {
@@ -32,6 +35,9 @@ export function PendingBrowserAnnotationCard({
   /** Anchor for a card of the given measured height; null until the card has rendered once. */
   resolveAnchor: (cardHeight: number | null) => BrowserOverlayAnchor
   portalContainer: HTMLElement | null
+  /** Text typed before the pane last unmounted (the worktree went inactive). */
+  initialDraft?: BrowserAnnotationDraftText
+  onDraftChange?: (draft: BrowserAnnotationDraftText) => void
   onAdd: (comment: string, intent: BrowserAnnotationIntent, imagePaths: string[]) => void
   onCancel: () => void
 }): React.JSX.Element {
@@ -47,11 +53,19 @@ export function PendingBrowserAnnotationCard({
     return () => observer.disconnect()
   }, [card])
   const anchor = resolveAnchor(cardHeight)
-  const [comment, setComment] = useState('')
-  const [intent, setIntent] = useState<BrowserAnnotationIntent>('change')
-  const { images, imagePaths, saving, handlePaste, removeImage } =
-    useBrowserAnnotationImages(worktreeId)
+  const [comment, setComment] = useState(initialDraft?.comment ?? '')
+  const [intent, setIntent] = useState<BrowserAnnotationIntent>(initialDraft?.intent ?? 'change')
+  const { images, imagePaths, saving, handlePaste, removeImage } = useBrowserAnnotationImages(
+    worktreeId,
+    initialDraft?.imagePaths
+  )
+  const imagePathsKey = imagePaths.join('\n')
+  useEffect(() => {
+    onDraftChange?.({ comment, intent, imagePaths: imagePathsKey ? imagePathsKey.split('\n') : [] })
+  }, [comment, imagePathsKey, intent, onDraftChange])
   const trimmed = comment.trim()
+  // Leaving to copy text from elsewhere must not throw away what was typed; Escape and Cancel still do.
+  const hasDraft = Boolean(trimmed) || imagePaths.length > 0
   const canAdd = Boolean(trimmed) && !saving
   const submitModifierLabel = getScreenSubmitModifierLabel()
 
@@ -83,6 +97,11 @@ export function PendingBrowserAnnotationCard({
           'auto.components.browser.pane.BrowserPane.b472c5fe03',
           'Add browser annotation'
         )}
+        onInteractOutside={(event) => {
+          if (hasDraft) {
+            event.preventDefault()
+          }
+        }}
         onEscapeKeyDown={(event) => {
           event.preventDefault()
           onCancel()
@@ -94,9 +113,11 @@ export function PendingBrowserAnnotationCard({
             {payload.target.tagName}
           </span>
           <span className="truncate text-xs font-medium text-foreground">
-            {payload.target.accessibility.accessibleName ||
-              payload.target.textSnippet ||
-              payload.target.selector}
+            {payload.target.selectedText
+              ? `"${payload.target.selectedText}"`
+              : payload.target.accessibility.accessibleName ||
+                payload.target.textSnippet ||
+                payload.target.selector}
           </span>
         </div>
         <Label htmlFor="browser-annotation-comment" className="sr-only">

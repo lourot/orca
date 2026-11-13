@@ -80,6 +80,8 @@ export const GRAB_GUEST_OVERLAY_SCRIPT = `  var host = document.createElement('d
   }
 
   host.addEventListener('mousemove', onPointerMove);
+  // A press on the overlay would otherwise clear the page's text selection before the note reads it.
+  host.addEventListener('mousedown', function(e) { e.preventDefault(); });
 
   var selectedAttribute = ${JSON.stringify(BROWSER_GRAB_SELECTED_ATTRIBUTE)};
   var selectedEl = null;
@@ -129,6 +131,10 @@ export const GRAB_GUEST_OVERLAY_SCRIPT = `  var host = document.createElement('d
     host: host,
     extractPayload: extractPayload,
     getCurrentElement: function() { return currentEl; },
+    // Text selected inside the picked element while its note is still open.
+    readSelectedText: function() {
+      return selectedEl && selectedEl.isConnected ? getSelectedText(selectedEl) || null : null;
+    },
     // Release pointer events while preserving the selection outline for the copy menu.
     freezeHighlight: function(selectionId) {
       host.removeEventListener('mousemove', onPointerMove);

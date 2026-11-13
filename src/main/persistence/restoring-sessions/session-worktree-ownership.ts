@@ -35,6 +35,7 @@ export const WORKSPACE_SESSION_WORKTREE_REFERENCE_KIND = {
   browserTabsByWorktree: 'owner-keyed-browser-row-arrays',
   browserPagesByWorkspace: 'browser-row-arrays',
   activeBrowserTabIdByWorktree: 'owner-keyed',
+  detachedBrowserAnnotationsByWorktree: 'owner-keyed',
   clientHostedBrowserPagesByWorktree: 'owner-keyed',
   clientHostedBrowserCloseIntentsByEnvironment: 'row-arrays',
   pairedTerminalTabCloseIntentsByEnvironment: 'row-arrays',

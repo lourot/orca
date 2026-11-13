@@ -9,6 +9,7 @@ import { restoreRecentlyClosedTabPosition } from '../recently-closed-tabs'
 import { isLocalBrowserPageOwner } from './browser-host-state'
 import type { BrowserWorkspace } from '../../../../../shared/browser-workspace-types'
 import { afterPendingEntityTabs, hasPendingEntityTab } from '@/runtime/layout-owner-pending-tabs'
+import { attachDetachedNoteGroups } from './browser-detached-annotations'
 
 export function createBrowserTabFocusActions(
   set: BrowserSliceSet,
@@ -43,6 +44,27 @@ export function createBrowserTabFocusActions(
 
       const snap = entryToRestore.workspace
       const pages = entryToRestore.pages
+      /** Puts the closed pages' unsent notes back on their restored pages (same order, new ids). */
+      const reattachClosedPagesNotes = (restoredWorkspaceId: string): void => {
+        const restoredPages = get().browserPagesByWorkspace[restoredWorkspaceId] ?? []
+        // Pairing is by position; a partial restore would hand notes to the wrong page.
+        if (restoredPages.length !== pages.length) {
+          return
+        }
+        const restoredIdByClosedId = new Map(
+          pages.flatMap((closed, index) =>
+            restoredPages[index] ? [[closed.id, restoredPages[index].id] as const] : []
+          )
+        )
+        set(
+          (s) =>
+            attachDetachedNoteGroups(
+              s,
+              worktreeId,
+              (group) => restoredIdByClosedId.get(group.origin.pageId) ?? null
+            ) ?? s
+        )
+      }
       const sessionProfileId = snap.sessionProfileId ?? null
       const sessionPartition = snap.sessionPartition ?? null
 
@@ -77,6 +99,7 @@ export function createBrowserTabFocusActions(
 
       const position = entryToRestore.position
       const selectRestoredPage = (): void => {
+        reattachClosedPagesNotes(restored.id)
         // Why: duplicate URLs are valid, so matching by URL can pick the wrong copy; restore preserves order, so map by index.
         const activePageId = snap.activePageId
         if (activePageId) {

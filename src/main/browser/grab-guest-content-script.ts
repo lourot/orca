@@ -1,4 +1,5 @@
-export const GRAB_GUEST_CONTENT_SCRIPT = `  function getSelectedText() {
+export const GRAB_GUEST_CONTENT_SCRIPT = `  // Only a selection touching el describes it; one elsewhere on the page would mislabel the note.
+  function getSelectedText(el) {
     try {
       var selection = window.getSelection ? window.getSelection() : null;
       if (!selection || selection.rangeCount === 0) return '';
@@ -10,6 +11,7 @@ export const GRAB_GUEST_CONTENT_SCRIPT = `  function getSelectedText() {
         i++
       ) {
         var range = selection.getRangeAt(i);
+        if (range.intersectsNode && !range.intersectsNode(el)) continue;
         var walkerRoot = range.commonAncestorContainer;
         var walker = document.createTreeWalker(
           walkerRoot,

@@ -64,6 +64,11 @@ export const WORKSPACE_SESSION_FIELD_DISPOSITION = {
     onRepoRemoval: 'prunedByOwnerKey',
     onTransfer: 'copiedByOwnerKey'
   },
+  // Bespoke: a group's document location names a worktree too.
+  detachedBrowserAnnotationsByWorktree: {
+    onRepoRemoval: 'prunedByOwnerKey',
+    onTransfer: 'copiedByBespokeRule'
+  },
   // Paired devices/browser profiles are source-scoped; copying rows would strand unavailable tabs.
   clientHostedBrowserPagesByWorktree: {
     onRepoRemoval: 'prunedByOwnerKey',

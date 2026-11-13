@@ -24,6 +24,7 @@ import {
 } from '../describe-page/browser-annotation-geometry'
 import { syncGuestAnnotationViewportBridge } from '../annotate/guest-annotation-viewport-bridge'
 import { attachBrowserPageWebview } from './attach-browser-page-webview'
+import * as anchorResolution from '../annotate/resolve-browser-annotation-anchors'
 import { setBrowserPageWebviewInputLock } from './browser-page-webview'
 import type {
   BrowserPageRecoveryNavigationValidation,
@@ -54,7 +55,7 @@ export function useBrowserPageWebviewLifecycle({
   onUpdatePageState,
   onSetUrl,
   setAddressBarValue,
-  cancelPendingBrowserCapture,
+  detachPendingBrowserCapture,
   setBrowserOverlayViewport,
   setFindOpen,
   focusAddressBarNow,
@@ -92,7 +93,7 @@ export function useBrowserPageWebviewLifecycle({
   onUpdatePageState: (tabId: string, updates: BrowserTabPageState) => void
   onSetUrl: BrowserPageUrlSetter
   setAddressBarValue: Dispatch<SetStateAction<string>>
-  cancelPendingBrowserCapture: () => void
+  detachPendingBrowserCapture: () => void
   setBrowserOverlayViewport: Dispatch<SetStateAction<BrowserOverlayViewport>>
   setFindOpen: Dispatch<SetStateAction<boolean>>
   focusAddressBarNow: () => boolean
@@ -134,7 +135,7 @@ export function useBrowserPageWebviewLifecycle({
   const browserAnnotationMarkerIds = useAppStore(
     (s) => s.browserAnnotationMarkerIdsByPageId[browserTabId]
   )
-  const invalidatePendingCaptureRef = useRef(cancelPendingBrowserCapture)
+  const invalidatePendingCaptureRef = useRef(detachPendingBrowserCapture)
 
   useLayoutEffect(() => {
     browserTabLoadingRef.current = browserTabLoading
@@ -142,11 +143,11 @@ export function useBrowserPageWebviewLifecycle({
     viewportPresetIdRef.current = viewportPresetId
     isActiveRef.current = isActive
     pendingAnnotationPayloadRef.current = pendingAnnotationPayload
-    invalidatePendingCaptureRef.current = cancelPendingBrowserCapture
+    invalidatePendingCaptureRef.current = detachPendingBrowserCapture
     isPaintableRef.current = isPaintable
   }, [
     browserTabLoading,
-    cancelPendingBrowserCapture,
+    detachPendingBrowserCapture,
     inputLocked,
     isActive,
     isPaintable,
@@ -209,6 +210,7 @@ export function useBrowserPageWebviewLifecycle({
         markerIds: state.browserAnnotationMarkerIdsByPageId[browserTabId] ?? [],
         url: browserTabUrlRef.current
       },
+      anchors: state.browserAnnotationAnchorsByPageId[browserTabId],
       pendingPayload: pendingAnnotationPayloadRef.current,
       surfaceActive: isActiveRef.current,
       token: annotationViewportBridgeTokenRef.current
@@ -216,6 +218,7 @@ export function useBrowserPageWebviewLifecycle({
   }, [browserTabId, browserTabUrlRef])
 
   const invalidateBrowserAnnotationDocument = useCallback((): void => {
+    anchorResolution.retireBrowserAnnotationAnchorResolution(browserTabId)
     useAppStore.getState().invalidateBrowserPageAnnotationGeometry(browserTabId)
     invalidatePendingCaptureRef.current()
     pendingAnnotationPayloadRef.current = null
@@ -292,11 +295,18 @@ export function useBrowserPageWebviewLifecycle({
     }
   }, [isPaintable])
 
+  const browserAnnotationAnchors = anchorResolution.useBrowserAnnotationAnchorResolution(
+    browserTabId,
+    !browserTabLoading,
+    browserTabUrl
+  )
+
   useEffect(() => {
     syncBrowserAnnotationViewportBridge()
   }, [
     browserAnnotations,
     browserAnnotationMarkerIds,
+    browserAnnotationAnchors,
     browserTabId,
     browserTabUrl,
     isActive,

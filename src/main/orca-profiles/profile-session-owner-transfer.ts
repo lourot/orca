@@ -17,6 +17,7 @@ export {
   markdownFileIdCandidates
 } from './profile-session-markdown-transfer'
 import { paneBelongsToTabs } from '../../shared/workspace-session-pane-ownership'
+import type { DetachedBrowserNoteGroup } from '../../shared/browser-detached-annotation-schema'
 
 export type SessionOwnerProjection = {
   mapOwnerKey: (ownerKey: string) => string | null
@@ -91,6 +92,13 @@ export function extractSessionOwnersForTransfer(
     browserWorkspaceIds,
     projection
   )
+  // Absent stays absent so a migration manifest's signed bytes do not change.
+  if (source.detachedBrowserAnnotationsByWorktree) {
+    transferred.detachedBrowserAnnotationsByWorktree = mapOwnerRecord(
+      source.detachedBrowserAnnotationsByWorktree,
+      (groups) => groups.map((group) => mapDetachedBrowserNoteGroup(group, projection))
+    )
+  }
   for (const field of SESSION_FIELDS_COPIED_BY_OWNER_KEY) {
     const record = source[field] as Record<string, unknown> | undefined
     ;(transferred as Record<string, unknown>)[field] = mapOwnerRecord(record, (value) =>
@@ -174,6 +182,7 @@ export function hasTransferredSessionState(session: WorkspaceSessionState): bool
     Object.keys(session.markdownFrontmatterVisible ?? {}).length > 0 ||
     Object.keys(session.browserTabsByWorktree ?? {}).length > 0 ||
     Object.keys(session.browserPagesByWorkspace ?? {}).length > 0 ||
+    Object.keys(session.detachedBrowserAnnotationsByWorktree ?? {}).length > 0 ||
     Object.keys(session.unifiedTabs ?? {}).length > 0 ||
     Object.keys(session.tabGroups ?? {}).length > 0 ||
     Object.keys(session.terminalLayoutsByTabId ?? {}).length > 0 ||
@@ -224,6 +233,28 @@ function mapBrowserWorkspace(
     // Browser profiles and partitions belong to the source profile.
     sessionProfileId: null,
     sessionPartition: null
+  }
+}
+
+function mapDetachedBrowserNoteGroup(
+  group: DetachedBrowserNoteGroup,
+  projection: SessionOwnerProjection
+): DetachedBrowserNoteGroup {
+  const { docLocation } = group.origin
+  return {
+    ...structuredClone(group),
+    origin: {
+      ...structuredClone(group.origin),
+      ...(docLocation
+        ? {
+            docLocation: remapBrowserPageDocLocation(
+              docLocation,
+              docLocation.worktreeId,
+              projection.mapWorktreeId(docLocation.worktreeId)
+            )
+          }
+        : {})
+    }
   }
 }
 

@@ -15,6 +15,7 @@ const MERGED_SESSION_RECORD_FIELDS = [
   'browserPagesByWorkspace',
   'clientHostedBrowserPagesByWorktree',
   'activeBrowserTabIdByWorktree',
+  'detachedBrowserAnnotationsByWorktree',
   'activeFileIdByWorktree',
   'activeTabTypeByWorktree',
   'activeTabIdByWorktree',

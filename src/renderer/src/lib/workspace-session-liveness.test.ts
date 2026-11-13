@@ -21,6 +21,8 @@ function createSnapshot(
     activeTabTypeByWorktree: {},
     browserTabsByWorktree: {},
     browserPagesByWorkspace: {},
+    browserAnnotationsByPageId: {},
+    detachedBrowserAnnotationsByWorktree: {},
     remoteBrowserPageHandlesByPageId: {},
     activeBrowserTabIdByWorktree: {},
     browserUrlHistory: [],

@@ -2,6 +2,7 @@ import type {
   BrowserGrabPayload,
   BrowserPageAnnotation
 } from '../../../../../shared/browser-grab-types'
+import type { BrowserResolvedAnnotationAnchor } from '../../../../../shared/browser-annotation-anchor-resolution'
 import { browserAnnotationMatchesPageUrl } from './browser-annotation-page-url'
 
 // Guest-rendered badges track scrolling without a renderer message per frame.
@@ -9,13 +10,17 @@ export function syncGuestAnnotationViewportBridge({
   toolTargetId,
   annotations,
   currentDocument,
+  anchors,
   pendingPayload,
   surfaceActive,
   token
 }: {
   toolTargetId: string
   annotations: BrowserPageAnnotation[]
-  currentDocument?: { markerIds: readonly string[]; url: string }
+  /** Without a URL, every marker id counts (previews capture no page URL). */
+  currentDocument?: { markerIds: readonly string[]; url?: string }
+  /** Notes re-found by selector in the current document; their geometry wins. */
+  anchors?: Record<string, BrowserResolvedAnnotationAnchor>
   pendingPayload: BrowserGrabPayload | null
   surfaceActive: boolean
   token: string
@@ -23,10 +28,26 @@ export function syncGuestAnnotationViewportBridge({
   // Why: existing badges render in-guest for smooth scroll; only the pending dialog needs viewport messages.
   const eligibleIds = currentDocument ? new Set(currentDocument.markerIds) : null
   // Keep tray numbering even when earlier notes belong to retired documents.
-  const markers = annotations.flatMap((annotation, index) =>
-    currentDocument &&
-    (!eligibleIds?.has(annotation.id) ||
-      !browserAnnotationMatchesPageUrl(annotation.payload.page.sanitizedUrl, currentDocument.url))
+  const markers = annotations.flatMap((annotation, index) => {
+    const anchor = anchors?.[annotation.id]
+    if (anchor) {
+      return [
+        {
+          id: annotation.id,
+          index,
+          isFixed: anchor.isFixed,
+          rectPage: anchor.rectPage,
+          rectViewport: anchor.rectViewport
+        }
+      ]
+    }
+    return currentDocument &&
+      (!eligibleIds?.has(annotation.id) ||
+        (currentDocument.url !== undefined &&
+          !browserAnnotationMatchesPageUrl(
+            annotation.payload.page.sanitizedUrl,
+            currentDocument.url
+          )))
       ? []
       : [
           {
@@ -37,7 +58,7 @@ export function syncGuestAnnotationViewportBridge({
             rectViewport: annotation.payload.target.rectViewport
           }
         ]
-  )
+  })
   void window.api.browser
     .setAnnotationViewportBridge({
       browserPageId: toolTargetId,

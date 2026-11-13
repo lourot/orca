@@ -91,6 +91,8 @@ export function applyRemoveWorktreeSuccessState(
         : s.activeWorkspaceExecutionHostId,
       // Why: closeBrowserTab records a Cmd+Shift+T undo snapshot, but a deleted worktree's tabs can't be restored; purge it.
       recentlyClosedBrowserTabsByWorktree: omitByWorktree(s.recentlyClosedBrowserTabsByWorktree),
+      // Deleting the worktree is the one way unsent notes may go without asking.
+      detachedBrowserAnnotationsByWorktree: omitByWorktree(s.detachedBrowserAnnotationsByWorktree),
       rightSidebarExplorerViewByWorktree: omitByWorktree(s.rightSidebarExplorerViewByWorktree),
       pendingReconnectTabByWorktree: omitByWorktree(s.pendingReconnectTabByWorktree),
       editorDrafts: omitByFileId(s.editorDrafts),

@@ -69,13 +69,11 @@ async function createStoreWithWorktree(): Promise<ReturnType<typeof createTestSt
 function persistedSession(
   store: ReturnType<typeof createTestStore>
 ): ReturnType<typeof buildBrowserSessionData> {
-  const state = store.getState()
-  return buildBrowserSessionData(
-    state.browserTabsByWorktree,
-    state.browserPagesByWorkspace,
-    state.activeBrowserTabIdByWorktree,
-    {}
-  )
+  return buildBrowserSessionData({
+    ...store.getState(),
+    remoteBrowserPageHandlesByPageId: {},
+    browserAnnotationsByPageId: {}
+  })
 }
 
 describe('a browser page that shows a workspace document', () => {

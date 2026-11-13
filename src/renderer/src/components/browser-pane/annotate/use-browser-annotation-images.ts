@@ -24,7 +24,10 @@ function saveAnnotationClipboardImage(worktreeId: string): Promise<string | null
   })
 }
 
-export function useBrowserAnnotationImages(worktreeId: string): {
+export function useBrowserAnnotationImages(
+  worktreeId: string,
+  initialPaths: readonly string[] = []
+): {
   images: NativeChatComposerImageAttachment[]
   imagePaths: string[]
   saving: boolean
@@ -33,7 +36,9 @@ export function useBrowserAnnotationImages(worktreeId: string): {
   resetImages: (paths?: readonly string[]) => void
 } {
   const mountedRef = useMountedRef()
-  const [images, setImages] = useState<NativeChatComposerImageAttachment[]>([])
+  const [images, setImages] = useState<NativeChatComposerImageAttachment[]>(() =>
+    initialPaths.map((path) => ({ id: path, path }))
+  )
   // Releases each clipboard preview once its image leaves the list or the field unmounts.
   const { previews, setPreview } = useNativeChatComposerAttachmentPreviews(images, NO_PENDING)
 

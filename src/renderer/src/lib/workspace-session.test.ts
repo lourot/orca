@@ -89,6 +89,8 @@ function createSnapshot(overrides: Partial<AppState> = {}): AppState {
     },
     browserUrlHistory: [],
     remoteBrowserPageHandlesByPageId: {},
+    browserAnnotationsByPageId: {},
+    detachedBrowserAnnotationsByWorktree: {},
     ...overrides
   } as AppState
 }

@@ -1,7 +1,6 @@
 import { MessageCircleQuestionMark, PencilLine } from 'lucide-react'
 import type {
   BrowserAnnotationPayload,
-  BrowserAnnotationPriority,
   BrowserGrabPayload,
   BrowserGrabRect,
   BrowserPageAnnotation
@@ -40,7 +39,7 @@ export const BROWSER_ANNOTATION_INTENT_OPTIONS = [
 ] as const
 
 // Why: priority stays in the persisted annotation shape for backwards compat, though the UI no longer exposes urgency choices.
-export const DEFAULT_BROWSER_ANNOTATION_PRIORITY: BrowserAnnotationPriority = 'important'
+export { DEFAULT_BROWSER_ANNOTATION_PRIORITY } from '../../../../../shared/browser-grab-types'
 export const BROWSER_PAGE_ZOOM_FEEDBACK_MS = 1400
 
 export type BrowserOverlayViewport = {
@@ -140,6 +139,14 @@ export function getBrowserOverlayAnchor(
     y: clampNumber(edge.y, 12, Math.max(12, containerHeight - 12)),
     side
   }
+}
+
+/** Where a draft card floats once its element went away with the document. */
+export function getPaneCenterOverlayAnchor(
+  container: OverlayRectSource | null
+): BrowserOverlayAnchor {
+  const rect = container?.getBoundingClientRect()
+  return { x: (rect?.width ?? 0) / 2, y: (rect?.height ?? 0) / 3, side: 'bottom' }
 }
 
 export function clampNumber(value: number, min: number, max: number): number {

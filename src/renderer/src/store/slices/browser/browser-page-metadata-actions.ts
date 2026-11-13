@@ -26,6 +26,7 @@ export function createBrowserPageMetadataActions(
   | 'clearBrowserPageAnnotations'
   | 'invalidateBrowserPageAnnotationGeometry'
   | 'removeDeliveredBrowserPageAnnotations'
+  | 'setBrowserAnnotationAnchors'
 > {
   return {
     setRemoteBrowserPageHandle: (pageId, handle) => {
@@ -76,7 +77,7 @@ export function createBrowserPageMetadataActions(
         }
       }),
 
-    addBrowserPageAnnotation: (annotation) =>
+    addBrowserPageAnnotation: (annotation, options) =>
       set((s) => {
         const existing = s.browserAnnotationsByPageId[annotation.browserPageId] ?? []
         // A full page refuses new notes; evicting the oldest would lose feedback unseen.
@@ -93,7 +94,7 @@ export function createBrowserPageMetadataActions(
             s.browserAnnotationMarkerIdsByPageId,
             annotation.browserPageId,
             next,
-            annotation.id
+            options?.measured === false ? undefined : annotation.id
           )
         }
       }),
@@ -143,21 +144,32 @@ export function createBrowserPageMetadataActions(
       set((s) => {
         const notes = omitRecordKeys(s.browserAnnotationsByPageId, [pageId])
         const markers = omitRecordKeys(s.browserAnnotationMarkerIdsByPageId, [pageId])
+        const anchors = omitRecordKeys(s.browserAnnotationAnchorsByPageId, [pageId])
         if (
           notes === s.browserAnnotationsByPageId &&
-          markers === s.browserAnnotationMarkerIdsByPageId
+          markers === s.browserAnnotationMarkerIdsByPageId &&
+          anchors === s.browserAnnotationAnchorsByPageId
         ) {
           return s
         }
-        return { browserAnnotationsByPageId: notes, browserAnnotationMarkerIdsByPageId: markers }
+        return {
+          browserAnnotationsByPageId: notes,
+          browserAnnotationMarkerIdsByPageId: markers,
+          browserAnnotationAnchorsByPageId: anchors
+        }
       }),
 
     invalidateBrowserPageAnnotationGeometry: (pageId) =>
       set((s) => {
         const markers = omitRecordKeys(s.browserAnnotationMarkerIdsByPageId, [pageId])
-        return markers === s.browserAnnotationMarkerIdsByPageId
+        const anchors = omitRecordKeys(s.browserAnnotationAnchorsByPageId, [pageId])
+        return markers === s.browserAnnotationMarkerIdsByPageId &&
+          anchors === s.browserAnnotationAnchorsByPageId
           ? s
-          : { browserAnnotationMarkerIdsByPageId: markers }
+          : {
+              browserAnnotationMarkerIdsByPageId: markers,
+              browserAnnotationAnchorsByPageId: anchors
+            }
       }),
 
     // Identity matching preserves edits and additions made during delivery.
@@ -183,6 +195,19 @@ export function createBrowserPageMetadataActions(
             remaining
           )
         }
-      })
+      }),
+
+    setBrowserAnnotationAnchors: (pageId, anchors) =>
+      set((s) =>
+        // A page closed while its guest answered keeps no geometry.
+        findPage(s.browserPagesByWorkspace, pageId)
+          ? {
+              browserAnnotationAnchorsByPageId: {
+                ...s.browserAnnotationAnchorsByPageId,
+                [pageId]: Object.fromEntries(anchors.map((anchor) => [anchor.id, anchor]))
+              }
+            }
+          : s
+      )
   }
 }

@@ -124,6 +124,7 @@ export const WORKSPACE_SESSION_DISPOSITIONS = {
   openFilesByWorktree: moveDisposition(26),
   activeFileIdByWorktree: moveDisposition(27),
   activeBrowserTabIdByWorktree: moveDisposition(29),
+  detachedBrowserAnnotationsByWorktree: moveDisposition(29),
   activeTabTypeByWorktree: moveDisposition(27),
   activeTabIdByWorktree: moveDisposition(27),
   browserTabsByWorktree: moveDisposition(29),

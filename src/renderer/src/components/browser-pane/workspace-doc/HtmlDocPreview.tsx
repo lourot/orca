@@ -32,6 +32,7 @@ import { buildDocPreviewShareControl } from './doc-preview-artifact-share'
 import { useDocPreviewWebviewHistory } from './doc-preview-webview-history'
 import { useDocPreviewGuestFocus } from './use-doc-preview-guest-focus'
 import { useDocPreviewGuestTools } from './use-doc-preview-guest-tools'
+import { retireBrowserAnnotationAnchorResolution } from '@/components/browser-pane/annotate/resolve-browser-annotation-anchors'
 import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
 import { formatClipboardFilePath } from '@/lib/clipboard-file-path'
 import { getOpenFileRevealOwner } from '@/lib/reveal-in-file-manager'
@@ -131,6 +132,11 @@ export function HtmlDocPreview({
     containerRef,
     toolsReady: state === 'ready' && !isUnavailable
   })
+  // Read through a ref so the load listeners attached once per grant see the current hook.
+  const detachPendingBrowserCaptureRef = useRef(grabAnnotations.detachPendingBrowserCapture)
+  useEffect(() => {
+    detachPendingBrowserCaptureRef.current = grabAnnotations.detachPendingBrowserCapture
+  }, [grabAnnotations.detachPendingBrowserCapture])
   const previewDocument = useMemo(
     () => ({ filePath, relativePath, worktreeId, runtimeEnvironmentId, externalSshTargetId }),
     [externalSshTargetId, filePath, relativePath, runtimeEnvironmentId, worktreeId]
@@ -143,6 +149,10 @@ export function HtmlDocPreview({
     let loadFailed = false
     const onLoadStarted = (): void => {
       resetBrowserOverlayViewport()
+      detachPendingBrowserCaptureRef.current()
+      // A new document: measured geometry no longer applies; it is found again once ready.
+      retireBrowserAnnotationAnchorResolution(previewId)
+      useAppStore.getState().invalidateBrowserPageAnnotationGeometry(previewId)
       loadFailed = false
       setFailureReason(null)
       setAssetFailures([])
@@ -371,6 +381,7 @@ export function HtmlDocPreview({
           webviewRef={webviewRef}
           browserOverlayViewport={browserOverlayViewport}
           worktreeId={worktreeId}
+          pageId={previewId}
         />
         {state === 'loading' && failureReason === null ? (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-editor-surface">

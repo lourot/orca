@@ -2,7 +2,11 @@ import type { BrowserPage, BrowserWorkspace } from '../../../../../shared/browse
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../../shared/layout-owner-switch'
 import { ORCA_BROWSER_BLANK_URL } from '../../../../../shared/constants'
-import type { WorkspaceSessionState } from '../../../../../shared/workspace-session-state-types'
+import type {
+  PersistedBrowserPage,
+  WorkspaceSessionState
+} from '../../../../../shared/workspace-session-state-types'
+import type { BrowserPageAnnotation } from '../../../../../shared/browser-grab-types'
 import { normalizeBrowserHistoryEntries } from '../../../../../shared/workspace-session-browser-history'
 import { normalizeWorkspaceDocHistoryEntries } from '../../../../../shared/workspace-doc-history'
 import type { AppState } from '../../types'
@@ -33,6 +37,7 @@ export function projectHydratedBrowserSession(
   const persistedActiveTabTypeByWorktree = session.activeTabTypeByWorktree ?? {}
   const browserTabsByWorktree: Record<string, BrowserWorkspace[]> = {}
   const browserPagesByWorkspace: Record<string, BrowserPage[]> = {}
+  const browserAnnotationsByPageId: Record<string, BrowserPageAnnotation[]> = {}
 
   for (const [worktreeId, tabs] of Object.entries(persistedTabsByWorktree)) {
     if (!validWorktreeIds.has(worktreeId)) {
@@ -42,7 +47,7 @@ export function projectHydratedBrowserSession(
     for (const tab of tabs) {
       // Salvage can leave an empty page array; hydrate it like a missing array.
       const storedPages = persistedPagesByWorkspace[tab.id]
-      const persistedPages = storedPages?.length
+      const persistedPages: PersistedBrowserPage[] = storedPages?.length
         ? storedPages
         : [
             {
@@ -70,8 +75,13 @@ export function projectHydratedBrowserSession(
           page as typeof page & {
             allowWindowClose?: boolean
           }
+        // The store keeps a page's unsent notes beside its record, not on it.
+        const { annotations, ...pageRecord } = persistedPage
+        if (annotations?.length) {
+          browserAnnotationsByPageId[page.id] = annotations
+        }
         return {
-          ...persistedPage,
+          ...pageRecord,
           workspaceId: tab.id,
           worktreeId,
           // Reassert creation’s URL fence for old/handwritten sessions; persisted grants died with their originating process.
@@ -175,8 +185,15 @@ export function projectHydratedBrowserSession(
     remoteBrowserPageHandlesByPageId:
       buildRestoredRemoteBrowserPageHandles(browserPagesByWorkspace),
     browserCertificateFailuresByPageId: {},
-    browserAnnotationsByPageId: {},
+    browserAnnotationsByPageId,
     browserAnnotationMarkerIdsByPageId: {},
+    browserAnnotationAnchorsByPageId: {},
+    // Groups of worktrees gone since the last run go with them, as their tabs do.
+    detachedBrowserAnnotationsByWorktree: Object.fromEntries(
+      Object.entries(session.detachedBrowserAnnotationsByWorktree ?? {}).filter(
+        ([worktreeId, groups]) => validWorktreeIds.has(worktreeId) && groups.length > 0
+      )
+    ),
     browserUrlHistory: normalizeBrowserHistoryEntries(session.browserUrlHistory ?? []),
     workspaceDocHistory: normalizeWorkspaceDocHistoryEntries(session.workspaceDocHistory ?? []),
     // Restore undelivered closes before rows or relaunch silently resurrects the pages they hide.

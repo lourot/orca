@@ -19,6 +19,8 @@ import type {
 import type { WorkspaceSessionState } from '../../../../../shared/workspace-session-state-types'
 import type { WorkspaceDocHistoryEntry } from '../../../../../shared/workspace-doc-history'
 import type { BrowserPageAnnotation } from '../../../../../shared/browser-grab-types'
+import type { DetachedBrowserNoteGroup } from '../../../../../shared/browser-detached-annotation-schema'
+import type { BrowserResolvedAnnotationAnchor } from '../../../../../shared/browser-annotation-anchor-resolution'
 import type {
   BrowserPageConversionLeg,
   BrowserPageConversionTarget
@@ -122,6 +124,22 @@ export type BrowserSlice = {
   browserAudioMutedTabIds: Record<string, true>
   browserAnnotationsByPageId: Record<string, BrowserPageAnnotation[]>
   browserAnnotationMarkerIdsByPageId: Record<string, string[]>
+  /**
+   * Notes re-found by selector in the page's current document, by note id. Present (even empty)
+   * once resolution ran for that document; never persisted.
+   */
+  browserAnnotationAnchorsByPageId: Record<string, Record<string, BrowserResolvedAnnotationAnchor>>
+  setBrowserAnnotationAnchors: (
+    pageId: string,
+    anchors: readonly BrowserResolvedAnnotationAnchor[]
+  ) => void
+  /** Unsent notes of closed pages; only deleting the worktree or an explicit discard drops them. */
+  detachedBrowserAnnotationsByWorktree: Record<string, DetachedBrowserNoteGroup[]>
+  /** Moves a detached group onto a live page, up to the page's cap; the rest stays detached. */
+  reattachDetachedBrowserNotes: (worktreeId: string, groupId: string, pageId: string) => void
+  discardDetachedBrowserNotes: (worktreeId: string, groupId: string) => void
+  /** Opens a tab on the group's origin and moves the notes onto it. */
+  reopenDetachedBrowserNotes: (worktreeId: string, groupId: string) => BrowserWorkspace | null
   remoteBrowserPageHandlesByPageId: Record<string, RemoteBrowserPageHandle>
   /** Persist undelivered client-page closes by environment or runtime restart restores its persisted pages. */
   clientHostedBrowserCloseIntentsByEnvironment: ClientHostedBrowserCloseIntentsByEnvironment
@@ -204,7 +222,11 @@ export type BrowserSlice = {
     pageId: string,
     viewportPresetId: BrowserViewportPresetId | null
   ) => void
-  addBrowserPageAnnotation: (annotation: BrowserPageAnnotation) => void
+  /** `measured: false` for a note whose geometry predates the current document. */
+  addBrowserPageAnnotation: (
+    annotation: BrowserPageAnnotation,
+    options?: { measured?: boolean }
+  ) => void
   updateBrowserPageAnnotation: (
     pageId: string,
     annotationId: string,

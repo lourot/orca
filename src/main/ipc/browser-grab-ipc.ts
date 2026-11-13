@@ -14,6 +14,11 @@ import type {
   BrowserExtractHoverArgs,
   BrowserExtractHoverResult
 } from '../../shared/browser-grab-types'
+import {
+  isValidBrowserAnnotationAnchorRequests,
+  type BrowserResolveAnnotationAnchorsArgs,
+  type BrowserResolvedAnnotationAnchor
+} from '../../shared/browser-annotation-anchor-resolution'
 
 const grabModeIntentByPageId = new Map<string, { generation: number; enabled: boolean }>()
 const grabModeOperationByPageId = new Map<string, Promise<void>>()
@@ -68,6 +73,8 @@ export function registerBrowserGrabHandlers(): void {
   ipcMain.removeHandler('browser:cancelGrab')
   ipcMain.removeHandler('browser:captureSelectionScreenshot')
   ipcMain.removeHandler('browser:extractHoverPayload')
+  ipcMain.removeHandler('browser:resolveAnnotationAnchors')
+  ipcMain.removeHandler('browser:readGrabSelectedText')
 
   ipcMain.handle(
     'browser:setGrabMode',
@@ -184,6 +191,35 @@ export function registerBrowserGrabHandlers(): void {
         return { ok: false, reason: 'No element hovered' }
       }
       return { ok: true, payload }
+    }
+  )
+
+  ipcMain.handle(
+    'browser:readGrabSelectedText',
+    async (event, args: { browserPageId: string }): Promise<string | null> => {
+      if (!isTrustedBrowserRenderer(event.sender) || typeof args?.browserPageId !== 'string') {
+        return null
+      }
+      const guest = browserManager.getAuthorizedGuest(args.browserPageId, event.sender.id)
+      return guest ? browserManager.readGrabSelectedText(guest) : null
+    }
+  )
+
+  ipcMain.handle(
+    'browser:resolveAnnotationAnchors',
+    async (
+      event,
+      args: BrowserResolveAnnotationAnchorsArgs
+    ): Promise<BrowserResolvedAnnotationAnchor[]> => {
+      if (
+        !isTrustedBrowserRenderer(event.sender) ||
+        typeof args?.browserPageId !== 'string' ||
+        !isValidBrowserAnnotationAnchorRequests(args.anchors)
+      ) {
+        return []
+      }
+      const guest = browserManager.getAuthorizedGuest(args.browserPageId, event.sender.id)
+      return guest ? browserManager.resolveAnnotationAnchors(args.anchors, guest) : []
     }
   )
 }

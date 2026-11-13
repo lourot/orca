@@ -26,6 +26,7 @@ export const SESSION_FIELD_OWNERS = {
   browserTabsByWorktree: 'layout',
   browserPagesByWorkspace: 'fact',
   activeBrowserTabIdByWorktree: 'view',
+  detachedBrowserAnnotationsByWorktree: 'view',
   clientHostedBrowserPagesByWorktree: 'layout',
   clientHostedBrowserCloseIntentsByEnvironment: 'carried',
   pairedTerminalTabCloseIntentsByEnvironment: 'carried',

@@ -77,12 +77,14 @@ export const WorktreeCardMetaBadges = React.forwardRef<
     automationProvenance,
     cliProvenance,
     onOpenReviewNotes,
+    detachedBrowserNotes,
     className,
     ...props
   },
   ref
 ): React.JSX.Element | null {
   if (
+    !detachedBrowserNotes &&
     !hasWorktreeCardDetails({
       linkedItemCount,
       issue,
@@ -161,6 +163,7 @@ export const WorktreeCardMetaBadges = React.forwardRef<
             <ReviewNotesBadgeContent count={unsentReviewNoteCount} />
           </span>
         ))}
+      {detachedBrowserNotes}
       {automationProvenance && (
         <MetaIconBadge
           label={translate(

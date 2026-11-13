@@ -27,6 +27,7 @@ export const WORKSPACE_SESSION_FIELD_OWNERSHIP = {
   openFilesByWorktree: 'worktreeKeyed',
   activeFileIdByWorktree: 'worktreeKeyed',
   activeBrowserTabIdByWorktree: 'worktreeKeyed',
+  detachedBrowserAnnotationsByWorktree: 'worktreeKeyed',
   activeTabTypeByWorktree: 'worktreeKeyed',
   activeTabIdByWorktree: 'worktreeKeyed',
   browserTabsByWorktree: 'worktreeKeyed',

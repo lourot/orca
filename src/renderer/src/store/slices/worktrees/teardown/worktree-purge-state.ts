@@ -173,6 +173,7 @@ export function buildFullWorktreePurgeState(
     remoteBranchConflictByWorktreeId: omitByWorktree(s.remoteBranchConflictByWorktreeId),
     fileSearchStateByWorktree: omitByWorktree(s.fileSearchStateByWorktree),
     recentlyClosedBrowserTabsByWorktree: omitByWorktree(s.recentlyClosedBrowserTabsByWorktree),
+    detachedBrowserAnnotationsByWorktree: omitByWorktree(s.detachedBrowserAnnotationsByWorktree),
     pendingReconnectTabByWorktree: omitByWorktree(s.pendingReconnectTabByWorktree),
     rightSidebarTabByWorktree: pruneRightSidebarTabByWorktree(),
     rightSidebarExplorerViewByWorktree: omitByWorktree(s.rightSidebarExplorerViewByWorktree ?? {}),

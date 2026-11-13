@@ -110,6 +110,21 @@ export function heavyWslMoverProfile(paths: WslMoverPaths): WslMoveProjectionInp
       ]
     },
     activeBrowserTabIdByWorktree: { [wtA]: 'bw-1' },
+    detachedBrowserAnnotationsByWorktree: {
+      [wtA]: [
+        {
+          id: 'detached-1',
+          detachedAt: 1,
+          origin: {
+            pageId: 'bp-gone',
+            workspaceId: 'bw-gone',
+            url: 'https://example.com/',
+            title: 'Gone'
+          },
+          annotations: []
+        }
+      ]
+    },
     activeTabTypeByWorktree: { [wtA]: 'terminal' },
     workspaceDocHistory: [
       {

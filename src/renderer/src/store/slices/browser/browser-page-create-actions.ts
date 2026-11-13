@@ -16,6 +16,12 @@ import { releaseDocPreviewGrant } from '@/lib/doc-preview-grants'
 import { admitBrowserPageMount } from '@/components/browser-pane/host-guest/browser-page-mount-admission'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../../shared/layout-owner-switch'
 import { sendBrowserLayoutCommand } from './browser-layout-owner-commands'
+import { omitRecordKeys } from '../worktrees/teardown/record-key-omission'
+import {
+  detachedNoteGroupsForClosedPages,
+  withDetachedNoteGroups
+} from './browser-detached-annotations'
+import { deleteBrowserAnnotationDrafts } from './browser-annotation-drafts'
 
 export function createBrowserPageCreateActions(
   set: BrowserSliceSet,
@@ -199,7 +205,15 @@ export function createBrowserPageCreateActions(
             remoteBrowserPageHandlesByPageId: nextRemoteBrowserPageHandlesByPageId,
             browserCertificateFailuresByPageId: nextBrowserCertificateFailuresByPageId,
             browserAnnotationsByPageId: nextBrowserAnnotationsByPageId,
-            browserAnnotationMarkerIdsByPageId: nextBrowserAnnotationMarkerIdsByPageId
+            browserAnnotationMarkerIdsByPageId: nextBrowserAnnotationMarkerIdsByPageId,
+            browserAnnotationAnchorsByPageId: omitRecordKeys(s.browserAnnotationAnchorsByPageId, [
+              pageId
+            ]),
+            detachedBrowserAnnotationsByWorktree: withDetachedNoteGroups(
+              s.detachedBrowserAnnotationsByWorktree,
+              workspace.worktreeId,
+              detachedNoteGroupsForClosedPages([page], s.browserAnnotationsByPageId)
+            )
           }
         })
 
@@ -219,6 +233,7 @@ export function createBrowserPageCreateActions(
         if (!closedWorkspaceId) {
           return
         }
+        deleteBrowserAnnotationDrafts([pageId])
         const workspace = findWorkspace(get().browserTabsByWorktree, closedWorkspaceId)
         const item = Object.values(get().unifiedTabsByWorktree)
           .flat()

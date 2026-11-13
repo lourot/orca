@@ -17,6 +17,7 @@ import { createBrowserManagedProfileActions } from './browser-managed-profile-ac
 import { createBrowserProfileImportActions } from './browser-profile-import-actions'
 import { createBrowserCookieImportActions } from './browser-cookie-import-actions'
 import { createBrowserHistoryActions } from './browser-history-actions'
+import { createBrowserDetachedAnnotationActions } from './browser-detached-annotations'
 
 export const createBrowserSlice: StateCreator<AppState, [], [], BrowserSlice> = (set, get) => ({
   browserTabsByWorktree: {},
@@ -26,6 +27,8 @@ export const createBrowserSlice: StateCreator<AppState, [], [], BrowserSlice> = 
   browserAudioMutedTabIds: {},
   browserAnnotationsByPageId: {},
   browserAnnotationMarkerIdsByPageId: {},
+  browserAnnotationAnchorsByPageId: {},
+  detachedBrowserAnnotationsByWorktree: {},
   remoteBrowserPageHandlesByPageId: {},
   clientHostedBrowserCloseIntentsByEnvironment: {},
   activeBrowserTabId: null,
@@ -55,6 +58,7 @@ export const createBrowserSlice: StateCreator<AppState, [], [], BrowserSlice> = 
   ...createBrowserPageStateActions(set, get),
   ...createBrowserAudioActions(set, get),
   ...createBrowserPageMetadataActions(set, get),
+  ...createBrowserDetachedAnnotationActions(set, get),
   ...createBrowserHydrationActions(set, get),
   ...createBrowserProfileListActions(set, get),
   ...createBrowserManagedProfileActions(set, get),

@@ -65,6 +65,7 @@ export function buildWorktreePurgeSurfacePatch(
     browserPagesByWorkspace: omitByBrowserWorkspaceId(s.browserPagesByWorkspace),
     browserAnnotationsByPageId: omitByPageId(s.browserAnnotationsByPageId),
     browserAnnotationMarkerIdsByPageId: omitByPageId(s.browserAnnotationMarkerIdsByPageId),
+    browserAnnotationAnchorsByPageId: omitByPageId(s.browserAnnotationAnchorsByPageId),
     remoteBrowserPageHandlesByPageId: omitByPageId(s.remoteBrowserPageHandlesByPageId),
     pendingAddressBarFocusByPageId: omitByPageId(s.pendingAddressBarFocusByPageId),
     // createBrowserTab writes both the workspace id and the page id into this map.

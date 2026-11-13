@@ -11,6 +11,7 @@ import {
   WorktreeCardMetaBadges
 } from './WorktreeCardMeta'
 import { WorktreeCardPortsDetails, WorktreeCardPortsTrigger } from './WorktreeCardPorts'
+import { DetachedBrowserNotesButton } from '@/components/browser-pane/annotate/detached-browser-notes'
 import type { WorktreeCardController } from './use-worktree-card-controller'
 
 function getVisibleContextLabel(
@@ -65,6 +66,7 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
     metaComment,
     metaUnsentReviewNoteCount,
     handleOpenReviewNotes,
+    detachedBrowserNoteCount,
     metaAutomationProvenance,
     metaCliProvenance,
     hoverIssue,
@@ -214,6 +216,14 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
             comment={metaComment}
             unsentReviewNoteCount={metaUnsentReviewNoteCount}
             onOpenReviewNotes={affiliateListMode ? undefined : handleOpenReviewNotes}
+            detachedBrowserNotes={
+              detachedBrowserNoteCount > 0 ? (
+                <DetachedBrowserNotesButton
+                  worktreeId={worktree.id}
+                  count={detachedBrowserNoteCount}
+                />
+              ) : null
+            }
             automationProvenance={metaAutomationProvenance}
             cliProvenance={metaCliProvenance}
             className="ml-0 pr-0"

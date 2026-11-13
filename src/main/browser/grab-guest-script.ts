@@ -8,10 +8,17 @@ import {
   AWAIT_CLICK_SCRIPT,
   EXTRACT_HOVER_SCRIPT,
   FINALIZE_SCRIPT,
+  READ_SELECTED_TEXT_SCRIPT,
   TEARDOWN_SCRIPT
 } from './grab-guest-selection-scripts'
 
-type GuestScriptAction = 'arm' | 'awaitClick' | 'finalize' | 'extractHover' | 'teardown'
+type GuestScriptAction =
+  | 'arm'
+  | 'awaitClick'
+  | 'finalize'
+  | 'extractHover'
+  | 'readSelectedText'
+  | 'teardown'
 
 /** Runs in the guest through webContents.executeJavaScript. */
 export function buildGuestOverlayScript(action: GuestScriptAction): string {
@@ -24,6 +31,8 @@ export function buildGuestOverlayScript(action: GuestScriptAction): string {
       return FINALIZE_SCRIPT
     case 'extractHover':
       return EXTRACT_HOVER_SCRIPT
+    case 'readSelectedText':
+      return READ_SELECTED_TEXT_SCRIPT
     case 'teardown':
       return TEARDOWN_SCRIPT
   }

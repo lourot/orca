@@ -79,6 +79,14 @@ export function mergeWorkspaceSessions(
       ...base.activeBrowserTabIdByWorktree,
       ...incoming.activeBrowserTabIdByWorktree
     },
+    ...(base.detachedBrowserAnnotationsByWorktree || incoming.detachedBrowserAnnotationsByWorktree
+      ? {
+          detachedBrowserAnnotationsByWorktree: mergeDetachedBrowserNotes(
+            base.detachedBrowserAnnotationsByWorktree ?? {},
+            incoming.detachedBrowserAnnotationsByWorktree ?? {}
+          )
+        }
+      : {}),
     activeFileIdByWorktree: {
       ...base.activeFileIdByWorktree,
       ...incoming.activeFileIdByWorktree
@@ -222,4 +230,20 @@ export function removeRepoFromWorkspaceSession(
     (worktreeId) => !isRepoWorktreeId(repoId, worktreeId)
   )
   return next
+}
+
+/** Unsent notes from both sides survive a merge; a group both sides hold is kept once. */
+function mergeDetachedBrowserNotes(
+  base: NonNullable<WorkspaceSessionState['detachedBrowserAnnotationsByWorktree']>,
+  incoming: NonNullable<WorkspaceSessionState['detachedBrowserAnnotationsByWorktree']>
+): NonNullable<WorkspaceSessionState['detachedBrowserAnnotationsByWorktree']> {
+  const merged = { ...base }
+  for (const [ownerKey, groups] of Object.entries(incoming)) {
+    const incomingIds = new Set(groups.map((group) => group.id))
+    merged[ownerKey] = [
+      ...groups,
+      ...(base[ownerKey] ?? []).filter((group) => !incomingIds.has(group.id))
+    ]
+  }
+  return merged
 }

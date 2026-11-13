@@ -9,6 +9,8 @@ import { useWorktreeCardFoundation } from './use-worktree-card-foundation'
 import { useWorktreeCardLifecycleEffects } from './use-worktree-card-lifecycle-effects'
 import { useWorktreeCardLinkedDetails } from './use-worktree-card-linked-details'
 import { useWorktreeCardReviewDetails } from './use-worktree-card-review-details'
+import { useWorktreeCardReviewNotes } from './use-worktree-card-review-notes'
+import { useDetachedBrowserNoteCount } from '@/components/browser-pane/annotate/detached-browser-notes'
 import { useWorktreeCardSecondaryDetails } from './use-worktree-card-secondary-details'
 import { useWorktreeCardWorkspaceActions } from './use-worktree-card-workspace-actions'
 
@@ -155,6 +157,9 @@ export function useWorktreeCardController(props: ResolvedWorktreeCardProps) {
     updateWorktreeMeta: foundation.updateWorktreeMeta,
     settings: foundation.settings
   })
+  const reviewNotes = useWorktreeCardReviewNotes(worktree, foundation.settings, showComment)
+  // Shown regardless of card settings: these notes must never be out of sight.
+  const detachedBrowserNoteCount = useDetachedBrowserNoteCount(worktree.id)
 
   return {
     ...props,
@@ -177,7 +182,14 @@ export function useWorktreeCardController(props: ResolvedWorktreeCardProps) {
     ...activation,
     showDeleteQuickAction,
     ...workspaceActions,
-    ...secondary
+    ...secondary,
+    ...reviewNotes,
+    detachedBrowserNoteCount,
+    // Unsent review notes ride on the Notes property, so they open the card details too.
+    hasDetails:
+      secondary.hasDetails ||
+      reviewNotes.metaUnsentReviewNoteCount > 0 ||
+      detachedBrowserNoteCount > 0
   }
 }
 

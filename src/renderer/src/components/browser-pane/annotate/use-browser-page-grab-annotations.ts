@@ -16,6 +16,9 @@ import {
 } from '../describe-page/browser-annotation-geometry'
 import { useBrowserPageAnnotationViewportTracking } from './use-browser-page-annotation-viewport-tracking'
 import { runBrowserGrabActionShortcut } from './browser-page-grab-action'
+import { withSelectionAtAdd } from './read-pending-annotation-selected-text'
+import { grabToastPosition } from './browser-grab-toast-position'
+import { restoredBrowserAnnotationPayload } from '@/store/slices/browser/browser-annotation-drafts'
 import type {
   BrowserPageGrabAnnotations,
   BrowserPageGrabAnnotationsOptions,
@@ -56,9 +59,17 @@ export function useBrowserPageGrabAnnotations({
   const grabToastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [grabIntent, setGrabIntent] = useState<GrabIntent>('copy')
   const grabIntentRef = useRef(grabIntent)
+  // A draft left open when the pane last unmounted (its worktree went inactive) comes back
+  // unanchored: the page may have scrolled or reloaded since, so its note is re-found by selector.
   const [pendingAnnotationPayload, setPendingAnnotationPayload] =
-    useState<BrowserGrabPayload | null>(null)
-  const pendingAnnotationPayloadRef = useRef<BrowserGrabPayload | null>(null)
+    useState<BrowserGrabPayload | null>(() => restoredBrowserAnnotationPayload(browserTabId))
+  const pendingAnnotationPayloadRef = useRef<BrowserGrabPayload | null>(pendingAnnotationPayload)
+  // The draft whose element went away with its document; compared by identity so a new pick re-anchors.
+  const [unanchoredPendingPayload, setUnanchoredPendingPayload] =
+    useState<BrowserGrabPayload | null>(pendingAnnotationPayload)
+  const pendingAnnotationUnanchored =
+    pendingAnnotationPayload !== null && pendingAnnotationPayload === unanchoredPendingPayload
+  const unanchoredPendingPayloadRef = useRef<BrowserGrabPayload | null>(unanchoredPendingPayload)
   // Place the toast beside the selected element without covering it.
   const [grabToast, setGrabToast] = useState<BrowserPageGrabToastState | null>(null)
   const grabRef = useRef(grab)
@@ -97,28 +108,13 @@ export function useBrowserPageGrabAnnotations({
       if (!mountedRef.current) {
         return
       }
-      let x = 0
-      let y = 0
-      let below = true
-      const containerRect = containerRef.current?.getBoundingClientRect()
-      if (payload) {
-        const rect = payload.target.rectViewport
-        const webview = webviewRef.current
-        const webviewRect = webview?.getBoundingClientRect()
-        const offsetX = (webviewRect?.left ?? 0) - (containerRect?.left ?? 0)
-        const offsetY = (webviewRect?.top ?? 0) - (containerRect?.top ?? 0)
-        x = offsetX + rect.x + rect.width / 2
-        const elementBottom = offsetY + rect.y + rect.height
-        const elementTop = offsetY + rect.y
-        const containerHeight = containerRect?.height ?? 0
-        below = elementBottom + 52 < containerHeight
-        y = below ? elementBottom : elementTop
-      } else if (containerRect) {
-        x = containerRect.width / 2
-        y = containerRect.height / 2
-      }
+      const position = grabToastPosition(
+        payload?.target.rectViewport ?? null,
+        containerRef.current?.getBoundingClientRect(),
+        webviewRef.current?.getBoundingClientRect()
+      )
       clearTimeout(grabToastTimerRef.current)
-      setGrabToast({ message, type, x, y, below, payload: payload ?? null })
+      setGrabToast({ message, type, ...position, payload: payload ?? null })
       grabToastTimerRef.current = setTimeout(() => dismissGrabToast(), 2000)
     },
     [containerRef, dismissGrabToast, mountedRef, webviewRef]
@@ -166,7 +162,7 @@ export function useBrowserPageGrabAnnotations({
 
   useBrowserPageAnnotationViewportTracking({
     isActive,
-    pendingAnnotation: pendingAnnotationPayload,
+    pendingAnnotation: pendingAnnotationUnanchored ? null : pendingAnnotationPayload,
     annotationCount: browserAnnotationsLength,
     container: trackingContainer ?? containerRef.current,
     scroller:
@@ -239,26 +235,40 @@ export function useBrowserPageGrabAnnotations({
   }, [grab, recordFeatureInteraction, showGrabToast])
 
   const handleAddBrowserAnnotation = useCallback(
-    (comment: string, intent: BrowserAnnotationIntent, imagePaths: string[] = []): void => {
+    async (comment: string, intent: BrowserAnnotationIntent, imagePaths: string[] = []) => {
       const payload = pendingAnnotationPayloadRef.current
       if (!payload) {
         return
       }
-      addBrowserPageAnnotation({
-        id: createBrowserAnnotationId(),
-        browserPageId: browserTabId,
-        comment,
-        intent,
-        priority: DEFAULT_BROWSER_ANNOTATION_PRIORITY,
-        createdAt: new Date().toISOString(),
-        payload: createBrowserAnnotationPayload(payload),
-        ...(imagePaths.length > 0 ? { imagePaths } : {})
-      })
+      // A draft kept across a reload has old geometry; the note is found again by selector.
+      const measured = payload !== unanchoredPendingPayloadRef.current
+      // Only a live pick can read a selection made after the click.
+      const latest = measured ? await withSelectionAtAdd(toolTargetIdRef.current, payload) : payload
+      // A cancel or a second Add during the read has already settled this draft.
+      if (pendingAnnotationPayloadRef.current !== payload) {
+        return
+      }
+      addBrowserPageAnnotation(
+        {
+          id: createBrowserAnnotationId(),
+          browserPageId: browserTabId,
+          comment,
+          intent,
+          priority: DEFAULT_BROWSER_ANNOTATION_PRIORITY,
+          createdAt: new Date().toISOString(),
+          payload: createBrowserAnnotationPayload(latest),
+          ...(imagePaths.length > 0 ? { imagePaths } : {})
+        },
+        { measured }
+      )
       recordFeatureInteraction('browser-annotations')
       pendingAnnotationPayloadRef.current = null
       setPendingAnnotationPayload(null)
-      showGrabToast(annotationAddedGrabToastMessage(), 'success', payload)
-      grab.rearm()
+      showGrabToast(annotationAddedGrabToastMessage(), 'success', measured ? payload : null)
+      // The reload already ended that pick; re-arming would start one the user did not ask for.
+      if (measured) {
+        grab.rearm()
+      }
     },
     [addBrowserPageAnnotation, browserTabId, grab, recordFeatureInteraction, showGrabToast]
   )
@@ -280,10 +290,23 @@ export function useBrowserPageGrabAnnotations({
     setGrabToast(null)
   }, [])
 
+  /** Keeps the draft (and its typed comment) when its document goes away; the card then floats unanchored. */
+  const detachPendingBrowserCapture = useCallback((): void => {
+    const pending = pendingAnnotationPayloadRef.current
+    cancelPendingBrowserCapture()
+    if (pending) {
+      pendingAnnotationPayloadRef.current = pending
+      unanchoredPendingPayloadRef.current = pending
+      setPendingAnnotationPayload(pending)
+      setUnanchoredPendingPayload(pending)
+    }
+  }, [cancelPendingBrowserCapture])
+
   return {
     grabIntent,
     startGrabIntent,
     pendingAnnotationPayload,
+    pendingAnnotationUnanchored,
     setPendingAnnotationPayload,
     grabToast,
     setGrabToast,
@@ -295,6 +318,7 @@ export function useBrowserPageGrabAnnotations({
     handleAddBrowserAnnotation,
     handleCancelPendingBrowserAnnotation,
     cancelPendingBrowserCapture,
+    detachPendingBrowserCapture,
     handleGrabActionShortcut
   }
 }

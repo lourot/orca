@@ -1,6 +1,6 @@
 import { webContents } from 'electron'
 import { buildGuestOverlayScript } from './grab-guest-script'
-import { clampGrabPayload } from './browser-grab-payload'
+import { clampGrabPayload, clampGrabSelectedText } from './browser-grab-payload'
 import { captureSelectionScreenshot as captureGrabSelectionScreenshot } from './browser-grab-screenshot'
 import { getWorkspaceDocPageGuest } from './doc-preview-guest-policy'
 import type {
@@ -11,6 +11,13 @@ import type {
   BrowserGrabScreenshot
 } from './browser-manager-types'
 import { BrowserManagerViewport } from './browser-manager-viewport'
+import {
+  buildResolveBrowserAnnotationAnchorsScript,
+  parseResolvedBrowserAnnotationAnchors,
+  type BrowserAnnotationAnchorRequest,
+  type BrowserResolvedAnnotationAnchor
+} from '../../shared/browser-annotation-anchor-resolution'
+import { BROWSER_ANNOTATION_VIEWPORT_BRIDGE_WORLD_ID } from '../../shared/browser-annotation-viewport-bridge'
 
 export abstract class BrowserManagerGrab extends BrowserManagerViewport {
   /** Authorize tools for browsing and document guests; documents stay outside browsing maps. */
@@ -92,6 +99,37 @@ export abstract class BrowserManagerGrab extends BrowserManagerViewport {
       return await captureGrabSelectionScreenshot(rect, guest)
     } finally {
       releasePaint()
+    }
+  }
+
+  /** Re-finds saved notes' elements after a reload; runs isolated so page scripts cannot spoof it. */
+  async resolveAnnotationAnchors(
+    anchors: readonly BrowserAnnotationAnchorRequest[],
+    guest: Electron.WebContents
+  ): Promise<BrowserResolvedAnnotationAnchor[]> {
+    if (anchors.length === 0) {
+      return []
+    }
+    try {
+      const raw: unknown = await guest.executeJavaScriptInIsolatedWorld(
+        BROWSER_ANNOTATION_VIEWPORT_BRIDGE_WORLD_ID,
+        [{ code: buildResolveBrowserAnnotationAnchorsScript(anchors) }],
+        false
+      )
+      return parseResolvedBrowserAnnotationAnchors(raw, anchors)
+    } catch {
+      return []
+    }
+  }
+
+  /** Text selected inside the picked element since the pick; null when none or no pick is open. */
+  async readGrabSelectedText(guest: Electron.WebContents): Promise<string | null> {
+    try {
+      return clampGrabSelectedText(
+        await guest.executeJavaScript(buildGuestOverlayScript('readSelectedText'))
+      )
+    } catch {
+      return null
     }
   }
 

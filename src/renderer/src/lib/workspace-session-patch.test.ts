@@ -55,6 +55,8 @@ function createSnapshot(
     browserTabsByWorktree: {},
     browserPagesByWorkspace: {},
     remoteBrowserPageHandlesByPageId: {},
+    browserAnnotationsByPageId: {},
+    detachedBrowserAnnotationsByWorktree: {},
     activeBrowserTabIdByWorktree: {},
     browserUrlHistory: [],
     unifiedTabsByWorktree: {},

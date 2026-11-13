@@ -39,3 +39,11 @@ export function retainBrowserAnnotationMarkerIds(
   }
   return nextByPageId
 }
+
+/** Re-keys notes onto another page id, e.g. when a conversion or a reopen replaces the page. */
+export function rehomeBrowserPageAnnotations(
+  annotations: readonly BrowserPageAnnotation[],
+  browserPageId: string
+): BrowserPageAnnotation[] {
+  return annotations.map((annotation) => ({ ...annotation, browserPageId }))
+}

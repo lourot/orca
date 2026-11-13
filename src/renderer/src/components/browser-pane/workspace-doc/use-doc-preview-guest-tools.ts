@@ -7,6 +7,10 @@ import { useBrowserPageAnnotationSend } from '@/components/browser-pane/annotate
 import { useBrowserPageGrabAnnotations } from '@/components/browser-pane/annotate/use-browser-page-grab-annotations'
 import { useBrowserPageMarkupCapture } from '@/components/browser-pane/annotate/use-browser-page-markup-capture'
 import { useGrabMode } from '@/components/browser-pane/annotate/useGrabMode'
+import {
+  useBrowserAnnotationAnchorResolution,
+  useBrowserAnnotationMarkerIds
+} from '@/components/browser-pane/annotate/resolve-browser-annotation-anchors'
 import type { BrowserOverlayViewport } from '@/components/browser-pane/describe-page/browser-annotation-geometry'
 import type { BrowserChromeElementTools } from '@/components/browser-pane/assemble-chrome/browser-chrome-toolbar'
 
@@ -74,7 +78,17 @@ export function useDocPreviewGuestTools({
   })
 
   const { browserAnnotations } = annotationSend
-  const { pendingAnnotationPayload } = grabAnnotations
+  const pendingAnnotationPayload = grabAnnotations.pendingAnnotationUnanchored
+    ? null
+    : grabAnnotations.pendingAnnotationPayload
+  const markerIds = useBrowserAnnotationMarkerIds(previewId)
+  // Previews capture no page URL, so every note of the preview is looked for.
+  const anchors = useBrowserAnnotationAnchorResolution(
+    previewId,
+    toolsReady,
+    undefined,
+    toolTargetId
+  )
   useEffect(() => {
     if (!toolTargetId) {
       return
@@ -82,11 +96,14 @@ export function useDocPreviewGuestTools({
     syncGuestAnnotationViewportBridge({
       toolTargetId,
       annotations: browserAnnotations,
+      // Only geometry measured in this document: a reload must not leave badges at stale spots.
+      currentDocument: { markerIds: markerIds ?? [] },
+      anchors,
       pendingPayload: pendingAnnotationPayload,
       surfaceActive: toolsReady,
       token: annotationViewportBridgeTokenRef.current
     })
-  }, [browserAnnotations, pendingAnnotationPayload, toolTargetId, toolsReady])
+  }, [anchors, browserAnnotations, markerIds, pendingAnnotationPayload, toolTargetId, toolsReady])
 
   const elementTools = useMemo<BrowserChromeElementTools>(
     () => ({

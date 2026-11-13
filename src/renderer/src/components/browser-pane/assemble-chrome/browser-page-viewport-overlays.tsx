@@ -95,6 +95,7 @@ export function BrowserPageViewportOverlays({
         webviewRef={webviewRef}
         browserOverlayViewport={browserOverlayViewport}
         worktreeId={worktreeId}
+        pageId={browserTab.id}
         currentUrl={browserTab.url}
       />
       <BrowserPageFeedbackBadge ref={feedbackBadgeRef} />

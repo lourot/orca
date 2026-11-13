@@ -7,6 +7,29 @@ import {
 
 const SAFE_GRAB_URL_PROTOCOLS = new Set(['http:', 'https:', 'file:'])
 
+function clampStr(s: unknown, max: number): string {
+  const str = typeof s === 'string' ? s : ''
+  if (str.length <= max) {
+    return str
+  }
+  return `${str.slice(0, max)} (truncated)`
+}
+
+// Repeat guest-side secret heuristics at the main-process boundary.
+function containsSecret(val: string): boolean {
+  const lower = val.toLowerCase()
+  return GRAB_SECRET_PATTERNS.some((p) => lower.includes(p))
+}
+
+/** Revalidates selected text from the untrusted guest: clamped to its budget, redacted on a secret. */
+export function clampGrabSelectedText(raw: unknown): string | null {
+  const text = clampStr(raw, GRAB_BUDGET.selectedTextMaxLength)
+  if (!text) {
+    return null
+  }
+  return containsSecret(text) ? '[redacted]' : text
+}
+
 /** Revalidate untrusted guest payloads before forwarding them to renderer chrome. */
 export function clampGrabPayload(raw: unknown): BrowserGrabPayload | null {
   if (!raw || typeof raw !== 'object') {
@@ -23,14 +46,6 @@ export function clampGrabPayload(raw: unknown): BrowserGrabPayload | null {
   const page = obj.page as Record<string, unknown>
   const target = obj.target as Record<string, unknown>
 
-  const clampStr = (s: unknown, max: number): string => {
-    const str = typeof s === 'string' ? s : ''
-    if (str.length <= max) {
-      return str
-    }
-    return `${str.slice(0, max)} (truncated)`
-  }
-
   const clampArray = (arr: unknown, maxEntries: number, maxEntryLength: number): string[] => {
     const items = Array.isArray(arr) ? arr : []
     return items.slice(0, maxEntries).map((item) => clampStr(item, maxEntryLength))
@@ -40,12 +55,6 @@ export function clampGrabPayload(raw: unknown): BrowserGrabPayload | null {
 
   const safeNum = (n: unknown, fallback = 0): number =>
     typeof n === 'number' && Number.isFinite(n) ? n : fallback
-
-  // Repeat guest-side secret heuristics at the main-process boundary.
-  const containsSecret = (val: string): boolean => {
-    const lower = val.toLowerCase()
-    return GRAB_SECRET_PATTERNS.some((p) => lower.includes(p))
-  }
 
   // Strip queries and fragments, which may contain tokens.
   const sanitizeUrl = (rawUrl: unknown): string => {
@@ -153,7 +162,7 @@ export function clampGrabPayload(raw: unknown): BrowserGrabPayload | null {
         GRAB_BUDGET.nearbyElementsMaxEntries,
         GRAB_BUDGET.nearbyElementMaxLength
       ),
-      selectedText: safeMetadataStr(target.selectedText, GRAB_BUDGET.selectedTextMaxLength) || null,
+      selectedText: clampGrabSelectedText(target.selectedText),
       isFixed: target.isFixed === true,
       reactComponents: safeNullableMetadataStr(
         target.reactComponents,

@@ -71,6 +71,7 @@ function collectSessionWorktreeIds(
   addOwnerKeys(session.openFilesByWorktree)
   addOwnerKeys(session.browserTabsByWorktree)
   addOwnerKeys(session.activeBrowserTabIdByWorktree)
+  addOwnerKeys(session.detachedBrowserAnnotationsByWorktree)
   addOwnerKeys(session.activeTabTypeByWorktree)
   addOwnerKeys(session.activeTabIdByWorktree)
   addOwnerKeys(session.unifiedTabs)

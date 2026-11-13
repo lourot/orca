@@ -133,6 +133,12 @@ export const browserPageInteractionAndSessionsApi = {
   }) => ipcRenderer.invoke('browser:captureSelectionScreenshot', args),
   extractHoverPayload: (args: { browserPageId: string }) =>
     ipcRenderer.invoke('browser:extractHoverPayload', args),
+  resolveAnnotationAnchors: (args: {
+    browserPageId: string
+    anchors: { id: string; selector: string }[]
+  }) => ipcRenderer.invoke('browser:resolveAnnotationAnchors', args),
+  readGrabSelectedText: (args: { browserPageId: string }) =>
+    ipcRenderer.invoke('browser:readGrabSelectedText', args),
   onGrabModeToggle: (
     callback: (browserPageId: string, intent: GrabIntent) => void
   ): (() => void) => {

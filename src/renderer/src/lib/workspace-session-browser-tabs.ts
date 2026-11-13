@@ -1,22 +1,38 @@
 import type { BrowserPage, BrowserWorkspace } from '../../../shared/browser-workspace-types'
+import type { BrowserPageAnnotation } from '../../../shared/browser-grab-types'
 import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
-import type { RemoteBrowserPageHandle } from '../store/slices/browser'
+import type { BrowserSlice, RemoteBrowserPageHandle } from '../store/slices/browser'
 
-export function buildBrowserSessionData(
-  browserTabsByWorktree: Record<string, BrowserWorkspace[]>,
-  browserPagesByWorkspace: Record<string, BrowserPage[]>,
-  activeBrowserTabIdByWorktree: Record<string, string | null>,
-  remoteBrowserPageHandlesByPageId: Record<string, RemoteBrowserPageHandle>
-): Pick<
+export function buildBrowserSessionData({
+  browserTabsByWorktree,
+  browserPagesByWorkspace,
+  activeBrowserTabIdByWorktree,
+  remoteBrowserPageHandlesByPageId,
+  browserAnnotationsByPageId,
+  detachedBrowserAnnotationsByWorktree
+}: Pick<
+  BrowserSlice,
+  | 'browserTabsByWorktree'
+  | 'browserPagesByWorkspace'
+  | 'activeBrowserTabIdByWorktree'
+  | 'remoteBrowserPageHandlesByPageId'
+  | 'browserAnnotationsByPageId'
+  | 'detachedBrowserAnnotationsByWorktree'
+>): Pick<
   WorkspaceSessionState,
-  'browserTabsByWorktree' | 'browserPagesByWorkspace' | 'activeBrowserTabIdByWorktree'
+  | 'browserTabsByWorktree'
+  | 'browserPagesByWorkspace'
+  | 'activeBrowserTabIdByWorktree'
+  | 'detachedBrowserAnnotationsByWorktree'
 > {
   return {
+    detachedBrowserAnnotationsByWorktree,
     // Why: guest webContents are recreated on restore, so persist only lightweight chrome state (loading reset to false).
     browserTabsByWorktree: buildPersistedBrowserTabsByWorktree(browserTabsByWorktree),
     browserPagesByWorkspace: buildPersistedBrowserPagesByWorkspace(
       browserPagesByWorkspace,
-      remoteBrowserPageHandlesByPageId
+      remoteBrowserPageHandlesByPageId,
+      browserAnnotationsByPageId
     ),
     activeBrowserTabIdByWorktree
   }
@@ -35,16 +51,21 @@ export function buildPersistedBrowserTabsByWorktree(
 
 export function buildPersistedBrowserPagesByWorkspace(
   browserPagesByWorkspace: Record<string, BrowserPage[]>,
-  remoteBrowserPageHandlesByPageId: Record<string, RemoteBrowserPageHandle>
+  remoteBrowserPageHandlesByPageId: Record<string, RemoteBrowserPageHandle>,
+  browserAnnotationsByPageId: Record<string, BrowserPageAnnotation[]>
 ): WorkspaceSessionState['browserPagesByWorkspace'] {
   return Object.fromEntries(
     Object.entries(browserPagesByWorkspace).map(([workspaceId, pages]) => [
       workspaceId,
-      pages.map((page) => ({
-        ...page,
-        loading: false,
-        ...persistedRemoteBrowserPageIdentity(remoteBrowserPageHandlesByPageId[page.id])
-      }))
+      pages.map((page) => {
+        const annotations = browserAnnotationsByPageId[page.id]
+        return {
+          ...page,
+          loading: false,
+          ...persistedRemoteBrowserPageIdentity(remoteBrowserPageHandlesByPageId[page.id]),
+          ...(annotations?.length ? { annotations } : {})
+        }
+      })
     ])
   )
 }

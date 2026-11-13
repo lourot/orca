@@ -35,6 +35,7 @@ import { preventAgentSendTargetOutsideDismiss } from './prevent-agent-send-targe
 import { browserAnnotationMatchesPageUrl } from './browser-annotation-page-url'
 import { useBrowserAnnotationImages } from './use-browser-annotation-images'
 import { BrowserAnnotationImageStrip } from './browser-annotation-image-strip'
+import { BrowserAnnotationNotFoundHint } from './browser-annotation-not-found-hint'
 import type { BrowserPageAnnotationTrayProps } from '../describe-page/browser-page-types'
 
 export function BrowserPageAnnotationTray({
@@ -53,7 +54,9 @@ export function BrowserPageAnnotationTray({
   browserAnnotationsCopied,
   handleClearBrowserAnnotations,
   handleDeleteBrowserAnnotation,
-  handleUpdateBrowserAnnotation
+  handleUpdateBrowserAnnotation,
+  detachedNotes,
+  isNotFound
 }: BrowserPageAnnotationTrayProps): React.JSX.Element {
   const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(null)
   const [editComment, setEditComment] = useState('')
@@ -226,6 +229,9 @@ export function BrowserPageAnnotationTray({
             </TooltipContent>
           </Tooltip>
         </div>
+        {detachedNotes ? (
+          <div className="border-t border-border px-3 py-1.5">{detachedNotes}</div>
+        ) : null}
         {/* Why: stay mounted while collapsed so the list keeps its scroll position. */}
         <CollapsibleContent asChild forceMount>
           <div
@@ -332,9 +338,11 @@ export function BrowserPageAnnotationTray({
                     <>
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium text-foreground">
-                          {annotation.payload.target.accessibility.accessibleName ||
-                            annotation.payload.target.textSnippet ||
-                            annotation.payload.target.tagName}
+                          {annotation.payload.target.selectedText
+                            ? `"${annotation.payload.target.selectedText}"`
+                            : annotation.payload.target.accessibility.accessibleName ||
+                              annotation.payload.target.textSnippet ||
+                              annotation.payload.target.tagName}
                         </div>
                         <div className="mt-0.5 line-clamp-2 text-muted-foreground">
                           {annotation.comment}
@@ -347,6 +355,7 @@ export function BrowserPageAnnotationTray({
                               {annotation.imagePaths.length}
                             </span>
                           ) : null}
+                          {isNotFound?.(annotation) ? <BrowserAnnotationNotFoundHint /> : null}
                           {currentUrl !== undefined &&
                           !browserAnnotationMatchesPageUrl(
                             annotation.payload.page.sanitizedUrl,

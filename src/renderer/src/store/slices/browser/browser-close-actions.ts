@@ -17,6 +17,11 @@ import { landOnEmptiedWorktree } from '../tabs/tabs-close-actions'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../../shared/layout-owner-switch'
 import { forgetDesktopCreatedServerTab } from '@/lib/desktop-created-server-tabs'
 import {
+  detachedNoteGroupsForClosedPages,
+  withDetachedNoteGroups
+} from './browser-detached-annotations'
+import { deleteBrowserAnnotationDrafts } from './browser-annotation-drafts'
+import {
   closeBrowserTabThroughLayoutOwner,
   withDrawnBrowserPages,
   type DrawnBrowserTab
@@ -36,6 +41,7 @@ export function createBrowserCloseActions(
         // Collect grants outside reducer: revocation is main work and closed docs must become unreadable even if reduction bails.
         let docPageIdsToRelease: string[] = []
         let activeBrowserWorktreeIdToNotify: string | null = null
+        let draftPageIdsToForget: string[] = []
         set((current) => {
           const s = drawn ? withDrawnBrowserPages(current, drawn) : current
           // Main's frame already dropped a drawn tab's record.
@@ -155,6 +161,7 @@ export function createBrowserCloseActions(
 
           // Omit only closed IDs; avoid rebuilding every pending entry and preserve no-op identity.
           const closedPageIds = closedPages.map((page) => page.id)
+          draftPageIdsToForget = closedPageIds
           const nextPendingAddressBarFocusByPageId = omitRecordKeys(
             s.pendingAddressBarFocusByPageId,
             closedPageIds
@@ -184,9 +191,20 @@ export function createBrowserCloseActions(
             browserCertificateFailuresByPageId: nextBrowserCertificateFailuresByPageId,
             browserAudioMutedTabIds: omitRecordKeys(s.browserAudioMutedTabIds, [tabId]),
             browserAnnotationsByPageId: nextBrowserAnnotationsByPageId,
-            browserAnnotationMarkerIdsByPageId: nextBrowserAnnotationMarkerIdsByPageId
+            browserAnnotationMarkerIdsByPageId: nextBrowserAnnotationMarkerIdsByPageId,
+            browserAnnotationAnchorsByPageId: omitRecordKeys(
+              s.browserAnnotationAnchorsByPageId,
+              closedPageIds
+            ),
+            // Unsent notes outlive their tab (close, sleep, window.close()); reopening puts them back.
+            detachedBrowserAnnotationsByWorktree: withDetachedNoteGroups(
+              s.detachedBrowserAnnotationsByWorktree,
+              owningWorktreeId,
+              detachedNoteGroupsForClosedPages(closedPages, s.browserAnnotationsByPageId)
+            )
           }
         })
+        deleteBrowserAnnotationDrafts(draftPageIdsToForget)
 
         for (const remotePage of remotePagesToClose) {
           closeRemoteBrowserPageInOwningEnvironment(

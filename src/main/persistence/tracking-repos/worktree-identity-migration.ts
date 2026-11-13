@@ -120,6 +120,26 @@ export function migrateWorktreeIdentity(
         )
       ) || sessionChanged
     sessionChanged = moveSessionKey(session.activeBrowserTabIdByWorktree) || sessionChanged
+    sessionChanged =
+      moveSessionKey(session.detachedBrowserAnnotationsByWorktree, (groups) =>
+        groups.map((group) =>
+          group.origin.docLocation?.worktreeId === oldWorktreeId
+            ? {
+                ...group,
+                origin: {
+                  ...group.origin,
+                  docLocation: remapBrowserPageDocLocation(
+                    group.origin.docLocation,
+                    oldWorktreeId,
+                    newWorktreeId,
+                    oldWorktreePath,
+                    newWorktreePath
+                  )
+                }
+              }
+            : group
+        )
+      ) || sessionChanged
     sessionChanged = moveSessionKey(session.activeTabTypeByWorktree) || sessionChanged
     sessionChanged = moveSessionKey(session.activeTabIdByWorktree) || sessionChanged
     sessionChanged =

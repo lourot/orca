@@ -11,6 +11,8 @@ const {
   cancelGrabOpMock,
   captureSelectionScreenshotMock,
   extractHoverPayloadMock,
+  resolveAnnotationAnchorsMock,
+  readGrabSelectedTextMock,
   setAnnotationViewportBridgeMock,
   openDevToolsMock,
   setViewportOverrideMock,
@@ -25,6 +27,8 @@ const {
   cancelGrabOpMock: vi.fn(),
   captureSelectionScreenshotMock: vi.fn().mockResolvedValue(null),
   extractHoverPayloadMock: vi.fn().mockResolvedValue(null),
+  resolveAnnotationAnchorsMock: vi.fn().mockResolvedValue([]),
+  readGrabSelectedTextMock: vi.fn().mockResolvedValue(null),
   setAnnotationViewportBridgeMock: vi.fn().mockResolvedValue(true),
   openDevToolsMock: vi.fn().mockResolvedValue(true),
   setViewportOverrideMock: vi.fn().mockResolvedValue(true),
@@ -53,6 +57,8 @@ vi.mock('../browser/browser-manager', () => ({
     cancelGrabOp: cancelGrabOpMock,
     captureSelectionScreenshot: captureSelectionScreenshotMock,
     extractHoverPayload: extractHoverPayloadMock,
+    resolveAnnotationAnchors: resolveAnnotationAnchorsMock,
+    readGrabSelectedText: readGrabSelectedTextMock,
     setAnnotationViewportBridge: setAnnotationViewportBridgeMock,
     openDevTools: openDevToolsMock,
     setViewportOverride: setViewportOverrideMock,
@@ -110,6 +116,8 @@ const TOOL_CHANNELS = [
   'browser:cancelGrab',
   'browser:captureSelectionScreenshot',
   'browser:extractHoverPayload',
+  'browser:resolveAnnotationAnchors',
+  'browser:readGrabSelectedText',
   'browser:setAnnotationViewportBridge'
 ]
 
@@ -268,6 +276,8 @@ function toolArgs(channel: string, browserPageId: string): Record<string, unknow
       return { browserPageId, opId: 'op-1' }
     case 'browser:captureSelectionScreenshot':
       return { browserPageId, rect: { x: 0, y: 0, width: 10, height: 10 } }
+    case 'browser:resolveAnnotationAnchors':
+      return { browserPageId, anchors: [{ id: 'note-1', selector: '#target' }] }
     case 'browser:setAnnotationViewportBridge':
       return {
         browserPageId,
@@ -291,6 +301,8 @@ const GUEST_RECEIVING_MOCKS = [
   awaitGrabSelectionMock,
   captureSelectionScreenshotMock,
   extractHoverPayloadMock,
+  resolveAnnotationAnchorsMock,
+  readGrabSelectedTextMock,
   setAnnotationViewportBridgeMock
 ]
 
@@ -308,6 +320,8 @@ beforeEach(() => {
   awaitGrabSelectionMock.mockResolvedValue({ opId: 'op-1', kind: 'cancelled' })
   captureSelectionScreenshotMock.mockResolvedValue(null)
   extractHoverPayloadMock.mockResolvedValue(null)
+  resolveAnnotationAnchorsMock.mockResolvedValue([])
+  readGrabSelectedTextMock.mockResolvedValue(null)
   setAnnotationViewportBridgeMock.mockResolvedValue(true)
   registerBrowserHandlers()
   // Fake timers settle registration waits for guests that never attach.

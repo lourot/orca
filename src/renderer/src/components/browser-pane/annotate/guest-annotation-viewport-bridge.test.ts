@@ -116,3 +116,25 @@ describe('current-document annotation marker projection', () => {
     await Promise.resolve()
   })
 })
+
+describe('badges re-pinned by selector', () => {
+  it('draws a re-found note at its new place, even without geometry from this document', () => {
+    const { setAnnotationViewportBridge, notes } = createBridge()
+    const moved = { x: 5, y: 600, width: 80, height: 20 }
+    syncGuestAnnotationViewportBridge({
+      toolTargetId: 'page-1',
+      annotations: notes,
+      currentDocument: { markerIds: [], url: 'https://example.com' },
+      anchors: { old: { id: 'old', isFixed: false, rectPage: moved, rectViewport: moved } },
+      pendingPayload: null,
+      surfaceActive: true,
+      token: 'token'
+    })
+    expect(setAnnotationViewportBridge).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        enabled: true,
+        markers: [{ id: 'old', index: 0, isFixed: false, rectPage: moved, rectViewport: moved }]
+      })
+    )
+  })
+})

@@ -27,6 +27,11 @@ vi.mock('@/components/browser-pane/annotate/use-browser-page-grab-annotations', 
 vi.mock('@/components/browser-pane/annotate/use-browser-page-markup-capture', () => ({
   useBrowserPageMarkupCapture: () => ({})
 }))
+// The real store mints UUIDs of its own; this suite counts only the bridge token's.
+vi.mock('@/components/browser-pane/annotate/resolve-browser-annotation-anchors', () => ({
+  useBrowserAnnotationAnchorResolution: () => undefined,
+  useBrowserAnnotationMarkerIds: () => undefined
+}))
 vi.mock('@/components/browser-pane/annotate/useGrabMode', () => ({
   useGrabMode: () => ({ active: false })
 }))

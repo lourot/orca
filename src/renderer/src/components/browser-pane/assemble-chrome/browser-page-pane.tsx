@@ -230,12 +230,14 @@ export function BrowserPagePane({
     onUpdatePageState,
     onSetUrl,
     setAddressBarValue: nav.setAddressBarValue,
-    cancelPendingBrowserCapture: grabAnnotations.cancelPendingBrowserCapture,
+    detachPendingBrowserCapture: grabAnnotations.detachPendingBrowserCapture,
     setBrowserOverlayViewport,
     setFindOpen,
     focusAddressBarNow,
     focusWebviewNow,
-    pendingAnnotationPayload: grabAnnotations.pendingAnnotationPayload,
+    pendingAnnotationPayload: grabAnnotations.pendingAnnotationUnanchored
+      ? null
+      : grabAnnotations.pendingAnnotationPayload,
     inputLocked,
     faviconUrl: browserTab.faviconUrl,
     webviewRef,

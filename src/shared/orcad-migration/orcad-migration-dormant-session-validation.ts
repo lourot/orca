@@ -141,6 +141,7 @@ export function assertOrcadMigrationDormantWorkspaceSessionReferences(args: {
   assertOwnerRecordKeys(args.owns, [
     session.activeFileIdByWorktree,
     session.activeBrowserTabIdByWorktree,
+    session.detachedBrowserAnnotationsByWorktree,
     session.activeTabTypeByWorktree,
     session.activeTabIdByWorktree,
     session.tabGroupLayouts,
