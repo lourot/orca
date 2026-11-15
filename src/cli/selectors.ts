@@ -12,6 +12,7 @@ import {
   getCallerExecutionHostId,
   resolveCallerPaneWorktreeSelector,
   selectEnclosingWorktreeSelectionOnHost,
+  resolveLocalCallerWorktreeSelector,
   type HostScopedWorktreeSelection
 } from './caller-host-worktree-selection'
 
@@ -175,11 +176,7 @@ export async function getBrowserWorktreeSelector(
   if (client.isRemote) {
     return undefined
   }
-  try {
-    return await resolveCurrentWorktreeSelector(cwd, client)
-  } catch {
-    return undefined
-  }
+  return resolveLocalCallerWorktreeSelector(cwd, client)
 }
 
 export async function getTerminalHandle(

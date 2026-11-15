@@ -1,5 +1,6 @@
 import { resolve as resolvePath } from 'node:path'
 import { isPathInsideOrEqual } from '../shared/cross-platform-path'
+import { isFloatingWorkspaceId } from '../shared/floating-workspace-worktree'
 import {
   LOCAL_EXECUTION_HOST_ID,
   parseExecutionHostId,
@@ -9,6 +10,8 @@ import {
 import { readOrchestrationCompatibilityEvidence } from '../shared/orchestration-compatibility-evidence'
 import type { RuntimeWorktreeListResult, RuntimeWorktreeRecord } from '../shared/runtime-types'
 import type { RuntimeClient } from './runtime-client'
+import { RuntimeClientError } from './runtime/types'
+import { isLaunchedByAnotherRuntime } from './runtime/runtime-source-fence'
 
 type CatalogRow = Pick<RuntimeWorktreeRecord, 'id' | 'path' | 'hostId'> & {
   identity?: { key: string }
@@ -86,6 +89,56 @@ export function selectWorktreeIdOnHost(
 ): string | undefined {
   const match = catalog.find((row) => row.id === worktreeId && isOnCallerHost(row, hostId))
   return match ? toHostScopedSelector(match, catalog) : undefined
+}
+
+/** The workspace this Orca terminal names; native folders and the floating terminal have no catalog row. */
+export function selectCallerTerminalWorkspace(
+  catalog: readonly CatalogRow[],
+  hostId: ExecutionHostId
+): string | undefined {
+  const worktreeId = process.env.ORCA_WORKTREE_ID
+  const trimmed = worktreeId?.trim()
+  if (isFloatingWorkspaceId(worktreeId)) {
+    return undefined
+  }
+  if (worktreeId && trimmed && !trimmed.startsWith('folder:')) {
+    const scoped = selectWorktreeIdOnHost(catalog, worktreeId, hostId)
+    if (!scoped) {
+      throw new RuntimeClientError(
+        'selector_not_found',
+        `This terminal's workspace ${worktreeId} is not listed by Orca on this host. Run the command from a workspace directory or pass --worktree <selector> (or all) where the command accepts it.`
+      )
+    }
+    return scoped
+  }
+  return [trimmed, process.env.ORCA_WORKSPACE_ID?.trim()].find((id) => id?.startsWith('folder:'))
+}
+
+/** The cwd's worktree, else the calling terminal's workspace; undefined keeps the runtime default. */
+export async function resolveLocalCallerWorktreeSelector(
+  cwd: string,
+  client: RuntimeClient
+): Promise<string | undefined> {
+  const catalog = await client
+    .call<RuntimeWorktreeListResult>('worktree.list', { limit: 10_000 })
+    .then((response) => response.result.worktrees)
+    .catch(() => undefined)
+  // Without the catalog neither cwd nor the terminal id can be checked; keep the runtime default.
+  if (!catalog) {
+    return undefined
+  }
+  const hostId = getCallerExecutionHostId()
+  const enclosing = selectEnclosingWorktreeSelectionOnHost(
+    catalog,
+    cwd,
+    hostId,
+    process.env.ORCA_WORKTREE_ID
+  )
+  if (enclosing || isLaunchedByAnotherRuntime(process.env, client.userDataPath)) {
+    return enclosing?.selector
+  }
+  // An Orca terminal knows its workspace; without this an unmanaged cwd lands in the focused one.
+  return selectCallerTerminalWorkspace(catalog, hostId)
 }
 
 export async function resolveCallerPaneWorktreeSelector(
