@@ -182,6 +182,30 @@ describe('automation background writer durability', () => {
     }
   })
 
+  // A sibling run's dispatch stamps lastDispatchedAt; that is bookkeeping, not a new definition.
+  it('still dispatches when a sibling run dispatches during acknowledgement', async () => {
+    const { store, automation } = await fixture()
+    const acknowledgement = blockAcknowledgement(store, 2)
+    const dispatcher = vi.fn(async () => launch)
+    const service = new AutomationService(store, { headlessDispatcher: dispatcher })
+    try {
+      const pending = service.runNow(automation.id)
+      await acknowledgement.blocked
+      const sibling = store.createAutomationRun(automation, Date.now() - 60_000, 'manual')
+      store.updateAutomationRun({
+        runId: sibling.id,
+        status: 'dispatched',
+        workspaceId: automation.workspaceId,
+        error: null
+      })
+      acknowledgement.release()
+      await expect(pending).resolves.toMatchObject({ status: 'dispatched' })
+      expect(dispatcher).toHaveBeenCalledOnce()
+    } finally {
+      service.stop()
+    }
+  })
+
   it.each([1, 2])('refuses changed instructions during acknowledgement %s', async (index) => {
     const { store, automation } = await fixture()
     const acknowledgement = blockAcknowledgement(store, index)

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { RpcDispatcher } from '../dispatcher'
 import type { RpcRequest } from '../core'
 import type { OrcaRuntimeService } from '../../orca-runtime'
-import { WORKTREE_METHODS } from './worktree'
+import { WORKTREE_RESOLVE_ACTIVE_METHOD } from './worktree-resolve-active-method'
 
 function resolveActiveRequest(): RpcRequest {
   return { id: 'req-1', authToken: 'tok', method: 'worktree.resolveActive', params: {} }
@@ -20,9 +20,10 @@ describe('worktree.resolveActive', () => {
       })
     } as unknown as OrcaRuntimeService
 
-    const response = await new RpcDispatcher({ runtime, methods: WORKTREE_METHODS }).dispatch(
-      resolveActiveRequest()
-    )
+    const response = await new RpcDispatcher({
+      runtime,
+      methods: [WORKTREE_RESOLVE_ACTIVE_METHOD]
+    }).dispatch(resolveActiveRequest())
 
     expect(response).toMatchObject({ ok: true, result: { worktree: 'repo::/tmp/repo' } })
   })
@@ -34,9 +35,10 @@ describe('worktree.resolveActive', () => {
       resolveActiveWorktreeContext: vi.fn().mockResolvedValue(null)
     } as unknown as OrcaRuntimeService
 
-    const response = await new RpcDispatcher({ runtime, methods: WORKTREE_METHODS }).dispatch(
-      resolveActiveRequest()
-    )
+    const response = await new RpcDispatcher({
+      runtime,
+      methods: [WORKTREE_RESOLVE_ACTIVE_METHOD]
+    }).dispatch(resolveActiveRequest())
 
     expect(response).toMatchObject({ ok: true, result: { worktree: null } })
   })

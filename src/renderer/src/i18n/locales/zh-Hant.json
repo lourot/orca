@@ -540,7 +540,6 @@
       },
       "statusBar": {
         "claudeToggleDescription": "顯示目前工作區的 Claude token 用量與費用。",
-        "codexToggleDescription": "顯示目前工作區的 Codex token 用量與費用。",
         "geminiToggleDescription": "顯示目前工作區的 Gemini token 用量與費用。",
         "opencodeGoToggleDescription": "顯示目前工作區的 OpenCode Go token 用量與費用。",
         "kimiToggleDescription": "顯示目前工作區的 Kimi 訂閱用量。",
@@ -3789,9 +3788,6 @@
           },
           "TerminalAgentSessionForkDialog": {
             "17fc841e59": "複製上下文",
-            "0c8a8629b1": "派生工作階段會顯示為獨立工作區，而非巢狀子項。新代理程式會收到一份限定範圍的對話記錄，作為可編輯的草稿。",
-            "620461df22": "最上層派生",
-            "619b5a35d2": "建立最上層的工作區派生，並使用擷取的上下文啟動新的代理程式分頁。",
             "64e292e8e3": "派生代理程式工作階段",
             "9d25de2920": "建立派生",
             "2b10412cfc": "建立中..."
@@ -9548,7 +9544,6 @@
             "5bfb874d05": "Gemini 用量",
             "97957e374e": "openai",
             "8dfd676c28": "codex",
-            "e9e4412545": "在狀態列中顯示 Codex 的 token 用量和成本。",
             "54b1acf24f": "Codex 用量",
             "dea0a9a665": "anthropic",
             "c9fe3a7876": "claude",

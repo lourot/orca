@@ -24,7 +24,11 @@ function useProjectActivitySummary(repoId: string): string | null {
   const turns = translate(
     'sidebar.projectActivity.summary',
     '{{count}} agent turns in the last {{days}} days',
-    { count: view.totalTurns, days: view.levels.length }
+    {
+      count: view.totalTurns,
+      days: view.levels.length,
+      defaultValue_one: '{{count}} agent turn in the last {{days}} days'
+    }
   )
   const lastActive = translate('sidebar.projectActivity.lastActive', 'Last active {{date}}', {
     date: formatAbsoluteDate(view.lastActiveAt)
@@ -49,7 +53,7 @@ export function ProjectActivityTitle({
   return (
     <div
       className={cn(
-        'min-w-0 truncate text-[13px] font-semibold leading-none',
+        'min-w-0 truncate text-[13px] font-semibold leading-4',
         // Why only with some activity: before the first fetch, on the web client, or with an
         // empty log, every project would otherwise read as inactive.
         anyActivity && recency === undefined && 'text-muted-foreground/60',

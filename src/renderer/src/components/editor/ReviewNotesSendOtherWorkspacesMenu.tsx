@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
+import { useStructuredChatTabNames } from '@/runtime/structured-chat-name-observation'
 import type { AppState } from '@/store/types'
 import {
   DropdownMenuLabel,
@@ -19,7 +20,7 @@ import {
 import { useWorktreeAgentRows } from '@/components/sidebar/useWorktreeAgentRows'
 import { translate } from '@/i18n/i18n'
 import {
-  AgentTargetMenuItem,
+  SendAgentTargetMenuItem,
   orderSendTargetsByWorktreeAgentRows
 } from './ReviewNotesSendAgentTargetItem'
 import {
@@ -73,11 +74,12 @@ export function ReviewNotesSendOtherWorkspacesMenu({
 }): React.JSX.Element | null {
   const inputs = useAppStore(useShallow(selectOtherWorkspacesInputs))
   const agentStatusEpoch = useAppStore((s) => s.agentStatusEpoch)
+  const chatNames = useStructuredChatTabNames()
   const { source, workspaces } = useMemo(() => {
     // Why: stale-boundary timers bump this epoch without replacing the status map.
     void agentStatusEpoch
-    return deriveNotesSendOtherWorkspaces(inputs, sourceWorktreeId, now)
-  }, [agentStatusEpoch, inputs, now, sourceWorktreeId])
+    return deriveNotesSendOtherWorkspaces(inputs, sourceWorktreeId, chatNames, now)
+  }, [agentStatusEpoch, chatNames, inputs, now, sourceWorktreeId])
 
   if (!source || workspaces.length === 0) {
     return null
@@ -133,7 +135,7 @@ function OtherWorkspaceTargets({
         <span className="truncate font-normal text-muted-foreground">{workspace.projectName}</span>
       </DropdownMenuLabel>
       {ordered.map(({ target, agent }) => (
-        <AgentTargetMenuItem
+        <SendAgentTargetMenuItem
           key={target.paneKey}
           target={target}
           agent={agent}

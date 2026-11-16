@@ -378,6 +378,44 @@ describe('orcad migration manifest', () => {
         }
       })
     ).toThrow('orcad_migration_dormant_automation_run_status_invalid')
+    // The run guards' skips are final and their settings travel with the automation.
+    const guarded = parseOrcadMigrationManifest({
+      ...candidate,
+      payload: {
+        ...candidate.payload,
+        dormantState: {
+          ...candidate.payload.dormantState,
+          automations: [
+            {
+              ...automation,
+              minMinutesSinceLastRun: 720,
+              skipWhileRunActive: false,
+              lastDispatchedAt: 5
+            }
+          ],
+          automationRuns: [
+            { ...run, status: 'skipped_cooldown' },
+            { ...run, id: `${run.id}-overlap`, status: 'skipped_run_active' }
+          ]
+        }
+      }
+    }).payload.dormantState
+    expect({
+      statuses: guarded?.automationRuns?.map((entry) => entry.status),
+      guard: guarded?.automations?.[0]?.skipWhileRunActive
+    }).toEqual({ statuses: ['skipped_cooldown', 'skipped_run_active'], guard: false })
+    expect(() =>
+      parseOrcadMigrationManifest({
+        ...candidate,
+        payload: {
+          ...candidate.payload,
+          dormantState: {
+            ...candidate.payload.dormantState,
+            automations: [{ ...automation, skipWhileRunActive: 'yes' }]
+          }
+        }
+      })
+    ).toThrow('orcad_migration_dormant_automation_overlap_invalid')
     for (const invalid of [
       { extraAgentArgs: '--dangerously-bypass-approvals-and-sandbox' },
       { extraAgentArgs: '--model gpt-5', reuseSession: true }

@@ -6,10 +6,8 @@ import {
   observeElementRect,
   Virtualizer
 } from '@tanstack/virtual-core'
-import {
-  readMeasuredRowScrollAdjustmentArgs,
-  shouldAdjustWorktreeSidebarMeasuredRowScroll
-} from './measured-row-scroll-adjustment'
+import { readMeasuredRowScrollAdjustmentArgs } from './measured-row-scroll-adjustment'
+import { shouldAdjustWorktreeSidebarMeasuredRowScroll } from './use-scroll-suppression'
 
 const ROW_ESTIMATE = 36
 const VIEWPORT_HEIGHT = 800

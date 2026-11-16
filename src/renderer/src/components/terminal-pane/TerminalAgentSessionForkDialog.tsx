@@ -17,7 +17,7 @@ import {
   type PreparedAgentSessionFork
 } from './terminal-agent-session-fork'
 import { copyAgentSessionForkContext } from './terminal-agent-session-fork-clipboard'
-import { canForkAgentConversation } from '../../../../shared/agent-session-resume'
+import { canForkAgentConversation } from '../../../../shared/agent-session-fork-resume-argv'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import type { CodexForkContext } from '../../../../shared/codex-fork-context'

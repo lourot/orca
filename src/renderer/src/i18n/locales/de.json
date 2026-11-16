@@ -575,7 +575,6 @@
       },
       "statusBar": {
         "claudeToggleDescription": "Token-Verbrauch und Kosten von Claude für den aktiven Arbeitsbereich anzeigen.",
-        "codexToggleDescription": "Token-Verbrauch und Kosten von Codex für den aktiven Arbeitsbereich anzeigen.",
         "geminiToggleDescription": "Token-Verbrauch und Kosten von Gemini für den aktiven Arbeitsbereich anzeigen.",
         "opencodeGoToggleDescription": "Token-Verbrauch und Kosten von OpenCode Go für den aktiven Arbeitsbereich anzeigen.",
         "kimiToggleDescription": "Nutzung des Kimi-Abonnements für den aktiven Arbeitsbereich anzeigen.",
@@ -3862,9 +3861,6 @@
           },
           "TerminalAgentSessionForkDialog": {
             "17fc841e59": "Kontext kopieren",
-            "0c8a8629b1": "Die Abzweigung erscheint als eigener Arbeitsbereich, nicht als untergeordneter Arbeitsbereich. Der neue Agent erhält ein begrenztes Protokoll als bearbeitbaren Entwurf.",
-            "620461df22": "Abzweigung auf oberster Ebene",
-            "619b5a35d2": "Einen Arbeitsbereich auf oberster Ebene abzweigen und einen neuen Agenten-Tab mit dem erfassten Kontext starten.",
             "64e292e8e3": "Agentensitzung abzweigen",
             "9d25de2920": "Abzweigung erstellen",
             "2b10412cfc": "Wird erstellt…"
@@ -9725,7 +9721,6 @@
             "5bfb874d05": "Gemini-Nutzung",
             "97957e374e": "openai",
             "8dfd676c28": "codex",
-            "e9e4412545": "Token-Nutzung und Kosten von Codex in der Statusleiste anzeigen.",
             "54b1acf24f": "Codex-Nutzung",
             "dea0a9a665": "anthropic",
             "c9fe3a7876": "claude",

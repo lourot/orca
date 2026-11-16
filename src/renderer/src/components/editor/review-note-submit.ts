@@ -1,7 +1,9 @@
+import { toast } from 'sonner'
+import { translate } from '@/i18n/i18n'
 import { captureReviewNoteExcerpt } from '@/lib/markdown-review-notes'
 import type { DiffComparison } from '../../../../shared/diff-comparison'
 
-type ReviewNotePopoverTarget = {
+type ReviewNoteTarget = {
   lineNumber: number
   startLine?: number
 }
@@ -29,7 +31,7 @@ export async function submitReviewNote({
   filePath,
   modifiedContent,
   onAddLineComment,
-  popover,
+  target,
   reviewedComparison,
   worktreeId
 }: {
@@ -42,35 +44,34 @@ export async function submitReviewNote({
     startLine?: number
     body: string
   }) => Promise<boolean>
-  popover: ReviewNotePopoverTarget
+  target: ReviewNoteTarget
   reviewedComparison?: DiffComparison
   worktreeId?: string
 }): Promise<boolean> {
   if (onAddLineComment) {
     return onAddLineComment({
-      lineNumber: popover.lineNumber,
-      startLine: popover.startLine,
+      lineNumber: target.lineNumber,
+      startLine: target.startLine,
       body
     })
   }
   if (!worktreeId) {
     return false
   }
-  // Why: await persistence before closing the popover. If the store rolls back
-  // the optimistic insert, keep the user's draft open so they can retry.
+  // Close only after persistence succeeds; rollback must leave the draft available for retry.
   const result = await addDiffComment({
     worktreeId,
     filePath,
     source: 'diff',
-    startLine: popover.startLine,
-    lineNumber: popover.lineNumber,
-    anchorExcerpt: captureReviewNoteExcerpt(modifiedContent, popover),
+    startLine: target.startLine,
+    lineNumber: target.lineNumber,
+    anchorExcerpt: captureReviewNoteExcerpt(modifiedContent, target),
     body,
     reviewedComparison,
     side: 'modified'
   })
   if (!result) {
-    console.error('Failed to add diff comment - draft preserved')
+    toast.error(translate('auto.components.editor.diffCommentSaveFailed', 'Failed to save comment'))
   }
   return Boolean(result)
 }

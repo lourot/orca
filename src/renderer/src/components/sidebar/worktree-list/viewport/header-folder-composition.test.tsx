@@ -141,6 +141,7 @@ it('composes real dispatched headers, current repo gates and folder cache refres
       projectHeaderHostContexts,
       getCachedFolderWorkspacePathStatus,
       toggleGroupWithScrollAnchor: toggle,
+      dirtyRepoIds: new Set(),
       headerDrag: {
         canReorderRepoHeaders: false,
         canReorderProjectGroupHeaders: false,

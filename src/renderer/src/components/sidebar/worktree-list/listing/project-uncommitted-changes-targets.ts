@@ -19,7 +19,7 @@ export type ProjectUncommittedProbeTarget = {
 export function selectProjectUncommittedProbeTargets(args: {
   worktrees: readonly Pick<Worktree, 'id' | 'path' | 'repoId'>[]
   repoMap: ReadonlyMap<string, Pick<Repo, 'kind' | 'connectionId'>>
-  getExecutionHostId: (worktreeId: string) => ExecutionHostId
+  getExecutionHostId: (worktreeId: string) => ExecutionHostId | null
 }): ProjectUncommittedProbeTarget[] {
   const targets: ProjectUncommittedProbeTarget[] = []
   for (const worktree of args.worktrees) {

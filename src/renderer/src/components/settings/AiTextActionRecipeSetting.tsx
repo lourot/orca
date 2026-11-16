@@ -19,6 +19,8 @@ import { SettingsSubsectionHeader } from './SettingsFormControls'
 import { SearchableSetting } from './SearchableSetting'
 import type { SettingsSearchEntry } from './settings-search'
 import type { ActionRecipeDraftValue } from './source-control-ai-action-recipe-draft'
+import { AppearanceAdvancedDisclosure } from './AppearanceAdvancedDisclosure'
+import { resolveChatNameCliAgentDefault } from './chat-name-cli-agent-default'
 
 type AiTextActionRecipeSettingProps = {
   actionId: RepoIndependentAiTextActionId
@@ -147,6 +149,10 @@ export function AiTextActionRecipeSetting({
     }
   }
 
+  const cliDefault =
+    actionId === 'conversationName' ? resolveChatNameCliAgentDefault(settings, config, value) : null
+  const cliAgent = cliDefault?.cliAgent ?? null
+
   return (
     <SearchableSetting
       {...searchEntry}
@@ -171,8 +177,13 @@ export function AiTextActionRecipeSetting({
             </div>
             {enabled ? children : null}
             {enabled || dirty ? (
-              <>
-                {recipe?.agentId === CUSTOM_AGENT_ID || customCommandDirty ? (
+              <AppearanceAdvancedDisclosure
+                forceOpen={dirty || isSaving}
+                contentClassName="space-y-3 pt-3"
+              >
+                {recipe?.agentId === CUSTOM_AGENT_ID ||
+                cliAgent === CUSTOM_AGENT_ID ||
+                customCommandDirty ? (
                   <CustomAgentCommandField
                     id={`${sectionId}-custom-command`}
                     value={customCommand}
@@ -186,10 +197,15 @@ export function AiTextActionRecipeSetting({
                 <SourceControlActionRecipeRow
                   actionId={actionId}
                   selectedAgent={recipe?.agentId ?? null}
+                  defaultAgentLabel={cliDefault?.label}
+                  defaultAgentSupportText={cliDefault?.supportText}
+                  defaultAgentArgsPlaceholder={cliDefault?.argsPlaceholder}
                   draftValue={value}
                   baseValue={persisted}
                   hasUnsavedChanges={dirty}
-                  defaultTuiAgent={settings.defaultTuiAgent}
+                  defaultTuiAgent={
+                    cliAgent && cliAgent !== 'custom' ? cliAgent : settings.defaultTuiAgent
+                  }
                   isSavingTemplate={isSaving}
                   onAgentChange={(_id, selected) => void saveAgent(selected)}
                   onTemplateChange={(_id, template) =>
@@ -211,7 +227,7 @@ export function AiTextActionRecipeSetting({
                   }}
                   onSave={() => void save()}
                 />
-              </>
+              </AppearanceAdvancedDisclosure>
             ) : null}
           </div>
         </CardContent>

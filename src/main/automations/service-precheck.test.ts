@@ -221,6 +221,8 @@ describe('AutomationService prechecks', () => {
       name: 'Reused session',
       prompt: 'Check the repo',
       precheck: { command: 'test -f ready', timeoutSeconds: 30 },
+      // The default overlap guard would record this Run Now as skipped instead of holding it.
+      skipWhileRunActive: false,
       agentId: 'claude',
       projectId: 'r1',
       workspaceMode: 'new_per_run',

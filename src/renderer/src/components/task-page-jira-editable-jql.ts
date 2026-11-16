@@ -1,9 +1,9 @@
-import type { JiraIssueFilter } from '../../../shared/jira-types'
+import type { JiraIssueFilter } from '../../../shared/jira/jira-types'
 import { buildJiraPresetJql } from '../../../shared/jira/jira-preset-jql'
 import {
   restrictJiraQueryToProject,
   type JiraProjectReference
-} from '../../../shared/jira-project-reference'
+} from '../../../shared/jira/jira-project-reference'
 
 /** The JQL a preset view runs, as "Edit as JQL" exposes it. */
 export function buildJiraPresetPreviewJql(args: {

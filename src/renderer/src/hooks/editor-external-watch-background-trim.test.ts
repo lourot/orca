@@ -64,7 +64,6 @@ function makeState(args: {
     lastVisitedAtByWorktreeId: args.visits ?? {},
     rightSidebarOpen: false,
     rightSidebarTab: 'explorer',
-    rightSidebarExplorerView: 'files',
     gitStatusHugeByWorktree: {},
     sshConnectionStates: new Map(),
     folderWorkspaces: args.folderWorkspaces ?? [],

@@ -47,7 +47,7 @@ function getSwatchLabel(swatch: SwatchOption, isSelected: boolean, usage: number
   const usedBy = translate(
     'auto.components.sidebar.WorktreeColorTagMenuItems.usedBy',
     'used by {{count}} workspaces',
-    { count: usage }
+    { count: usage, defaultValue_one: 'used by {{count}} workspace' }
   )
   return `${action}, ${usedBy}`
 }

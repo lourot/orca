@@ -37,7 +37,7 @@ describe('preserveConcurrentColorTag', () => {
   })
 
   it('keeps the optimistic color while its write is in flight', async () => {
-    const { preserveConcurrentColorTag } = await import('./fetched-worktree-merge')
+    const { preserveConcurrentColorTag } = await import('./fetched-worktree-color-tag')
     isColorTagPersistencePending.mockReturnValue(true)
 
     const merged = preserveConcurrentColorTag(
@@ -50,7 +50,7 @@ describe('preserveConcurrentColorTag', () => {
   })
 
   it('accepts the listing once no write is pending', async () => {
-    const { preserveConcurrentColorTag } = await import('./fetched-worktree-merge')
+    const { preserveConcurrentColorTag } = await import('./fetched-worktree-color-tag')
     isColorTagPersistencePending.mockReturnValue(false)
 
     const merged = preserveConcurrentColorTag(
@@ -63,7 +63,7 @@ describe('preserveConcurrentColorTag', () => {
   })
 
   it('carries an in-flight clear, not just an in-flight color', async () => {
-    const { preserveConcurrentColorTag } = await import('./fetched-worktree-merge')
+    const { preserveConcurrentColorTag } = await import('./fetched-worktree-color-tag')
     isColorTagPersistencePending.mockReturnValue(true)
 
     const merged = preserveConcurrentColorTag(
@@ -76,7 +76,7 @@ describe('preserveConcurrentColorTag', () => {
   })
 
   it('leaves rows the refresh host does not own alone', async () => {
-    const { preserveConcurrentColorTag } = await import('./fetched-worktree-merge')
+    const { preserveConcurrentColorTag } = await import('./fetched-worktree-color-tag')
     isColorTagPersistencePending.mockReturnValue(true)
 
     const merged = preserveConcurrentColorTag(

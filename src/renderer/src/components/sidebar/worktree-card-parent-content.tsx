@@ -5,6 +5,7 @@ import { getWorkspaceAttachments } from '../../../../shared/workspace-attachment
 import { WorktreeCardHeader } from './worktree-card-header'
 import { WorktreeCardMetaRow } from './worktree-card-meta-row'
 import { WorktreeCardDetailsHover } from './WorktreeCardMeta'
+import { withReviewNotesDetails } from './WorktreeCardReviewNotesDetailSection'
 import { WorktreeCardPortsDetails } from './WorktreeCardPorts'
 import type { WorktreeCardPresentation } from './worktree-card-presentation'
 import { WorktreeCardSecondaryRows } from './worktree-card-secondary-rows'
@@ -92,15 +93,15 @@ export function WorktreeCardParentContent({
         jiraIssue={hoverJiraIssue}
         review={hoverReview}
         comment={hoverComment}
-        unsentReviewNoteCount={hoverUnsentReviewNoteCount}
         automationProvenance={metaAutomationProvenance}
         cliProvenance={metaCliProvenance}
         branchName={hoverBranchName}
         workspaceTitle={hoverWorkspaceTitle}
         workspaceTitleRenameDisabled={isDeleting || affiliateListMode}
-        detailsAfter={
+        detailsAfter={withReviewNotesDetails(
+          hoverUnsentReviewNoteCount,
           workspacePorts.length > 0 ? <WorktreeCardPortsDetails ports={workspacePorts} /> : null
-        }
+        )}
         openDelay={100}
         hoverControl={detailsHoverControl}
         onRenameWorkspaceTitle={affiliateListMode ? undefined : handleRenameTitle}

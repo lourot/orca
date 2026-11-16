@@ -52,7 +52,7 @@ export const getStatusBarToggles = createLocalizedCatalog(
       id: 'codex',
       title: translate('auto.components.settings.appearance.search.54b1acf24f', 'Codex Usage'),
       description: translate(
-        'auto.components.settings.appearance.search.e9e4412545',
+        'settings.appearance.statusBar.codexDescriptionWithCredits',
         'Show Codex usage and monthly credits in the status bar.'
       ),
       keywords: [
@@ -70,7 +70,7 @@ export const getStatusBarToggles = createLocalizedCatalog(
         ...translateSearchKeyword('auto.components.settings.appearance.search.97957e374e', 'openai')
       ],
       toggleDescription: translate(
-        'settings.appearance.statusBar.codexToggleDescription',
+        'settings.appearance.statusBar.codexToggleDescriptionWithCredits',
         'Show Codex usage and monthly credits for the active account.'
       )
     },

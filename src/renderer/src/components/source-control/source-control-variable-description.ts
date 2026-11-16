@@ -55,6 +55,11 @@ export function sourceControlVariableDescription(variable: SourceControlActionVa
         'sourceControl.variables.firstPrompt',
         'The first user request for this workspace or chat.'
       )
+    case 'transcript':
+      return translate(
+        'sourceControl.variables.transcript',
+        'The raw dictated text, before cleanup.'
+      )
     case 'assistantMessage':
       return translate(
         'sourceControl.variables.assistantMessage',

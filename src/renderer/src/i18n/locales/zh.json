@@ -147,7 +147,6 @@
       },
       "statusBar": {
         "claudeToggleDescription": "显示当前工作区的 Claude Token 与费用消耗情况。",
-        "codexToggleDescription": "显示当前工作区的 Codex Token 与费用消耗情况。",
         "geminiToggleDescription": "显示当前工作区的 Gemini Token 与费用消耗情况。",
         "opencodeGoToggleDescription": "显示当前工作区的 OpenCode Go Token 与费用消耗情况。",
         "kimiToggleDescription": "显示当前工作区的 Kimi 订阅使用情况。",
@@ -3347,9 +3346,6 @@
           },
           "TerminalAgentSessionForkDialog": {
             "17fc841e59": "复制上下文",
-            "0c8a8629b1": "派生会话会显示为独立工作区，而非嵌套子项。新智能体会收到一份有界转录稿，可作为可编辑草稿。",
-            "620461df22": "顶级派生",
-            "619b5a35d2": "创建一个顶级工作区分支并使用捕获的上下文启动一个新的智能体选项卡。",
             "64e292e8e3": "派生智能体会话",
             "9d25de2920": "创建派生",
             "2b10412cfc": "创建中..."
@@ -9044,7 +9040,6 @@
             "5bfb874d05": "Gemini 使用情况",
             "97957e374e": "开放伊",
             "8dfd676c28": "codex",
-            "e9e4412545": "在状态栏中显示 Codex Token 和成本使用情况。",
             "54b1acf24f": "Codex 使用情况",
             "dea0a9a665": "anthropic",
             "c9fe3a7876": "claude",

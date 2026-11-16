@@ -9,6 +9,7 @@ import {
   type NotesSendAgentTarget,
   type NotesSendAgentTargetState
 } from './notes-send-agent-targets'
+import type { StructuredChatTabNames } from '@/runtime/structured-chat-tab-name'
 
 export type NotesSendOtherWorkspacesState = NotesSendAgentTargetState &
   DashboardWorkspaceState &
@@ -32,6 +33,7 @@ export type NotesSendOtherWorkspace = {
 export function deriveNotesSendOtherWorkspaces(
   state: NotesSendOtherWorkspacesState,
   sourceWorktreeId: string,
+  chatNames: StructuredChatTabNames,
   now = Date.now()
 ): { source: NotesSendSourceWorkspace | null; workspaces: NotesSendOtherWorkspace[] } {
   const all = collectActiveDashboardWorkspaces(state, false)
@@ -48,7 +50,7 @@ export function deriveNotesSendOtherWorkspaces(
     ) {
       continue
     }
-    const targets = deriveNotesSendAgentTargets(state, worktree.id, now)
+    const targets = deriveNotesSendAgentTargets(state, worktree.id, chatNames, now)
     if (targets.length > 0) {
       workspaces.push({
         worktreeId: worktree.id,

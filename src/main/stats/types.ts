@@ -19,6 +19,8 @@ export type StatsAggregates = {
   countedPRs: string[]
   // Persisted because raw events are not retained.
   firstEventAt: number | null
+  // Agent starts inside the project-activity window, which the sidebar heatmap reads.
+  recentAgentStarts?: StatsEvent[]
 }
 
 export type StatsFile = {

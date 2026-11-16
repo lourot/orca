@@ -1,4 +1,18 @@
 import { describe, expect, it, vi } from 'vitest'
+
+const runtimeOwner = vi.hoisted(() => ({ environmentId: null as string | null }))
+vi.mock('@/lib/resolve-owner', () => ({
+  resolveOwner: () =>
+    runtimeOwner.environmentId
+      ? {
+          kind: 'resolved',
+          owner: {
+            endpoint: { kind: 'environment', environmentId: runtimeOwner.environmentId },
+            at: 'local'
+          }
+        }
+      : { kind: 'resolved', owner: { endpoint: { kind: 'self' }, at: 'local' } }
+}))
 import type { AgentStatusEntry } from '../../../shared/agent-status-types'
 import { getDefaultSettings } from '../../../shared/constants'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
@@ -60,7 +74,6 @@ function structuredTab(overrides: Partial<Tab> = {}): Tab {
 function makeHarness(
   args: {
     enabled?: boolean
-    activeRuntimeEnvironmentId?: string
     structured?: boolean
     tab?: Partial<TerminalTab>
     generate?: (index: number) => Promise<RollingAgentTitleResult>
@@ -89,10 +102,7 @@ function makeHarness(
 
   let settings: GlobalSettings = {
     ...getDefaultSettings('/tmp'),
-    tabRollingAgentTitle: args.enabled !== false,
-    ...(args.activeRuntimeEnvironmentId
-      ? { activeRuntimeEnvironmentId: args.activeRuntimeEnvironmentId }
-      : {})
+    tabRollingAgentTitle: args.enabled !== false
   }
 
   let state: RollingAgentTitleSyncState = {
@@ -414,13 +424,15 @@ describe('startRollingAgentTitleSync', () => {
     expect(harness.writes).toEqual([])
   })
 
-  it('skips generation entirely when the setting is off or the runtime is remote', async () => {
+  it('skips generation entirely when the setting is off or the workspace is remote', async () => {
     const disabled = makeHarness({ enabled: false })
     disabled.start()
     disabled.completeTurn()
-    const remote = makeHarness({ activeRuntimeEnvironmentId: 'server-1' })
+    const remote = makeHarness()
     remote.start()
+    runtimeOwner.environmentId = 'server-1'
     remote.completeTurn()
+    runtimeOwner.environmentId = null
     await flush()
     expect({
       disabled: disabled.generateTitle.mock.calls.length,

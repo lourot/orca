@@ -1,6 +1,6 @@
 import type { ProviderRateLimits } from '../../../../shared/rate-limit-types'
 import type { CodexLocalCreditEstimate } from '../../../../shared/codex-usage-types'
-import { translate } from '@/i18n/i18n'
+import { getIntlLocale, translate } from '@/i18n/i18n'
 
 export function applyCodexLocalCreditEstimate(
   provider: ProviderRateLimits | null,
@@ -32,7 +32,7 @@ export function formatCodexCreditAmount(value: number | null): string | null {
   if (value === null || !Number.isFinite(value)) {
     return null
   }
-  return value >= 1000 ? Math.round(value).toLocaleString() : value.toFixed(1)
+  return value >= 1000 ? Math.round(value).toLocaleString(getIntlLocale()) : value.toFixed(1)
 }
 
 export function formatCodexCreditScope(scope: 'active-account' | 'local-accounts'): string {

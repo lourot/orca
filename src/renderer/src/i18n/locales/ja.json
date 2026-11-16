@@ -147,7 +147,6 @@
       },
       "statusBar": {
         "claudeToggleDescription": "アクティブなワークスペースの Claude トークンとコストの使用状況を表示します。",
-        "codexToggleDescription": "アクティブなワークスペースの Codex トークンとコストの使用状況を表示します。",
         "geminiToggleDescription": "アクティブなワークスペースの Gemini トークンとコストの使用状況を表示します。",
         "opencodeGoToggleDescription": "アクティブなワークスペースの OpenCode Go トークンと使用コストを表示します。",
         "kimiToggleDescription": "アクティブなワークスペースの Kimi サブスクリプション使用状況を表示します。",
@@ -3347,9 +3346,6 @@
           },
           "TerminalAgentSessionForkDialog": {
             "17fc841e59": "コンテキストをコピーする",
-            "0c8a8629b1": "フォークは、ネストされた子としてではなく、独自のワークスペースとして表示されます。新規 Agent は、編集可能なドラフトとして制限されたトランスクリプトを受け取ります。",
-            "620461df22": "トップレベルのフォーク",
-            "619b5a35d2": "最上位のワークスペースフォークを作成し、キャプチャされたコンテキストを使用して新しい Agent タブを開始します。",
             "64e292e8e3": "Agent セッションをフォークする",
             "9d25de2920": "フォークの作成",
             "2b10412cfc": "作成中…"
@@ -9081,7 +9077,6 @@
             "5bfb874d05": "Gemini 使用量",
             "97957e374e": "openai",
             "8dfd676c28": "codex",
-            "e9e4412545": "Codex トークンとコストの使用状況をステータスバーに表示します。",
             "54b1acf24f": "Codex 使用量",
             "dea0a9a665": "anthropic",
             "c9fe3a7876": "claude",

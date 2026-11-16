@@ -25,8 +25,6 @@ export type WorktreeActivationOptions = WorktreeActivationSurfaceSelection & {
   defaultTabs?: WorktreeDefaultTabsLaunch
   issueCommand?: IssueCommandLaunch
   sidebarRevealBehavior?: PendingSidebarWorktreeReveal['behavior']
-  /** Flash the activated worktree row after revealing it in the sidebar. */
-  highlightInSidebar?: boolean
   notifyHostRuntime?: boolean
   revealInSidebar?: boolean
   /** Explicit request to see the workspace in the list: leave the activity view once activation commits. */

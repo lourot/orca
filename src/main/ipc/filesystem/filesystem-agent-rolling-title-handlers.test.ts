@@ -14,14 +14,12 @@ const {
   resolveTextGenerationParams,
   generateBranchNameFromContext,
   resolveGenerationTarget,
-  getSshGitProvider,
   resolveModelDiscoveryLocalPath
 } = vi.hoisted(() => ({
   handlers: new Map<string, RollingTitleHandler>(),
   resolveTextGenerationParams: vi.fn(),
   generateBranchNameFromContext: vi.fn(),
   resolveGenerationTarget: vi.fn(),
-  getSshGitProvider: vi.fn(),
   resolveModelDiscoveryLocalPath: vi.fn()
 }))
 vi.mock('electron', () => ({
@@ -34,10 +32,6 @@ vi.mock('../../text-generation/commit-message-text-generation', () => ({
   generateBranchNameFromContext
 }))
 vi.mock('../../agent-hooks/first-work-generation-target', () => ({ resolveGenerationTarget }))
-vi.mock('../../providers/ssh-git-dispatch', () => ({
-  getSshGitProvider,
-  SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE: 'SSH provider unavailable.'
-}))
 vi.mock('./filesystem-source-control-ai-targets', () => ({
   getRepoForSourceControlAi: () => Promise.resolve(null),
   resolveModelDiscoveryLocalPath
@@ -67,7 +61,6 @@ beforeEach(() => {
     resolveTextGenerationParams,
     generateBranchNameFromContext,
     resolveGenerationTarget,
-    getSshGitProvider,
     resolveModelDiscoveryLocalPath
   ]) {
     mock.mockReset()
@@ -93,7 +86,7 @@ describe('agentStatus:generateRollingTitle', () => {
       { agentId: 'claude' },
       LOCAL_TARGET
     )
-    expect(resolveGenerationTarget).toHaveBeenCalledWith('/resolved/wt', 'claude', null, {
+    expect(resolveGenerationTarget).toHaveBeenCalledWith('/resolved/wt', 'claude', {
       getAgentEnvResolvers: expect.any(Function)
     })
   })
@@ -104,26 +97,16 @@ describe('agentStatus:generateRollingTitle', () => {
     expect(generateBranchNameFromContext).not.toHaveBeenCalled()
   })
 
-  it('routes an SSH connection to its provider target and fails when the provider is gone', async () => {
-    const provider = { executeCommitMessagePlan: vi.fn() }
-    getSshGitProvider.mockReturnValue(provider)
-    const routed = await invoke({ connectionId: 'ssh-1' })
-    const routedProvider = resolveGenerationTarget.mock.calls[0]?.[2]
-
-    getSshGitProvider.mockReturnValue(undefined)
-    const unavailable = await invoke({ connectionId: 'ssh-1' })
-
+  it('refuses an SSH workspace without reading a local path or spawning an agent', async () => {
+    const result = await invoke({ connectionId: 'ssh-1' })
     expect({
-      routed,
-      routedProvider,
-      unavailable,
-      localPathReads: resolveModelDiscoveryLocalPath.mock.calls.length
+      result,
+      localPathReads: resolveModelDiscoveryLocalPath.mock.calls.length,
+      spawned: generateBranchNameFromContext.mock.calls.length
     }).toEqual({
-      routed: { success: true, title: 'Wire resolver tier' },
-      routedProvider: provider,
-      unavailable: { success: false, error: 'SSH provider unavailable.' },
-      // An SSH host resolves its own path; the local authorization path must stay untouched.
-      localPathReads: 0
+      result: { success: false, error: 'Rolling titles are not available for SSH workspaces.' },
+      localPathReads: 0,
+      spawned: 0
     })
   })
 

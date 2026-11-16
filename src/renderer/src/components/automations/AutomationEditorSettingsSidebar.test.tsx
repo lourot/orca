@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AGENT_CATALOG } from '@/lib/agent-catalog'
 import type { AutomationDraft } from './AutomationEditorDialog'
 import { AutomationEditorSettingsSidebar } from './AutomationEditorSettingsSidebar'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 // Why: only the Agent field is under test; the sibling fields own their own coverage.
 vi.mock('./AutomationProjectCombobox', () => ({ default: () => null }))
@@ -37,28 +38,33 @@ const DRAFT: AutomationDraft = {
   customSchedule: '',
   missedRunGraceMinutes: '720',
   savedSchedule: null,
+  minMinutesSinceLastRun: '0',
+  skipWhileRunActive: true,
   scheduleWarning: null
 }
 
 function renderSidebar(onDraftChange: (updater: (d: AutomationDraft) => AutomationDraft) => void) {
+  // The run-guard fields explain themselves in tooltips, which need the app's provider.
   return render(
-    <AutomationEditorSettingsSidebar
-      repos={[]}
-      projectHostSetups={[]}
-      automationYamlHooksByRepoKey={{}}
-      getAutomationHooksCacheKey={(repoId) => repoId}
-      repoMap={new Map()}
-      worktrees={[]}
-      settings={null}
-      draft={DRAFT}
-      visibleAgents={AGENT_CATALOG}
-      pickerTriggerClassName=""
-      segmentedGroupClassName=""
-      segmentedItemClassName=""
-      onProjectChange={vi.fn()}
-      onDraftChange={onDraftChange}
-      onSetupDecisionTouched={vi.fn()}
-    />
+    <TooltipProvider>
+      <AutomationEditorSettingsSidebar
+        repos={[]}
+        projectHostSetups={[]}
+        automationYamlHooksByRepoKey={{}}
+        getAutomationHooksCacheKey={(repoId) => repoId}
+        repoMap={new Map()}
+        worktrees={[]}
+        settings={null}
+        draft={DRAFT}
+        visibleAgents={AGENT_CATALOG}
+        pickerTriggerClassName=""
+        segmentedGroupClassName=""
+        segmentedItemClassName=""
+        onProjectChange={vi.fn()}
+        onDraftChange={onDraftChange}
+        onSetupDecisionTouched={vi.fn()}
+      />
+    </TooltipProvider>
   )
 }
 
@@ -69,7 +75,12 @@ describe('AutomationEditorSettingsSidebar agent picker', () => {
     const onDraftChange = vi.fn()
     renderSidebar(onDraftChange)
 
-    fireEvent.click(screen.getByRole('combobox'))
+    // The cooldown picker is a combobox too; pick the agent one.
+    const agentPicker = screen
+      .getAllByRole('combobox')
+      .find((element) => element.hasAttribute('data-agent-combobox-root'))
+    expect(agentPicker).toBeDefined()
+    fireEvent.click(agentPicker!)
 
     expect(screen.queryByRole('option', { name: 'Blank Terminal' })).toBeNull()
     fireEvent.click(screen.getByRole('option', { name: 'Claude' }))

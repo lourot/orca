@@ -318,7 +318,9 @@ describe('file open RPC navigation', () => {
       })
     )
 
-    expect(runtime.openMobileFile).toHaveBeenCalledWith('id:wt-1', 'a.ts', 'all')
+    expect(runtime.openMobileFile).toHaveBeenCalledWith('id:wt-1', 'a.ts', 'all', undefined, {
+      allowOutsideWorkspace: true
+    })
     expect(runtime.openMobileDiff).toHaveBeenCalledWith('id:wt-1', 'a.ts', false, 'host')
   })
 
@@ -332,7 +334,9 @@ describe('file open RPC navigation', () => {
       makeRequest('files.openDiff', { worktree: 'id:wt-1', relativePath: 'a.ts', staged: true })
     )
 
-    expect(runtime.openMobileFile).toHaveBeenCalledWith('id:wt-1', 'a.ts', undefined)
+    expect(runtime.openMobileFile).toHaveBeenCalledWith('id:wt-1', 'a.ts', undefined, undefined, {
+      allowOutsideWorkspace: true
+    })
     expect(runtime.openMobileDiff).toHaveBeenCalledWith('id:wt-1', 'a.ts', true, undefined)
   })
 
@@ -342,10 +346,13 @@ describe('file open RPC navigation', () => {
       makeRequest('files.open', { worktree: 'id:wt-1', relativePath: 'a.ts', line: 42, column: 7 })
     )
     expect(response).toMatchObject({ ok: true })
-    expect(runtime.openMobileFile).toHaveBeenCalledWith('id:wt-1', 'a.ts', undefined, {
-      line: 42,
-      column: 7
-    })
+    expect(runtime.openMobileFile).toHaveBeenCalledWith(
+      'id:wt-1',
+      'a.ts',
+      undefined,
+      { line: 42, column: 7 },
+      { allowOutsideWorkspace: true }
+    )
     await dispatcher.dispatch(
       makeRequest('files.openDiff', { worktree: 'id:wt-1', relativePath: 'a.ts', line: 42 })
     )

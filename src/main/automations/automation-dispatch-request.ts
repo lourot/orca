@@ -41,7 +41,14 @@ type DispatchContext = Pick<
 }
 
 function definition(automation: Automation) {
-  const { lastRunAt: _last, updatedAt: _updated, nextRunAt: _next, ...configured } = automation
+  // lastDispatchedAt: a sibling run's dispatch stamps it, which does not change this run's definition.
+  const {
+    lastRunAt: _last,
+    lastDispatchedAt: _dispatched,
+    updatedAt: _updated,
+    nextRunAt: _next,
+    ...configured
+  } = automation
   return configured
 }
 

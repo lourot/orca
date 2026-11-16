@@ -567,7 +567,6 @@
       },
       "statusBar": {
         "claudeToggleDescription": "Etkin çalışma alanı için Claude token ve maliyet kullanımını göster.",
-        "codexToggleDescription": "Etkin çalışma alanı için Codex token ve maliyet kullanımını göster.",
         "geminiToggleDescription": "Etkin çalışma alanı için Gemini token ve maliyet kullanımını göster.",
         "opencodeGoToggleDescription": "Etkin çalışma alanı için OpenCode Go token ve maliyet kullanımını göster.",
         "kimiToggleDescription": "Etkin çalışma alanı için Kimi abonelik kullanımını göster.",
@@ -3840,9 +3839,6 @@
           },
           "TerminalAgentSessionForkDialog": {
             "17fc841e59": "Bağlamı kopyala",
-            "0c8a8629b1": "Fork, iç içe bir alt öğe olarak değil, kendi çalışma alanı olarak görünür. Yeni ajan, düzenlenebilir bir taslak olarak sınırlı bir döküm alır.",
-            "620461df22": "Üst düzey fork",
-            "619b5a35d2": "Üst düzey bir çalışma alanı fork'u oluşturun ve yakalanan bağlamla yeni bir ajan sekmesi başlatın.",
             "64e292e8e3": "Ajan Oturumunu Fork'la",
             "9d25de2920": "Fork oluştur",
             "2b10412cfc": "Oluşturuluyor..."
@@ -9711,7 +9707,6 @@
             "5bfb874d05": "Gemini Kullanımı",
             "97957e374e": "openai",
             "8dfd676c28": "codex",
-            "e9e4412545": "Durum çubuğunda Codex token ve maliyet kullanımını gösterin.",
             "54b1acf24f": "Codex Kullanımı",
             "dea0a9a665": "anthropic",
             "c9fe3a7876": "claude",

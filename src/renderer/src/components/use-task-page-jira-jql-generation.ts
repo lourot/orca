@@ -13,8 +13,8 @@ import {
 } from '../../../shared/jira/jira-jql-generation'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { getJiraEditableJql } from './task-page-jira-editable-jql'
-import { getJiraStatusCatalogScopeKey } from './task-page-jira-status-catalog'
-import type { TaskPageComposerActionsModel } from './use-task-page-composer-actions'
+import { getJiraStatusCatalogScopeKey } from './task-page/jira/task-page-jira-status-catalog'
+import type { TaskPageComposerActionsModel } from './task-page/use-task-page-composer-actions'
 
 type JqlGenerationModel = Pick<
   TaskPageComposerActionsModel,

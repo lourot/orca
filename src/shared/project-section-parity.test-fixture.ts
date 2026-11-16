@@ -116,13 +116,14 @@ const WORKSPACE = {
   label: 'orca/orca'
 }
 // Why 'orca', not the server's 'Orca': the later host's derived project name wins the merge.
-const WINDOWS = { key: 'project:github:stablyai/orca', label: 'orca' }
+// The parent prefix is this fork's unconditional minDepth 2, not a collision.
+const WINDOWS = { key: 'project:github:stablyai/orca', label: 'orca/orca' }
 const M4 = { key: 'project:github:stablyai/orca::setup:m4-orca', label: 'orca/orca' }
 const M4_TWO = {
   key: 'project:github:stablyai/orca::setup:m4-orca-two',
   label: 'orca-two/orca'
 }
-const ASSETS = { key: 'project:repo:local-assets', label: 'design-assets' }
+const ASSETS = { key: 'project:repo:local-assets', label: 'jinwoo/design-assets' }
 
 export const PROJECT_SECTION_PARITY_HEADERS = {
   recent: [M4_TWO, WINDOWS, WORKSPACE, STABLY, M4, ASSETS],

@@ -20,6 +20,7 @@ export function useFileSearchPanelActions(args: FileSearchPanelActionsArgs): {
   filtersProps: SearchFiltersProps
   resultsProps: {
     results: SearchResult | null
+    error?: string | null
     hasCommittedResults: boolean
     query: string
     loading: boolean
@@ -42,6 +43,7 @@ export function useFileSearchPanelActions(args: FileSearchPanelActionsArgs): {
     currentSearchQuery,
     currentSearchOptions,
     currentSearchResultOwner,
+    currentSearchError,
     globalSearchState,
     setGlobalSearchState,
     isGlobalScope,
@@ -165,8 +167,13 @@ export function useFileSearchPanelActions(args: FileSearchPanelActionsArgs): {
       if (event.nativeEvent.isComposing) {
         return
       }
-      if (event.key === 'Escape' && fileSearchQuery) {
-        handleClearSearch()
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        inputRef.current?.blur()
+        if (fileSearchQuery) {
+          handleClearSearch()
+        }
       }
       if (event.key === 'Enter') {
         if (scope === 'current') {
@@ -182,6 +189,7 @@ export function useFileSearchPanelActions(args: FileSearchPanelActionsArgs): {
       fileSearchOptions,
       fileSearchQuery,
       handleClearSearch,
+      inputRef,
       scope
     ]
   )
@@ -232,9 +240,11 @@ export function useFileSearchPanelActions(args: FileSearchPanelActionsArgs): {
   const handleMatchClick = useCallback(
     (fileResult: SearchFileResult, match: SearchMatch, owner?: FileSearchResultOwner) => {
       const resultOwner = owner ?? currentSearchResultOwner
-      if (resultOwner) {
-        activateFileSearchResultOwner(resultOwner)
+      // Why: a stale current-scope owner is withheld upstream; never open into another worktree.
+      if (!resultOwner) {
+        return
       }
+      activateFileSearchResultOwner(resultOwner)
       openMatchResult({
         resultOwner,
         fileResult,
@@ -245,14 +255,7 @@ export function useFileSearchPanelActions(args: FileSearchPanelActionsArgs): {
         revealInnerRafRef
       })
     },
-    [
-      activeWorktreeId,
-      currentSearchResultOwner,
-      openFile,
-      revealInnerRafRef,
-      revealRafRef,
-      setPendingEditorReveal
-    ]
+    [currentSearchResultOwner, openFile, revealInnerRafRef, revealRafRef, setPendingEditorReveal]
   )
 
   return {
@@ -282,6 +285,7 @@ export function useFileSearchPanelActions(args: FileSearchPanelActionsArgs): {
     },
     resultsProps: {
       results: fileSearchResults,
+      error: isGlobalScope ? null : currentSearchError,
       hasCommittedResults: fileSearchResults !== null,
       query: fileSearchQuery,
       loading: fileSearchLoading,

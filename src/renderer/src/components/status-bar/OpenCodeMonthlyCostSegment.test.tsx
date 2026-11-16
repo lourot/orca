@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { OpenCodeMonthlyCost } from '../../../../shared/opencode-usage-types'
 
 vi.mock('@/i18n/i18n', () => ({
+  getIntlLocale: () => 'en-US',
   translate: (_key: string, fallback: string) => fallback
 }))
 

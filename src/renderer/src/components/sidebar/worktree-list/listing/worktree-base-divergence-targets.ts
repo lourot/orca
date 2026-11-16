@@ -1,7 +1,7 @@
 import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import type { Repo } from '../../../../../../shared/repo-types'
 import type { Worktree } from '../../../../../../shared/worktree/types'
-import { isFullGitCommitOid } from '../../../right-sidebar/source-control/sync/base-ref-resolution'
+import { isFullGitCommitOid } from '../../../../../../shared/source-control-base-ref-resolution'
 import {
   selectProjectUncommittedProbeTargets,
   type ProjectUncommittedProbeTarget

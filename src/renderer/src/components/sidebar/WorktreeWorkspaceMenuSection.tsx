@@ -13,7 +13,7 @@ export function WorktreeWorkspaceMenuSection({
   const { isMultiContext, isDeleting } = model
   return (
     <>
-      <DropdownMenuLabel className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
+      <DropdownMenuLabel>
         {translate('auto.components.sidebar.WorktreeContextMenu.workspaceSection', 'Workspace')}
       </DropdownMenuLabel>
       {!isMultiContext && (

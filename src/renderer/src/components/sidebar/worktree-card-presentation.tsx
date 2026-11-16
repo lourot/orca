@@ -10,6 +10,7 @@ import {
   WorktreeCardDetailsHover,
   WorktreeCardMetaBadges
 } from './WorktreeCardMeta'
+import { withReviewNotesDetails } from './WorktreeCardReviewNotesDetailSection'
 import { WorktreeCardPortsDetails, WorktreeCardPortsTrigger } from './WorktreeCardPorts'
 import { DetachedBrowserNotesButton } from '@/components/browser-pane/annotate/detached-browser-notes'
 import type { WorktreeCardController } from './use-worktree-card-controller'
@@ -242,10 +243,12 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
         jiraIssue={metaJiraIssue}
         review={metaReview}
         comment={metaComment}
-        unsentReviewNoteCount={metaUnsentReviewNoteCount}
         automationProvenance={metaAutomationProvenance}
         cliProvenance={metaCliProvenance}
-        detailsAfter={hasPorts ? <WorktreeCardPortsDetails ports={workspacePorts} /> : null}
+        detailsAfter={withReviewNotesDetails(
+          metaUnsentReviewNoteCount,
+          hasPorts ? <WorktreeCardPortsDetails ports={workspacePorts} /> : null
+        )}
         hoverControl={detailsHoverControl}
         onEditIssue={affiliateListMode ? undefined : handleEditIssue}
         onEditComment={affiliateListMode ? undefined : handleEditComment}

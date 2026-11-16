@@ -222,7 +222,7 @@ Repair login`
       })
       expect(boundary.account).toHaveBeenCalledWith('opencode', 'recorded')
       // The v2 recording used standalone/argv; these assertions separately cover today's launch.
-      expect(spawn?.args).toEqual(['run', '--agent', 'build', '--format', 'json'])
+      expect(spawn?.args).toEqual(['run', '--agent', 'orca-text-only', '--format', 'json'])
     } else {
       expect(spawn?.env?.PI_CODING_AGENT_DIR).toBe('/recorded/pi')
     }

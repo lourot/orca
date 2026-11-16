@@ -1,9 +1,9 @@
 import type { OpenCodeMonthlyCost } from '../../../../shared/opencode-usage-types'
 import { OpenCodeGoIcon } from './icons'
-import { translate } from '@/i18n/i18n'
+import { getIntlLocale, translate } from '@/i18n/i18n'
 
 function formatUsd(value: number): string {
-  return new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat(getIntlLocale(), {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: 2
@@ -29,13 +29,19 @@ export function OpenCodeMonthlyCostSegment({
     'auto.components.status.bar.StatusBar.openCodeMonthlyCostLabel',
     'Monthly estimate from ccusage'
   )
+  const providerName = translate(
+    'auto.components.status.bar.StatusBar.openCodeProviderName',
+    'OpenCode'
+  )
   return (
     <span
       className="inline-flex shrink-0 items-center gap-1.5 text-muted-foreground"
-      title={`OpenCode: ${estimateLabel} · ${cost} / ${cap} · ${formatPercent(usage.usedPercent)}`}
+      title={`${providerName}: ${estimateLabel} · ${cost} / ${cap} · ${formatPercent(usage.usedPercent)}`}
     >
       <OpenCodeGoIcon size={13} />
-      {!compact && !iconOnly ? <span className="font-medium text-foreground">OpenCode</span> : null}
+      {!compact && !iconOnly ? (
+        <span className="font-medium text-foreground">{providerName}</span>
+      ) : null}
       {!iconOnly ? (
         <span className="tabular-nums">
           ~{cost} / {cap}
@@ -58,18 +64,22 @@ export function OpenCodeMonthlyCostRow({
     'auto.components.status.bar.StatusBar.openCodeMonthlyCostLabel',
     'Monthly estimate from ccusage'
   )
+  const providerName = translate(
+    'auto.components.status.bar.StatusBar.openCodeProviderName',
+    'OpenCode'
+  )
   return (
     <button
       type="button"
       onClick={onSelect}
       className="flex w-full cursor-pointer items-center gap-2.5 rounded-none px-3.5 py-2.5 text-left hover:bg-accent"
-      title={`OpenCode: ${estimateLabel}`}
+      title={`${providerName}: ${estimateLabel}`}
     >
       <span className="flex size-5 shrink-0 items-center justify-center rounded-md border border-border bg-secondary">
         <OpenCodeGoIcon size={13} />
       </span>
       <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
-        OpenCode
+        {providerName}
         <span className="block text-[11px] font-normal text-muted-foreground">{estimateLabel}</span>
       </span>
       <span className="shrink-0 tabular-nums text-[11px] text-muted-foreground">

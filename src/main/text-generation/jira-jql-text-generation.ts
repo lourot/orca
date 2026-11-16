@@ -25,7 +25,6 @@ export async function generateJiraJqlFromContext(
     prompt: buildJiraJqlPrompt(context),
     target,
     spawnAgent,
-    emptyResultName: 'JQL',
     operation: 'jira-jql'
   })
   if (!result.success) {

@@ -264,6 +264,7 @@ describe('two tabs sharing one model', () => {
     }
     const [code, rich] = store.getState().openFiles
     store.getState().setMarkdownViewMode(code.id, 'source')
+    store.getState().setMarkdownViewMode(rich.id, 'rich')
     for (const tab of [code, rich]) {
       store.getState().setLastKnownDiskSignature(tab.id, getDiskBaselineSignature('A'))
     }

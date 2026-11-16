@@ -71,6 +71,8 @@ describe('applyEditorBufferText', () => {
   beforeEach(() => {
     ;({ store, a, b } = twoViews())
     store.getState().setMarkdownViewMode(a, 'source')
+    // Markdown opens in source by default here, so the rich view is set explicitly.
+    store.getState().setMarkdownViewMode(b, 'rich')
   })
 
   it("carries a rich commit into the record's model no editor shows, as one undoable edit", () => {

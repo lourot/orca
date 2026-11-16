@@ -32,7 +32,6 @@ import { translate } from '@/i18n/i18n'
 import { WorktreeCardReviewDetailSection } from './WorktreeCardReviewDetailSection'
 import { WorktreeCardAutomationDetailSection } from './WorktreeCardAutomationDetailSection'
 import { WorktreeCardCliDetailSection } from './WorktreeCardCliDetailSection'
-import { WorktreeCardReviewNotesDetailSection } from './WorktreeCardReviewNotesDetailSection'
 import { WorktreeCardIssueDetailSection } from './WorktreeCardIssueDetailSection'
 import { WorktreeCardHoverIdentityHeader } from './WorktreeCardHoverIdentityHeader'
 import { CommentMarkdownAsync, preloadCommentMarkdown } from './comment-markdown-lazy'
@@ -64,7 +63,6 @@ export function WorktreeCardDetailsHover({
   jiraIssue,
   review,
   comment,
-  unsentReviewNoteCount = 0,
   automationProvenance,
   cliProvenance,
   children,
@@ -173,7 +171,6 @@ export function WorktreeCardDetailsHover({
       jiraIssue,
       review,
       comment,
-      unsentReviewNoteCount,
       automationProvenance,
       cliProvenance
     }) &&
@@ -410,10 +407,6 @@ export function WorktreeCardDetailsHover({
                 />
               </WorktreeCardDetailSectionContent>
             </WorktreeCardDetailSection>
-          )}
-
-          {unsentReviewNoteCount > 0 && (
-            <WorktreeCardReviewNotesDetailSection count={unsentReviewNoteCount} />
           )}
 
           {detailsAfter}

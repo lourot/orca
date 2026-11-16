@@ -79,10 +79,10 @@ describe('local Codex fork context', () => {
       '/usr/local/bin/codex',
       ['fork', '--help'],
       {
-        env: {
+        env: expect.objectContaining({
           CODEX_HOME: '/accounts/a/home',
           ORCA_CODEX_HOME: '/accounts/a/home'
-        }
+        })
       }
     )
   })

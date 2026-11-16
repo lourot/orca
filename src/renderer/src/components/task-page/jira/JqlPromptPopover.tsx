@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { translate } from '@/i18n/i18n'
 import { JIRA_JQL_GENERATION_INSTRUCTION_MAX_LENGTH } from '../../../../../shared/jira/jira-jql-generation'
-import type { TaskPageComposerActionsModel } from '../../use-task-page-composer-actions'
+import type { TaskPageComposerActionsModel } from '../use-task-page-composer-actions'
 import { useTaskPageJiraJqlGeneration } from '../../use-task-page-jira-jql-generation'
 
 /** Sparkles button next to the Jira search field that asks an agent to rewrite the JQL. */

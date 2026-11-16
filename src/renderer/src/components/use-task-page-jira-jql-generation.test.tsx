@@ -3,7 +3,7 @@ import { act, useState } from 'react'
 import { cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { JiraJqlGenerationResult } from '../../../shared/jira/jira-jql-generation'
-import type { JiraFavouriteFilter } from '../../../shared/jira-favourite-filters'
+import type { JiraFavouriteFilter } from '../../../shared/jira/jira-favourite-filters'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
 import { useTaskPageJiraJqlGeneration } from './use-task-page-jira-jql-generation'
 

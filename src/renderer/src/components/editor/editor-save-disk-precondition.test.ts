@@ -463,6 +463,8 @@ describe('editor saves guarded by the disk precondition', () => {
     }
     const [code, rich] = store.getState().openFiles
     store.getState().setMarkdownViewMode(code.id, 'source')
+    // Markdown defaults to source in this fork, so the rich view must be chosen explicitly.
+    store.getState().setMarkdownViewMode(rich.id, 'rich')
     for (const [tab, draft] of [
       [code, 'first tab'],
       [rich, 'second tab']

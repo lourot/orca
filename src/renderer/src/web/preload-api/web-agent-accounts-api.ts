@@ -148,6 +148,8 @@ export function createCodexAccountsApi(): PreloadApi['codexAccounts'] {
     // Host browser owns login; web has no pending URL or changes to publish.
     getPendingLoginUrl: () => Promise.resolve(null),
     onPendingLoginUrlChanged: () => () => {},
+    // Why: forking reads the source pane's local Codex home, which a web client never has.
+    getForkContext: () => Promise.resolve({ status: 'unavailable', reason: 'not-local' }),
     reauthenticate: rejectHostOnlySignIn,
     remove: ({ accountId }) =>
       callRuntimeResult<CodexRateLimitAccountsState>(

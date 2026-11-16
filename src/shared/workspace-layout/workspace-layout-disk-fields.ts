@@ -129,6 +129,8 @@ const ROW = {
   startupCwd: own('tab.terminal', 'startupCwd'),
   launchAgent: own('tab.terminal', 'launchAgent'),
   // Drop transient legacy pendingActivationSpawn writes. agentLaunchPane may survive a window reload while pending, but restart treats the pane as ordinary.
+  // Regenerated from the next finished turn; the layout model has no field for it yet.
+  rollingTitle: 'unwritten',
   agentLaunchPane: 'unwritten',
   pendingActivationSpawn: 'unwritten',
   recovery: 'unwritten',
@@ -147,7 +149,9 @@ const ENTRY_FIELDS = {
   sortOrder: TAB_ORDER,
   isPreview: tab('isPreview'),
   agentSessionAgent: tab('agentSessionAgent'),
-  lastFocusedAt: own('view', 'lastFocusedAt')
+  lastFocusedAt: own('view', 'lastFocusedAt'),
+  // Mirrors the row's rollingTitle, which the layout model does not persist yet.
+  rollingLabel: 'unwritten'
 } as const
 
 const TERMINAL_ENTRY = {

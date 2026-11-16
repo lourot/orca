@@ -1,8 +1,13 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { activateFileSearchResultOwner } from './file-search-result-activation'
 
 const mocks = vi.hoisted(() => ({
-  activateAndRevealWorkspace: vi.fn()
+  activateAndRevealWorkspace: vi.fn(),
+  revealWorktreeInSidebar: vi.fn()
+}))
+
+vi.mock('@/store', () => ({
+  useAppStore: { getState: () => ({ revealWorktreeInSidebar: mocks.revealWorktreeInSidebar }) }
 }))
 
 vi.mock('./worktree-activation', () => ({
@@ -10,6 +15,10 @@ vi.mock('./worktree-activation', () => ({
 }))
 
 describe('activateFileSearchResultOwner', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('reveals the owning worktree as the editor destination', () => {
     mocks.activateAndRevealWorkspace.mockReturnValue({ primaryTabId: null })
 
@@ -22,8 +31,12 @@ describe('activateFileSearchResultOwner', () => {
     ).toBe(true)
     expect(mocks.activateAndRevealWorkspace).toHaveBeenCalledWith('repo::/feature', {
       providesInitialSurface: true,
-      sidebarRevealBehavior: 'auto',
-      highlightInSidebar: true,
+      revealInSidebar: false,
+      executionHostId: 'ssh:build-box'
+    })
+    expect(mocks.revealWorktreeInSidebar).toHaveBeenCalledWith('repo::/feature', {
+      behavior: 'auto',
+      highlight: true,
       executionHostId: 'ssh:build-box'
     })
   })
@@ -34,5 +47,6 @@ describe('activateFileSearchResultOwner', () => {
     expect(
       activateFileSearchResultOwner({ worktreeId: 'deleted::/feature', runtimeEnvironmentId: null })
     ).toBe(false)
+    expect(mocks.revealWorktreeInSidebar).not.toHaveBeenCalled()
   })
 })

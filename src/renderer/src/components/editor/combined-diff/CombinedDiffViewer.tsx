@@ -5,7 +5,7 @@ import { useWorkspaceFileBrowserActionPredicate } from '@/lib/file-preview'
 import { useVisibleWorktreeDiffComments } from '../../diff-comments/use-visible-worktree-diff-comments'
 import type { OpenFile } from '@/store/slices/editor'
 import '@/lib/monaco-setup'
-import { diffComparisonForCombinedSection } from '../diff-comment-comparison'
+import { useCombinedSectionComparison } from './use-combined-section-comparison'
 import type { DiffSection } from '../diff-section-types'
 import {
   EMPTY_GIT_BRANCH_ENTRIES,
@@ -222,19 +222,7 @@ export default function CombinedDiffViewer({
       setSectionHeights,
       setSections
     })
-  const { branchCompare, commitCompare, isAllMode, isBranchMode, isCommitMode } = entrySet
-  const getSectionComparison = useCallback(
-    (section: DiffSection) =>
-      diffComparisonForCombinedSection({
-        branchCompare,
-        commitCompare,
-        isAllMode,
-        isBranchMode,
-        isCommitMode,
-        section
-      }),
-    [branchCompare, commitCompare, isAllMode, isBranchMode, isCommitMode]
-  )
+  const getSectionComparison = useCombinedSectionComparison(entrySet)
 
   useCombinedDiffViewPersist({
     combinedGitStatusSignature,

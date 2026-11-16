@@ -84,3 +84,8 @@ export type TabGroup = {
    * Legacy sessions omit it; hydration seeds from activeTabId so split groups keep independent histories. */
   recentTabIds?: string[]
 }
+
+export type RollingAgentTitleSettings = {
+  /** Why: regenerating a title per finished turn spends a model call each time, so it stays opt-in. */
+  tabRollingAgentTitle: boolean
+}

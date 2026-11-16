@@ -22,7 +22,7 @@ describe('openUncommittedEntry', () => {
   it.each([
     { status: 'untracked', area: 'untracked' },
     { status: 'added', area: 'unstaged' }
-  ] as const)('opens $area Markdown additions in the rich editor', (entry) => {
+  ] as const)('opens $area Markdown additions as an editable source tab', (entry) => {
     const store = createEditorStore()
     openUncommittedEntry(store.getState(), 'wt-1', '/repo', markdownEntry(entry), {
       preview: true
@@ -42,7 +42,8 @@ describe('openUncommittedEntry', () => {
       isChangesMode: false,
       canOpenWorkspaceFileBrowser: true
     })
-    expect(model.inlineMarkdownRenderState?.renderMode).toBe('rich-editor')
+    // Markdown opens as source in this fork; rich is opt-in per tab.
+    expect(model.inlineMarkdownRenderState?.renderMode).toBe('source')
   })
 
   it('opens staged Markdown additions as index-backed diffs', () => {

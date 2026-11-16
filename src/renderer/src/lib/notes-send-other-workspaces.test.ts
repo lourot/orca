@@ -77,7 +77,7 @@ describe('deriveNotesSendOtherWorkspaces', () => {
       targetsByWorktreeId.set(id, [target(id)])
     }
 
-    const result = deriveNotesSendOtherWorkspaces(state(), SOURCE)
+    const result = deriveNotesSendOtherWorkspaces(state(), SOURCE, new Map())
 
     expect({
       source: result.source,
@@ -101,9 +101,11 @@ describe('deriveNotesSendOtherWorkspaces', () => {
     ]
     targetsByWorktreeId.set('repo-ssh::/repo-ssh/peer', [target('peer')])
 
-    const ids = deriveNotesSendOtherWorkspaces(s, 'repo-ssh::/repo-ssh/remote').workspaces.map(
-      (w) => w.worktreeId
-    )
+    const ids = deriveNotesSendOtherWorkspaces(
+      s,
+      'repo-ssh::/repo-ssh/remote',
+      new Map()
+    ).workspaces.map((w) => w.worktreeId)
 
     expect(ids).toEqual(['repo-ssh::/repo-ssh/peer'])
   })
@@ -112,7 +114,7 @@ describe('deriveNotesSendOtherWorkspaces', () => {
     targetsByWorktreeId.clear()
     targetsByWorktreeId.set('repo1::/repo1/alpha', [target('a')])
 
-    expect(deriveNotesSendOtherWorkspaces(state(), 'repo1::/repo1/gone')).toEqual({
+    expect(deriveNotesSendOtherWorkspaces(state(), 'repo1::/repo1/gone', new Map())).toEqual({
       source: null,
       workspaces: []
     })

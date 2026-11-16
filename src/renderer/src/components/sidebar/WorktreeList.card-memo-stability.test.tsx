@@ -184,6 +184,8 @@ function setFlatWorktreeState(): void {
     agentStatusByPaneKey: {},
     agentStatusEpoch: 0,
     browserTabsByWorktree: {},
+    fetchProjectActivity: vi.fn(async () => {}),
+    unifiedTabsByWorktree: {},
     clearPendingRevealWorktreeId: vi.fn(),
     collapsedGroups: new Set<string>(),
     deleteStateByWorktreeId: {},

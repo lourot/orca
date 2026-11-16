@@ -147,7 +147,6 @@
       },
       "statusBar": {
         "claudeToggleDescription": "Muestra el consumo de tokens y el costo de Claude para el espacio de trabajo activo.",
-        "codexToggleDescription": "Muestra el consumo de tokens y el costo de Codex para el espacio de trabajo activo.",
         "geminiToggleDescription": "Muestra el consumo de tokens y el costo de Gemini para el espacio de trabajo activo.",
         "opencodeGoToggleDescription": "Muestra el consumo de tokens y el costo de OpenCode Go para el espacio de trabajo activo.",
         "kimiToggleDescription": "Muestra el uso de la suscripción de Kimi para el espacio de trabajo activo.",
@@ -3403,9 +3402,6 @@
           },
           "TerminalAgentSessionForkDialog": {
             "17fc841e59": "Copiar contexto",
-            "0c8a8629b1": "El fork aparece como su propio espacio de trabajo, no como un hijo anidado. El nuevo agente recibe una transcripción acotada como borrador editable.",
-            "620461df22": "Fork de nivel superior",
-            "619b5a35d2": "Crea un fork de espacio de trabajo de nivel superior e inicia una nueva pestaña de agente con el contexto capturado.",
             "64e292e8e3": "Fork de sesión de agente",
             "9d25de2920": "Crear fork",
             "2b10412cfc": "Creando..."
@@ -9337,7 +9333,6 @@
             "5bfb874d05": "Uso de Gemini",
             "97957e374e": "openai",
             "8dfd676c28": "codex",
-            "e9e4412545": "Muestra el consumo de tokens y el costo de Codex en la barra de estado.",
             "54b1acf24f": "Uso de Codex",
             "dea0a9a665": "anthropic",
             "c9fe3a7876": "claude",

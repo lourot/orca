@@ -6,7 +6,7 @@ import {
   getWorktreeMapFromState
 } from '@/store/selectors'
 import { collectCollapsedGroupKeysHidingWorkspace } from '@/components/sidebar/worktree-list/navigation/collapsed-groups-hiding-workspace'
-import { getPinnedWorktreeDisplayPolicy } from '@/components/sidebar/worktree-list/grouping/row-types'
+import { getPinnedWorktreeDisplayPolicy } from '../../../shared/sidebar-list/row-types'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import { getSettingsFocusedExecutionHostId } from '../../../shared/execution-host'
 import type { Worktree } from '../../../shared/worktree/types'
@@ -44,6 +44,9 @@ export function expandSidebarGroupsForWorkspace(
       worktreeMap: getWorktreeMapFromState(state),
       worktreeLineageById: state.worktreeLineageById,
       collapsedGroups: state.collapsedGroups,
+      // Same rule the sidebar applies: any host filter scopes section collapse keys per host.
+      hostScopedGroups:
+        state.workspaceHostScope !== 'all' || state.visibleWorkspaceHostIds !== null,
       groupBy: state.groupBy,
       pinnedDisplayPolicy: getPinnedWorktreeDisplayPolicy(state.settings),
       defaultHostId: getSettingsFocusedExecutionHostId(state.settings),

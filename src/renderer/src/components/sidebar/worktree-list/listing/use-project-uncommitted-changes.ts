@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
 import { getConnectionId } from '@/lib/connection-context'
-import {
-  getExecutionHostIdForWorktree,
-  getSettingsForWorktreeRuntimeOwner
-} from '@/lib/worktree-runtime-owner'
-import { getRuntimeGitStatus } from '@/runtime/runtime-git-client'
+import { resolveOwner, runtimeTargetForWorkspaceOwner } from '@/lib/resolve-owner'
+import { toRuntimeExecutionHostId } from '../../../../../../shared/execution-host'
+import { getRuntimeGitStatus } from '@/runtime/runtime-git-status-client'
 import { installWindowVisibilityTimeoutPoller } from '@/lib/window-visibility-timeout-poller'
 import type { Repo } from '../../../../../../shared/repo-types'
 import type { Worktree } from '../../../../../../shared/worktree/types'
@@ -69,15 +67,28 @@ export function useProjectUncommittedChanges(args: {
     const targets = selectProjectUncommittedProbeTargets({
       worktrees: inputsRef.current.worktrees,
       repoMap: inputsRef.current.repoMap,
-      getExecutionHostId: (worktreeId) => getExecutionHostIdForWorktree(state, worktreeId)
+      getExecutionHostId: (worktreeId) => {
+        const owner = resolveOwner(state, { workspaceId: worktreeId })
+        if (owner.kind !== 'resolved') {
+          return null
+        }
+        const { endpoint, at } = owner.owner
+        return endpoint.kind === 'self' ? at : toRuntimeExecutionHostId(endpoint.environmentId)
+      }
     })
     const probed = new Map<string, boolean>()
     await Promise.all(
       targets.map(async (target) => {
+        const ownerTarget = runtimeTargetForWorkspaceOwner(state, {
+          workspaceId: target.worktreeId
+        })
         try {
+          if (!ownerTarget) {
+            throw new Error('workspace owner unresolved')
+          }
           const status = await getRuntimeGitStatus(
             {
-              settings: getSettingsForWorktreeRuntimeOwner(state, target.worktreeId),
+              target: ownerTarget,
               worktreeId: target.worktreeId,
               worktreePath: target.worktreePath,
               connectionId: getConnectionId(target.worktreeId) ?? undefined
@@ -86,8 +97,8 @@ export function useProjectUncommittedChanges(args: {
           )
           probed.set(target.worktreeId, status.entries.length > 0)
         } catch {
-          // Why keep the previous verdict: a failed or aborted probe is not
-          // evidence of a clean tree, and clearing the dot would read as one.
+          // Why keep the previous verdict: a failed, aborted or unroutable probe is
+          // not evidence of a clean tree, and clearing the dot would read as one.
           const previous = dirtyRef.current.get(target.worktreeId)
           if (previous !== undefined) {
             probed.set(target.worktreeId, previous)

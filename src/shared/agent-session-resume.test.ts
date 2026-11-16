@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   agentProviderSessionsEqual,
-  canForkAgentConversation,
   extractAgentProviderSession,
-  getAgentForkResumeArgv,
   getAgentResumeArgv,
   isResumableTuiAgent,
   normalizeAgentProviderSession,
   RESUMABLE_TUI_AGENTS
 } from './agent-session-resume'
+import { canForkAgentConversation, getAgentForkResumeArgv } from './agent-session-fork-resume-argv'
 
 describe('agent session resume metadata', () => {
   it('treats devin as a resumable TUI agent', () => {
@@ -191,56 +190,8 @@ describe('agent session resume metadata', () => {
   })
 })
 
-describe('OMP recorded resume locators', () => {
-  it.each([
-    {
-      explicit: '/explicit/session.jsonl',
-      recorded: '/hook/session.jsonl',
-      target: '/explicit/session.jsonl'
-    },
-    { explicit: undefined, recorded: ' /hook/session.jsonl ', target: '/hook/session.jsonl' },
-    { explicit: ' ', recorded: '/hook/session.jsonl', target: '/hook/session.jsonl' },
-    { explicit: undefined, recorded: ' ', target: 'session-id' },
-    { explicit: undefined, recorded: undefined, target: 'session-id' }
-  ])('selects explicit then recorded path then UUID %j', ({ explicit, recorded, target }) => {
-    expect(
-      getAgentResumeArgv(
-        'omp',
-        { key: 'session_id', id: 'session-id', transcriptPath: recorded },
-        explicit
-      )
-    ).toEqual(['omp', '--resume', target])
-  })
-  it('retains UUID equality when hook path metadata arrives later', () => {
-    expect(
-      agentProviderSessionsEqual(
-        'omp',
-        { key: 'session_id', id: 'session-id' },
-        { key: 'session_id', id: 'session-id', transcriptPath: '/hook/session.jsonl' }
-      )
-    ).toBe(true)
-  })
-})
-
 describe('agent conversation forking', () => {
   const claudeSession = { key: 'session_id', id: 'c0ffee00-1111-4222-8333-444455556666' } as const
-
-  it('appends --fork-session after the session id so claude mints a new one', () => {
-    expect(getAgentForkResumeArgv('claude', claudeSession)).toEqual([
-      'claude',
-      '--resume',
-      'c0ffee00-1111-4222-8333-444455556666',
-      '--fork-session'
-    ])
-  })
-
-  it('uses the Codex fork subcommand so Codex mints a new thread id', () => {
-    expect(getAgentForkResumeArgv('codex', claudeSession)).toEqual([
-      'codex',
-      'fork',
-      'c0ffee00-1111-4222-8333-444455556666'
-    ])
-  })
 
   // Why: waking a hibernated pane resumes the SAME conversation. A --fork-session
   // leaking into the default argv would silently branch it on every wake.
@@ -284,5 +235,36 @@ describe('agent conversation forking', () => {
     ['an unknown agent', undefined, claudeSession, false]
   ] as const)('reports %s as forkable=%s', (_label, agent, providerSession, expected) => {
     expect(canForkAgentConversation(agent, providerSession)).toBe(expected)
+  })
+})
+
+describe('OMP recorded resume locators', () => {
+  it.each([
+    {
+      explicit: '/explicit/session.jsonl',
+      recorded: '/hook/session.jsonl',
+      target: '/explicit/session.jsonl'
+    },
+    { explicit: undefined, recorded: ' /hook/session.jsonl ', target: '/hook/session.jsonl' },
+    { explicit: ' ', recorded: '/hook/session.jsonl', target: '/hook/session.jsonl' },
+    { explicit: undefined, recorded: ' ', target: 'session-id' },
+    { explicit: undefined, recorded: undefined, target: 'session-id' }
+  ])('selects explicit then recorded path then UUID %j', ({ explicit, recorded, target }) => {
+    expect(
+      getAgentResumeArgv(
+        'omp',
+        { key: 'session_id', id: 'session-id', transcriptPath: recorded },
+        explicit
+      )
+    ).toEqual(['omp', '--resume', target])
+  })
+  it('retains UUID equality when hook path metadata arrives later', () => {
+    expect(
+      agentProviderSessionsEqual(
+        'omp',
+        { key: 'session_id', id: 'session-id' },
+        { key: 'session_id', id: 'session-id', transcriptPath: '/hook/session.jsonl' }
+      )
+    ).toBe(true)
   })
 })

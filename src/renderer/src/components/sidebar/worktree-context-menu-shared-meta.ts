@@ -1,22 +1,10 @@
-import type { WorkspaceStatusDefinition, Worktree } from '../../../../shared/worktree/types'
+import { useMemo } from 'react'
+import type { Worktree } from '../../../../shared/worktree/types'
 import {
+  countWorkspaceColorTagUsage,
   getSharedWorkspaceColorTag,
   isMixedWorkspaceColorTagSelection
 } from '../../../../shared/workspace-color-tag'
-import { getWorkspaceStatus } from './workspace-status'
-
-/** The status every workspace in the context selection carries, or '' when they disagree. */
-export function getSharedContextWorkspaceStatus(
-  worktrees: readonly Worktree[],
-  workspaceStatuses: readonly WorkspaceStatusDefinition[]
-): string {
-  const [first, ...rest] = worktrees
-  if (!first) {
-    return ''
-  }
-  const status = getWorkspaceStatus(first, workspaceStatuses)
-  return rest.every((item) => getWorkspaceStatus(item, workspaceStatuses) === status) ? status : ''
-}
 
 /** The swatch row's state: the tag the selection shares, and whether its members disagree. */
 export function getSharedContextColorTag(worktrees: readonly Worktree[]): {
@@ -28,4 +16,20 @@ export function getSharedContextColorTag(worktrees: readonly Worktree[]): {
     colorTag: getSharedWorkspaceColorTag(colorTags),
     mixed: isMixedWorkspaceColorTagSelection(colorTags)
   }
+}
+
+const EMPTY_COLOR_TAG_USAGE: ReadonlyMap<string, number> = new Map()
+
+/** The swatch row's state plus how often each tag is used across all workspaces. */
+export function useContextColorTag(
+  contextWorktrees: readonly Worktree[],
+  allWorktrees: readonly Worktree[],
+  menuOpen: boolean
+): ReturnType<typeof getSharedContextColorTag> & { colorTagUsage: ReadonlyMap<string, number> } {
+  // Why: every sidebar card mounts this model, so only the open menu pays for the scan.
+  const colorTagUsage = useMemo(
+    () => (menuOpen ? countWorkspaceColorTagUsage(allWorktrees) : EMPTY_COLOR_TAG_USAGE),
+    [allWorktrees, menuOpen]
+  )
+  return { ...getSharedContextColorTag(contextWorktrees), colorTagUsage }
 }

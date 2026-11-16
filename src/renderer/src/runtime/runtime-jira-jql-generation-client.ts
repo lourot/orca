@@ -4,7 +4,7 @@ import type {
   JiraJqlGenerationRequest,
   JiraJqlGenerationResult
 } from '../../../shared/jira/jira-jql-generation'
-import { JIRA_JQL_GENERATION_RUNTIME_CAPABILITY } from '../../../shared/protocol-version'
+import { JIRA_JQL_GENERATION_RUNTIME_CAPABILITY } from '../../../shared/jira/jira-detail-capabilities'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { callRuntimeRpc, runtimeEnvironmentSupportsCapability } from './runtime-rpc-client'
 

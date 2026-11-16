@@ -115,7 +115,8 @@ describe('legacy automation on a repo id two hosts share', () => {
   })
 
   it('captures the only host on its first run, which still launches, and keeps it', async () => {
-    seed([localRow], legacyAutomation({ runContext: null }))
+    // The renderer-ready tick queues a catch-up run; the default overlap guard would skip Run Now.
+    seed([localRow], legacyAutomation({ runContext: null, skipWhileRunActive: false }))
     const store = createStore()
     const send = vi.fn()
     const service = new AutomationService(store, { tickMs: 60_000 })

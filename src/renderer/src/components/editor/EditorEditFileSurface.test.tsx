@@ -49,6 +49,7 @@ async function renderSurface(
           editorViewStateKey="file-1:edit"
           diffViewStateKey="file-1:diff"
           pdfViewStateKey="file-1:pdf"
+          pdfPreferenceKey="file-1:pdf-preference"
           fileContent={FILE_CONTENT}
           diffContent={undefined}
           editBuffer={undefined}

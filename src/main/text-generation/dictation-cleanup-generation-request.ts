@@ -4,14 +4,10 @@ import {
   sanitizeDictationCleanupOutput,
   type DictationCleanupContext
 } from '../../shared/dictation-cleanup-prompt'
-import { planCommitMessageGeneration } from '../../shared/commit-message-plan'
 import type { ResolvedSourceControlAiGenerationParams } from '../../shared/source-control-ai'
 import { renderSourceControlActionCommandTemplate } from '../../shared/source-control-ai-actions'
 import { captureAgentGenerationFailureOutput } from './agent-failure-output'
-import {
-  commandBackslashMode,
-  executeGenerationPlan
-} from './source-control-text-generation-requests'
+import { runGenerationRequest } from './agent-generation-request'
 import type {
   CommitMessageGenerationTarget,
   GenerateDictationCleanupResult,
@@ -25,7 +21,7 @@ export async function generateDictationCleanup(input: {
   target: CommitMessageGenerationTarget
   spawnAgent: SpawnSourceControlAgent
 }): Promise<GenerateDictationCleanupResult> {
-  const { context, params, target } = input
+  const { context, params } = input
   const transcript = clampDictationTranscript(context.transcript)
   const prompt =
     params.commandInputTemplate !== undefined
@@ -34,18 +30,9 @@ export async function generateDictationCleanup(input: {
           transcript
         })
       : buildDictationCleanupPrompt({ transcript }, params.customPrompt ?? '')
-  const planned = planCommitMessageGeneration(
-    { ...params, backslash: commandBackslashMode(target) },
-    prompt
-  )
-  if (!planned.ok) {
-    return { success: false, error: planned.error }
-  }
-
-  const result = await executeGenerationPlan({
+  const result = await runGenerationRequest({
     ...input,
-    plan: planned.plan,
-    emptyResultName: 'cleaned transcript',
+    prompt,
     operation: 'dictation-cleanup'
   })
   if (!result.success) {
@@ -59,7 +46,11 @@ export async function generateDictationCleanup(input: {
         success: false,
         error: 'Cleaned transcript was empty after sanitization.',
         failureOutput:
-          captureAgentGenerationFailureOutput(planned.plan.label, 0, result.rawOutput, '') ??
-          undefined
+          captureAgentGenerationFailureOutput(
+            result.agentLabel ?? params.agentId,
+            0,
+            result.rawOutput,
+            ''
+          ) ?? undefined
       }
 }

@@ -18,6 +18,8 @@ export type LaunchAgentInNewTabArgs = LaunchAgentInNewTabRequest & {
   prompt?: string
   /** Optional CLI arguments appended to the selected agent command; a chat has no command line. */
   agentArgs?: string | null
+  /** Wins over the agent's default launch env, e.g. a forked Codex keeping its source account's CODEX_HOME. */
+  agentEnvOverride?: Record<string, string>
   /** The launch's saved choice; a chat seeds it and a terminal applies it as flags. */
   sessionOptions?: Readonly<Record<string, string>>
   /** On terminals, a flag `agentArgs` sets itself wins over the inherited saved choice. */

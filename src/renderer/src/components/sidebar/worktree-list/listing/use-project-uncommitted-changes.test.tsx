@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   getRuntimeGitStatus: vi.fn()
 }))
 
-vi.mock('@/runtime/runtime-git-client', () => ({
+vi.mock('@/runtime/runtime-git-status-client', () => ({
   getRuntimeGitStatus: mocks.getRuntimeGitStatus
 }))
 
@@ -19,9 +19,9 @@ vi.mock('@/lib/connection-context', () => ({
   getConnectionId: () => undefined
 }))
 
-vi.mock('@/lib/worktree-runtime-owner', () => ({
-  getExecutionHostIdForWorktree: () => 'local',
-  getSettingsForWorktreeRuntimeOwner: () => ({ activeRuntimeEnvironmentId: null })
+vi.mock('@/lib/resolve-owner', () => ({
+  resolveOwner: () => ({ kind: 'resolved', owner: { endpoint: { kind: 'self' }, at: 'local' } }),
+  runtimeTargetForWorkspaceOwner: () => ({ kind: 'local' })
 }))
 
 import { useProjectUncommittedChanges } from './use-project-uncommitted-changes'

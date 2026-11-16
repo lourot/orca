@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { insertText, type DictationInsertionTarget } from './dictation-insertion-target'
-import { formatFinalTranscriptSegment } from './dictation-final-segments'
+import { formatFinalTranscriptSegment } from '../../../../shared/dictation-transcript-spacing'
 import { polishDictationTranscript } from './dictation-transcript-polish'
 import { wrapDictationForAgent } from './dictation-agent-disclaimer'
 

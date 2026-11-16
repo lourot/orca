@@ -19,6 +19,7 @@ export type FileSearchPanelActionsArgs = {
   currentSearchQuery: string
   currentSearchOptions: SearchOptionsState
   currentSearchResultOwner: FileSearchResultOwner | null
+  currentSearchError: string | null
   globalSearchState: GlobalFileSearchState
   setGlobalSearchState: React.Dispatch<React.SetStateAction<GlobalFileSearchState>>
   isGlobalScope: boolean

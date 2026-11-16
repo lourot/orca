@@ -52,6 +52,10 @@ vi.mock('@/lib/notes-send-other-workspaces', () => ({
 }))
 vi.mock('@/lib/telemetry', () => ({ track: vi.fn() }))
 vi.mock('@/hooks/use-now', () => ({ useNow: () => 0 }))
+vi.mock('@/runtime/structured-chat-name-observation', () => ({
+  useStructuredChatTabNames: () => new Map(),
+  getStructuredChatTabNames: () => new Map()
+}))
 vi.mock('@/components/sidebar/useWorktreeAgentRows', () => ({ useWorktreeAgentRows: () => [] }))
 vi.mock('@/components/AgentStateDot', () => ({
   AgentStateDot: () => null,

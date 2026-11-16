@@ -6,12 +6,14 @@ import type { Repo } from '../../../../../../shared/repo-types'
 import type { Worktree } from '../../../../../../shared/worktree/types'
 import type { WorktreeLineage } from '../../../../../../shared/worktree/lineage-types'
 import { folderWorkspaceKey } from '../../../../../../shared/workspace-scope'
-import { getLineageGroupKey, getProjectGroupHeaderKey } from '../grouping/group-keys'
+import {
+  getLineageGroupKey,
+  getProjectGroupHeaderKey
+} from '../../../../../../shared/sidebar-list/group-keys'
 import {
   collectCollapsedGroupKeysHidingWorkspace,
   type CollapsedGroupsHidingWorkspaceInputs
 } from './collapsed-groups-hiding-workspace'
-import { expandGroupsForWorktreeReveal } from './pending-reveal-inputs'
 
 function makeWorktree(overrides: Partial<Worktree> = {}): Worktree {
   return {
@@ -95,6 +97,7 @@ function makeInputs(
     worktreeMap: new Map(worktrees.map((worktree) => [worktree.id, worktree])),
     worktreeLineageById: {},
     collapsedGroups: new Set<string>(),
+    hostScopedGroups: false,
     groupBy: 'repo',
     pinnedDisplayPolicy: 'duplicate-in-groups',
     defaultHostId: 'local',
@@ -118,7 +121,7 @@ describe('collectCollapsedGroupKeysHidingWorkspace', () => {
       'worktree-1'
     )
 
-    expect(keys).toEqual([getProjectGroupHeaderKey(group.id), 'repo:repo-1'])
+    expect(keys).toEqual(['repo:repo-1', getProjectGroupHeaderKey(group.id)])
   })
 
   it('returns nothing when every group hiding the worktree is already expanded', () => {
@@ -134,7 +137,7 @@ describe('collectCollapsedGroupKeysHidingWorkspace', () => {
     expect(keys).toEqual([])
   })
 
-  it('walks nested project-group ancestors from root to owner', () => {
+  it('walks nested project-group ancestors from owner to root', () => {
     const root = makeProjectGroup({ id: 'group-root', name: 'Company' })
     const child = makeProjectGroup({ id: 'group-child', parentGroupId: root.id })
     const keys = collectCollapsedGroupKeysHidingWorkspace(
@@ -149,7 +152,7 @@ describe('collectCollapsedGroupKeysHidingWorkspace', () => {
       'worktree-1'
     )
 
-    expect(keys).toEqual([getProjectGroupHeaderKey(root.id), getProjectGroupHeaderKey(child.id)])
+    expect(keys).toEqual([getProjectGroupHeaderKey(child.id), getProjectGroupHeaderKey(root.id)])
   })
 
   it('returns folder-workspace keys and stops before the git-worktree lookup', () => {
@@ -225,28 +228,5 @@ describe('collectCollapsedGroupKeysHidingWorkspace', () => {
     )
 
     expect(keys).toEqual([])
-  })
-
-  it('toggles through expandGroupsForWorktreeReveal exactly the keys it collects', () => {
-    const group = makeProjectGroup({ id: 'group-1' })
-    const inputs = makeInputs({
-      repoMap: new Map([['repo-1', makeRepo({ projectGroupId: group.id })]]),
-      projectGroups: [group],
-      collapsedGroups: new Set(['host:local', getProjectGroupHeaderKey(group.id), 'repo:repo-1'])
-    })
-    const toggled: string[] = []
-
-    expandGroupsForWorktreeReveal(
-      {
-        ...inputs,
-        toggleGroup: (key) => {
-          toggled.push(key)
-        }
-      },
-      'worktree-1'
-    )
-
-    expect(toggled).toEqual(collectCollapsedGroupKeysHidingWorkspace(inputs, 'worktree-1'))
-    expect(toggled).toEqual(['host:local', getProjectGroupHeaderKey(group.id), 'repo:repo-1'])
   })
 })

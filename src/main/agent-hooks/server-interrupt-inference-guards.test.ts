@@ -423,7 +423,7 @@ describe('AgentHookServer listener replay', () => {
           baselineStateStartedAt: baseline.stateStartedAt,
           baselinePrompt: 'run in background',
           baselineAgentType: 'claude',
-          intent: 'ctrl-c'
+          intent: 'plain-escape'
         })
       ).toBe(false)
 

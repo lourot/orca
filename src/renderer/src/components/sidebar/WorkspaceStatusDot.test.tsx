@@ -17,7 +17,8 @@ const mocks = vi.hoisted(() => ({
   workspaceStatuses: [] as WorkspaceStatusDefinition[],
   tabsByWorktree: {} as Record<string, { id: string }[]>,
   ptyIdsByTabId: {} as Record<string, string[]>,
-  browserTabsByWorktree: {} as Record<string, { id: string }[]>
+  browserTabsByWorktree: {} as Record<string, { id: string }[]>,
+  unifiedTabsByWorktree: {} as Record<string, { id: string }[]>
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
@@ -50,6 +51,7 @@ describe('WorkspaceStatusDot', () => {
     mocks.tabsByWorktree = {}
     mocks.ptyIdsByTabId = {}
     mocks.browserTabsByWorktree = {}
+    mocks.unifiedTabsByWorktree = {}
   })
 
   it('paints the whole ramp: todo and review demand attention, done is settled', () => {

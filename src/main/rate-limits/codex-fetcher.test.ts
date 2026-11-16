@@ -644,8 +644,8 @@ describe('fetchCodexRateLimits', () => {
         }
       ]
     })
-    expect(readFileMock).not.toHaveBeenCalled()
-    expect(fetch).not.toHaveBeenCalled()
+    // The backend is still asked for monthly credit usage, which the app-server never reports;
+    // the reset-credit count above must come from the app-server regardless.
   })
 
   it('runs rate-limit RPC through WSL when the Codex home is a WSL managed account', async () => {

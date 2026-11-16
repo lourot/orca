@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { test, expect } from './helpers/orca-app'
 import { waitForSessionReady } from './helpers/store'
-import { runProcess } from '../../src/shared/child-process/run-process'
+import { runProcess } from '@orca/process-host'
 
 /**
  * Sidebar holes and misparented rows, from one drifted number: when the virtualizer's

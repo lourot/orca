@@ -82,7 +82,7 @@ function mountParams(
     },
     annotations: {
       commentPopoverRef: { current: null },
-      shouldShowMarkdownAnnotationsRef: { current: false },
+      shouldShowEditorAnnotationsRef: { current: false },
       setCommentPopover: vi.fn(),
       setSelectionAnnotationTarget: vi.fn()
     },

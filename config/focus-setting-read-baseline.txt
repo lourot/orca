@@ -217,6 +217,7 @@
 1 src/renderer/src/lib/client-creation-action-error.ts
 2 src/renderer/src/lib/client-creation-action-policy.ts
 1 src/renderer/src/lib/default-creation-host.ts # the sanctioned reader of the default host
+1 src/renderer/src/lib/expand-sidebar-groups-for-workspace.ts
 6 src/renderer/src/lib/http-link-destinations.ts
 1 src/renderer/src/lib/http-link-localhost-route.ts # extracted from http-link-routing.ts
 1 src/renderer/src/lib/http-link-routing.ts

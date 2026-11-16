@@ -1,5 +1,4 @@
 import { isWslUncPath } from '../../shared/wsl-paths'
-import type { RuntimeFileRoute } from './runtime-file-command-target'
 
 export const EXTERNAL_OPEN_PAIRED_CLIENT_MESSAGE =
   'Opening a file outside the workspace is available to a local Orca CLI only.'
@@ -17,13 +16,13 @@ export const EXTERNAL_OPEN_NON_LOCAL_WORKSPACE_MESSAGE =
  */
 export function assertExternalOpenAllowed(args: {
   allowOutsideWorkspace: boolean
-  route: RuntimeFileRoute
+  hostIsLocal: boolean
   worktreePath: string
 }): void {
   if (!args.allowOutsideWorkspace) {
     throw new Error(EXTERNAL_OPEN_PAIRED_CLIENT_MESSAGE)
   }
-  if (args.route.kind !== 'local' || isWslUncPath(args.worktreePath)) {
+  if (!args.hostIsLocal || isWslUncPath(args.worktreePath)) {
     throw new Error(EXTERNAL_OPEN_NON_LOCAL_WORKSPACE_MESSAGE)
   }
 }

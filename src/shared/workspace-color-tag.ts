@@ -56,3 +56,15 @@ export function countWorkspaceColorTagUsage(
   }
   return counts
 }
+
+/** Applies a color-tag update in place: undefined leaves the tag, null removes it. */
+export function applyWorkspaceColorTagUpdate(
+  target: { colorTag?: string | null },
+  colorTag: string | null | undefined
+): void {
+  if (colorTag === null) {
+    delete target.colorTag
+  } else if (colorTag !== undefined) {
+    target.colorTag = colorTag
+  }
+}

@@ -27,9 +27,10 @@ describe('project labels across execution hosts', () => {
       null,
       new Set()
     )
+    // The sidebar parent-qualifies every header (minDepth 2); the host must not add more.
     expect(rows.filter((row) => row.type === 'header').map((row) => row.label)).toEqual([
-      'app',
-      'app'
+      'projects/app',
+      'projects/app'
     ])
     const items = rows.filter((row) => row.type === 'item')
     expect(items.map((row) => row.worktree.hostId)).toEqual(['local', 'runtime:home'])

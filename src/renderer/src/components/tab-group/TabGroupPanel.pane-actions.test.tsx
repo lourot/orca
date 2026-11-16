@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => {
 vi.mock('@/store', () => ({ useAppStore: mocks.useAppStore }))
 vi.mock('../../store', () => ({ useAppStore: mocks.useAppStore }))
 vi.mock('../tab-bar/TabBar', () => ({ default: () => null }))
+// The chrome tint reads worktree rows this partial store does not have.
+vi.mock('@/lib/workspace-chrome-tint', () => ({ useWorkspaceChromeTintStyle: () => undefined }))
 vi.mock('../tab-bar/TabBarQuickCommandsButton', () => ({
   TabBarQuickCommandsButton: () => null
 }))

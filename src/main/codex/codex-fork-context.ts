@@ -4,6 +4,7 @@ import { getCodexPaneAccount, type CodexPaneAccountRecord } from './codex-pane-a
 import { getSystemCodexHomePath, resolveOrcaManagedCodexHomePath } from './codex-home-paths'
 import { resolveCodexCommand } from '../codex-cli/command'
 import { execLocalPreflightCommandOrThrow } from '../ipc/preflight-command-exec'
+import { buildLocalPreflightEnv } from '../ipc/preflight-local-env'
 import { resolveStartupShell, tokenizeStartupCommand } from '../../shared/tui-agent-startup-shell'
 
 type SourceCodexHome = {
@@ -20,12 +21,6 @@ function sourceCodexHome(
     return null
   }
 
-  const override =
-    record.environmentHomeOverride?.codexHome ?? record.shellStartupHomeOverride?.codexHome
-  if (override) {
-    return { codexHome: override }
-  }
-
   switch (record.homeRoute) {
     case 'real-home':
       return { codexHome: getSystemCodexHomePath() }
@@ -40,7 +35,6 @@ function sourceCodexHome(
       }
       return { codexHome: account.managedHomePath }
     }
-    case 'custom-home':
     case 'wsl-home':
     case undefined:
       return null
@@ -53,8 +47,10 @@ async function supportsCodexFork(command: string, sourceHome: SourceCodexHome): 
   if (existing) {
     return existing
   }
+  // The preflight runner replaces its base env when given one, so carry it explicitly.
   const probe = execLocalPreflightCommandOrThrow(command, ['fork', '--help'], {
     env: {
+      ...(buildLocalPreflightEnv() ?? process.env),
       CODEX_HOME: sourceHome.codexHome,
       ORCA_CODEX_HOME: sourceHome.codexHome
     }

@@ -12,6 +12,8 @@ vi.mock('react', async () => {
   }
 })
 
+vi.mock('@/i18n/use-ui-language-revision', () => ({ useUiLanguageRevision: () => 0 }))
+
 vi.mock('@/store', () => ({
   useAppStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({

@@ -47,11 +47,13 @@ export const WORKTREE_SET_METHOD = defineMethod({
       sparsePresetId: params.sparsePresetId,
       baseRef: params.baseRef,
       workspaceStatus: params.workspaceStatus,
+      colorTag: params.colorTag,
       pushTarget: params.pushTarget,
       diffComments: params.diffComments,
       ...(params.diffCommentsBase !== undefined
         ? { diffCommentsBase: params.diffCommentsBase }
         : {}),
+      generalNotes: params.generalNotes,
       mobileDiffReview: params.mobileDiffReview,
       lineage:
         params.parentWorktree || params.noParent === true

@@ -22,6 +22,10 @@ import {
   resolveFileExplorerPath,
   resolveFileExplorerPaths
 } from './file-target'
+import { stat } from 'node:fs/promises'
+import { isRuntimePathAbsolute, relativePathInsideRoot } from '../../../shared/cross-platform-path'
+import { validateExternalOpenPath } from '../../../shared/external-file-open-path'
+import { assertExternalOpenAllowed } from '../runtime-file-external-open'
 import { parseExecutionHostId, type ExecutionHostId } from '../../../shared/execution-host'
 import type { FileStat } from '../../providers/filesystem-provider-contract'
 import { assertRuntimeReadWslDistroRunning } from '../runtime-wsl-background-read-gate'
@@ -38,33 +42,88 @@ export class RuntimeFileAccess {
     worktreeSelector: string,
     relativePath: string,
     navigation?: RuntimeNavigationTarget,
-    position?: RuntimeFileOpenPosition
+    position?: RuntimeFileOpenPosition,
+    options: { allowOutsideWorkspace?: boolean } = {}
   ): Promise<RuntimeFileOpenResult> {
     const target = await this.host.resolveRuntimeFileTarget(worktreeSelector)
     const { worktree } = target
-    if (!isSafeMobileRelativePath(relativePath)) {
+    // An absolute path inside the root names the same file as its relative spelling, so only a
+    // genuinely outside one takes the external flow. Dots fold first, or `<root>/../etc/x` would
+    // read as inside.
+    const absolutePath = isRuntimePathAbsolute(relativePath)
+      ? validateExternalOpenPath(relativePath)
+      : null
+    const insideRoot =
+      absolutePath === null ? relativePath : relativePathInsideRoot(worktree.path, absolutePath)
+    if (insideRoot === '') {
+      throw new Error('The selected workspace root is a directory, not a file-open target.')
+    }
+    if (absolutePath !== null && insideRoot === null) {
+      assertExternalOpenAllowed({
+        allowOutsideWorkspace: options.allowOutsideWorkspace === true,
+        hostIsLocal: parseExecutionHostId(target.executionHostId)?.kind === 'local',
+        worktreePath: worktree.path
+      })
+      return await this.openExternalFile(worktree.id, absolutePath, navigation, position)
+    }
+    // Why the null: only an absolute path can miss the root, and that case returned above.
+    if (insideRoot === null || !isSafeMobileRelativePath(insideRoot)) {
       throw new Error('invalid_relative_path')
     }
-    const kind = isMobilePreviewableImagePath(relativePath)
-      ? 'image'
-      : isMobileBinaryPath(relativePath)
-        ? 'binary'
-        : isMobileMarkdownPath(relativePath)
-          ? 'markdown'
-          : 'text'
     // File kind does not limit the desktop editor: binaries such as PDFs can open too.
-    const filePath = joinWorktreeRelativePath(worktree.path, relativePath)
+    const kind = mobileOpenFileKind(insideRoot)
+    const filePath = joinWorktreeRelativePath(worktree.path, insideRoot)
     // Reject missing paths/directories before clients treat opened:true as success.
     await this.assertOpenTargetIsFile(filePath, target)
     await this.host.openFile(
       worktree.id,
       filePath,
-      relativePath,
+      insideRoot,
       runtimeOwnerForTarget(target),
       navigation,
       ...(position ? [position] : [])
     )
-    return { worktree: worktree.id, relativePath, kind, opened: true }
+    return { worktree: worktree.id, relativePath: insideRoot, kind, opened: true }
+  }
+
+  /**
+   * Opens a local path that belongs to no workspace. The tab stores the absolute path as its
+   * relative path too, which is what makes the renderer read and save it as a user-named file.
+   */
+  private async openExternalFile(
+    worktreeId: string,
+    absolutePath: string,
+    navigation?: RuntimeNavigationTarget,
+    position?: RuntimeFileOpenPosition
+  ): Promise<RuntimeFileOpenResult> {
+    let stats: Awaited<ReturnType<typeof stat>>
+    try {
+      stats = await stat(absolutePath)
+    } catch (error) {
+      if (isENOENT(error)) {
+        throw new Error(`ENOENT: no such file or directory, open '${absolutePath}'`)
+      }
+      throw error
+    }
+    if (stats.isDirectory()) {
+      throw new Error(`Cannot open a directory: ${absolutePath}`)
+    }
+    // Why null owner: assertExternalOpenAllowed only lets local workspaces through.
+    this.host.openFile(
+      worktreeId,
+      absolutePath,
+      absolutePath,
+      null,
+      navigation,
+      ...(position ? [position] : [])
+    )
+    return {
+      worktree: worktreeId,
+      relativePath: absolutePath,
+      kind: mobileOpenFileKind(absolutePath),
+      opened: true,
+      outsideWorkspace: true
+    }
   }
 
   private async assertOpenTargetIsFile(
@@ -147,6 +206,17 @@ export class RuntimeFileAccess {
       ...(fileStat.ctimeMs === undefined ? {} : { ctime: fileStat.ctimeMs })
     }
   }
+}
+
+/** Previewable images open like text (mobile renders via files.readPreview). */
+function mobileOpenFileKind(path: string): RuntimeFileOpenResult['kind'] {
+  if (isMobilePreviewableImagePath(path)) {
+    return 'image'
+  }
+  if (isMobileBinaryPath(path)) {
+    return 'binary'
+  }
+  return isMobileMarkdownPath(path) ? 'markdown' : 'text'
 }
 
 function runtimeOwnerForTarget(target: { executionHostId: ExecutionHostId }): string | null {

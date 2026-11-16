@@ -270,6 +270,8 @@ function setLineageState(
     agentStatusByPaneKey: {},
     agentStatusEpoch: 0,
     browserTabsByWorktree: {},
+    fetchProjectActivity: vi.fn(async () => {}),
+    unifiedTabsByWorktree: {},
     clearPendingRevealWorktreeId: vi.fn(),
     collapsedGroups: new Set<string>(),
     deleteStateByWorktreeId: options.deletingChild
@@ -326,7 +328,6 @@ function setLineageState(
     sshConnectionStates: new Map(),
     sshTargetLabels: new Map(),
     tabsByWorktree: {},
-    unifiedTabsByWorktree: {},
     structuredChatSleptAtByPaneKey: {},
     terminalLayoutsByTabId: {},
     toggleCollapsedGroup: vi.fn(),

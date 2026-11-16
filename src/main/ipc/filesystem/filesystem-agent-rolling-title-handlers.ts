@@ -7,11 +7,6 @@ import type {
 } from '../../../shared/rolling-agent-title'
 import { resolveGenerationTarget } from '../../agent-hooks/first-work-generation-target'
 import {
-  getSshGitProvider,
-  SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE
-} from '../../providers/ssh-git-dispatch'
-import type { SshGitProvider } from '../../providers/ssh-git-provider'
-import {
   generateBranchNameFromContext,
   resolveTextGenerationParams
 } from '../../text-generation/commit-message-text-generation'
@@ -47,22 +42,18 @@ export function registerFilesystemAgentRollingTitleHandlers(
         return { success: false, error: resolved.error }
       }
 
-      let provider: SshGitProvider | null = null
-      let cwd = args.worktreePath
+      // Why: title generation spawns its agent locally; an SSH workspace's files live on its host.
       if (args.connectionId) {
-        provider = getSshGitProvider(args.connectionId) ?? null
-        if (!provider) {
-          return { success: false, error: SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE }
-        }
-      } else {
-        try {
-          // Also accepts a folder-workspace root, which has no worktree meta.
-          cwd = await resolveModelDiscoveryLocalPath(store, args.worktreePath)
-        } catch {
-          return { success: false, error: 'Workspace path is not authorized.' }
-        }
+        return { success: false, error: 'Rolling titles are not available for SSH workspaces.' }
       }
-      const target = await resolveGenerationTarget(cwd, resolved.params.agentId, provider, {
+      let cwd: string
+      try {
+        // Also accepts a folder-workspace root, which has no worktree meta.
+        cwd = await resolveModelDiscoveryLocalPath(store, args.worktreePath)
+      } catch {
+        return { success: false, error: 'Workspace path is not authorized.' }
+      }
+      const target = await resolveGenerationTarget(cwd, resolved.params.agentId, {
         getAgentEnvResolvers: () => commitMessageAgentEnv
       })
       if (!target) {

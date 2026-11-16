@@ -7,32 +7,37 @@ import { DEFAULT_WORKSPACE_STATUSES } from '../../../../shared/workspace-statuse
 const WORKTREE_CARD_IMPORT_TIMEOUT_MS = 15_000
 const WORKTREE_ID = 'repo-1::/repo/worktrees/feature'
 
-vi.mock('@/store', () => ({
-  useAppStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      deleteStateByWorktreeId: {},
-      fetchHostedReviewForBranch: vi.fn(),
-      fetchIssue: vi.fn(),
-      fetchLinearIssue: vi.fn(),
-      gitConflictOperationByWorktree: {},
-      hostedReviewCache: {},
-      issueCache: {},
-      linearIssueCache: {},
-      openModal: vi.fn(),
-      projectGroups: [],
-      remoteBranchConflictByWorktreeId: {},
-      settings: null,
-      sshConnectionStates: new Map(),
-      sshTargetLabels: new Map(),
-      updateWorktreeMeta: vi.fn(),
-      workspacePortScan: null,
-      workspaceStatuses: DEFAULT_WORKSPACE_STATUSES.map((status) => ({ ...status })),
-      worktreeCardProperties: [],
-      tabsByWorktree: {},
-      ptyIdsByTabId: {},
-      browserTabsByWorktree: {}
+vi.mock('@/store', () => {
+  const getState = () => ({
+    deleteStateByWorktreeId: {},
+    fetchHostedReviewForBranch: vi.fn(),
+    fetchIssue: vi.fn(),
+    fetchLinearIssue: vi.fn(),
+    gitConflictOperationByWorktree: {},
+    hostedReviewCache: {},
+    issueCache: {},
+    linearIssueCache: {},
+    openModal: vi.fn(),
+    projectGroups: [],
+    remoteBranchConflictByWorktreeId: {},
+    settings: null,
+    sshConnectionStates: new Map(),
+    sshTargetLabels: new Map(),
+    updateWorktreeMeta: vi.fn(),
+    workspacePortScan: null,
+    workspaceStatuses: DEFAULT_WORKSPACE_STATUSES.map((status) => ({ ...status })),
+    worktreeCardProperties: [],
+    tabsByWorktree: {},
+    ptyIdsByTabId: {},
+    browserTabsByWorktree: {}
+  })
+  return {
+    useAppStore: Object.assign((selector: (state: unknown) => unknown) => selector(getState()), {
+      getState,
+      subscribe: () => () => {}
     })
-}))
+  }
+})
 
 vi.mock('@/lib/worktree-activation', () => ({
   activateAndRevealWorktree: vi.fn()

@@ -1231,7 +1231,6 @@
       },
       "statusBar": {
         "claudeToggleDescription": "Mostra o uso de tokens e custo do Claude para o espaço de trabalho ativo.",
-        "codexToggleDescription": "Mostra o uso de tokens e custo do Codex para o espaço de trabalho ativo.",
         "geminiToggleDescription": "Mostra o uso de tokens e custo do Gemini para o espaço de trabalho ativo.",
         "opencodeGoToggleDescription": "Mostra o uso de tokens e custo do OpenCode Go para o espaço de trabalho ativo.",
         "kimiToggleDescription": "Mostra o uso da assinatura do Kimi para o espaço de trabalho ativo.",
@@ -4217,7 +4216,6 @@
             "5bfb874d05": "Uso do Gemini",
             "97957e374e": "openai",
             "8dfd676c28": "codex",
-            "e9e4412545": "Mostra o uso de tokens e custo do Codex na barra de status.",
             "54b1acf24f": "Uso do Codex",
             "dea0a9a665": "anthropic",
             "c9fe3a7876": "claude",
@@ -16047,9 +16045,6 @@
           },
           "TerminalAgentSessionForkDialog": {
             "17fc841e59": "Copiar contexto",
-            "0c8a8629b1": "O fork aparece como seu próprio espaço de trabalho, não como um filho aninhado. O novo agente recebe uma transcrição limitada como um rascunho editável.",
-            "620461df22": "Fork de nível superior",
-            "619b5a35d2": "Crie um fork de espaço de trabalho de nível superior e inicie uma nova aba de agente com o contexto capturado.",
             "64e292e8e3": "Fazer Fork da Sessão do Agente",
             "9d25de2920": "Criar fork",
             "2b10412cfc": "Criando..."

@@ -342,7 +342,8 @@ describe('absolute file CLI paths', () => {
     expect(callMock).toHaveBeenNthCalledWith(2, 'worktree.resolveActive', {})
     expect(callMock).toHaveBeenLastCalledWith('files.open', {
       worktree: 'id:repo::/tmp/repo',
-      relativePath: '/home/alice/.zshrc'
+      relativePath: '/home/alice/.zshrc',
+      navigation: 'caller'
     })
   })
 
@@ -355,7 +356,8 @@ describe('absolute file CLI paths', () => {
     expect(process.exitCode).toBeUndefined()
     expect(callMock).toHaveBeenLastCalledWith('files.open', {
       worktree: 'id:repo::/tmp/repo',
-      relativePath: '/home/alice/.zshrc'
+      relativePath: '/home/alice/.zshrc',
+      navigation: 'caller'
     })
   })
 

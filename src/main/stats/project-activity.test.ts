@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { summarizeProjectActivity } from './project-activity'
+import { selectRecentAgentStarts, summarizeProjectActivity } from './project-activity'
 import type { StatsEvent } from './types'
 
 const now = new Date(2026, 9, 20, 9, 30).getTime()
@@ -32,5 +32,18 @@ describe('summarizeProjectActivity', () => {
   it('prefers an explicit repoId over the one in the worktree id', () => {
     const event: StatsEvent = { ...start('repo-a::/a', at(20, 8)), repoId: 'repo-x' }
     expect(Object.keys(summarizeProjectActivity([event], now))).toEqual(['repo-x'])
+  })
+
+  it('keeps only agent starts that can still land in the window, without their meta', () => {
+    const events: StatsEvent[] = [
+      start('repo-a::/a', at(13, 9)), // inside the spare day before the window
+      start('repo-a::/a', at(12, 9)), // older than window plus spare day
+      { type: 'agent_stop', at: at(20, 1), meta: { sessionKey: 'pane', durationMs: 1 } },
+      { ...start('repo-b::/b', at(20, 8)), repoId: 'repo-x' }
+    ]
+    expect(selectRecentAgentStarts(events, now)).toEqual([
+      { type: 'agent_start', at: at(13, 9), repoId: undefined, worktreeId: 'repo-a::/a' },
+      { type: 'agent_start', at: at(20, 8), repoId: 'repo-x', worktreeId: 'repo-b::/b' }
+    ])
   })
 })

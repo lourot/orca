@@ -26,27 +26,35 @@ function runtimeWithOpen(): OrcaRuntimeService {
 }
 
 describe('files.open outside-workspace gate', () => {
-  // Why both kinds: only a paired device sets clientKind, so this is what keeps files.open
-  // safe on the mobile allowlist now that it can reach outside the workspace.
+  // Why both kinds: a transport that declares a client it cannot name gets no caller identity,
+  // which is what keeps files.open safe on the mobile allowlist now that it can reach outside.
   it.each([['mobile'], ['runtime']] as const)('refuses it for a %s client', async (clientKind) => {
     const runtime = runtimeWithOpen()
     const dispatcher = new RpcDispatcher({ runtime, methods: FILE_METHODS })
 
     await dispatcher.dispatch(openRequest('/home/alice/.zshrc'), { clientKind })
 
-    expect(runtime.openMobileFile).toHaveBeenCalledWith('id:wt-1', '/home/alice/.zshrc', {
-      allowOutsideWorkspace: false
-    })
+    expect(runtime.openMobileFile).toHaveBeenCalledWith(
+      'id:wt-1',
+      '/home/alice/.zshrc',
+      undefined,
+      undefined,
+      { allowOutsideWorkspace: false }
+    )
   })
 
-  it('allows it for a local caller, which sets no clientKind', async () => {
+  it('allows it for a local CLI caller, which declares no client', async () => {
     const runtime = runtimeWithOpen()
     const dispatcher = new RpcDispatcher({ runtime, methods: FILE_METHODS })
 
     await dispatcher.dispatch(openRequest('/home/alice/.zshrc'))
 
-    expect(runtime.openMobileFile).toHaveBeenCalledWith('id:wt-1', '/home/alice/.zshrc', {
-      allowOutsideWorkspace: true
-    })
+    expect(runtime.openMobileFile).toHaveBeenCalledWith(
+      'id:wt-1',
+      '/home/alice/.zshrc',
+      undefined,
+      undefined,
+      { allowOutsideWorkspace: true }
+    )
   })
 })

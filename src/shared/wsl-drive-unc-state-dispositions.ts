@@ -19,6 +19,7 @@ export const WSL_DRIVE_UNC_STATE_DISPOSITIONS = {
   projectGroups: 'rewrite',
   folderWorkspaces: 'rewrite',
   folderWorkspaceDiffComments: 'rewrite',
+  folderWorkspaceGeneralNotes: 'rewrite',
   sparsePresetsByRepo: 'rewrite',
   retiredWorktreeNamesByRepo: 'keep',
   // Keyed by the new-worktree folder, which the converted project recomputes on Windows.

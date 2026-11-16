@@ -12,6 +12,7 @@ export type AutomationRunTrigger = 'scheduled' | 'manual'
 // Re-exported so the many type-only importers of the automation surface keep one entry point;
 // the finality rule itself lives with the union it must stay exhaustive over.
 export type { AutomationRunStatus }
+export { isFinalAutomationRunStatus } from './automation-run-status'
 
 export type AutomationSchedulePreset = 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom'
 export type AutomationRunUsageProvider = 'claude' | 'codex'

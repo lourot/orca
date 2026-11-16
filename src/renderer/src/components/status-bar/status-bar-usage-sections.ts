@@ -1,4 +1,8 @@
-import type { ProviderRateLimits, RateLimitWindow } from '../../../../shared/rate-limit-types'
+import type {
+  CodexCreditUsage,
+  ProviderRateLimits,
+  RateLimitWindow
+} from '../../../../shared/rate-limit-types'
 import type { StatusBarUsageMode } from '../../../../shared/status-bar-usage-mode'
 import { isCursorUsageBucket } from '../../../../shared/cursor-usage-buckets'
 import { translate } from '@/i18n/i18n'
@@ -10,6 +14,7 @@ export type StatusBarUsageSection = {
   window: RateLimitWindow
   label: string
   labelFirst?: boolean
+  creditUsage?: CodexCreditUsage
 }
 
 const STATUS_BAR_BUCKET_NAMES = new Set(['Flash', 'Pro', '1.5 Pro'])

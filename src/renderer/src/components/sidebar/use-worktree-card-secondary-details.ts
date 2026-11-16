@@ -9,9 +9,6 @@ import { toast } from 'sonner'
 import type { GitHubWorkItem } from '../../../../shared/github/work-item-types'
 import { translate } from '@/i18n/i18n'
 import { openWorkspaceBrowserTab } from '@/lib/workspace-browser-tab-open'
-import { isMarkdownComment } from '@/lib/diff-comment-compat'
-import { isMarkdownReviewNotesEnabled } from '@/lib/markdown-review-notes-setting'
-import { useAppStore } from '@/store'
 import { hasWorktreeCardDetails } from './WorktreeCardMeta'
 import { usePromptCacheCountdownStartedAt } from './CacheTimer'
 import { useWorktreeAgentRows } from './useWorktreeAgentRows'
@@ -89,12 +86,6 @@ export function useWorktreeCardSecondaryDetails({
   const hoverReview = prDisplay
   const statusLaneReview = statusPrDisplay ?? hoverReview
   const hoverComment = worktree.comment
-  // Why: same visibility rule as the Source Control notes shelf, so the badge never counts a note the shelf hides.
-  const markdownReviewNotesEnabled = isMarkdownReviewNotesEnabled(settings)
-  const hoverUnsentReviewNoteCount =
-    (worktree.diffComments?.filter(
-      (comment) => !comment.sentAt && (markdownReviewNotesEnabled || !isMarkdownComment(comment))
-    ).length ?? 0) + (worktree.generalNotes?.filter((note) => !note.sentAt).length ?? 0)
   const metaIssue = showIssue ? hoverIssue : null
   const metaLinearIssue = showLinearIssue ? hoverLinearIssue : null
   const metaJiraIssue = showJiraIssue ? hoverJiraIssue : null
@@ -102,8 +93,6 @@ export function useWorktreeCardSecondaryDetails({
   const metaAutomationProvenance = showAutomation ? worktree.automationProvenance : null
   const metaCliProvenance = showCli ? worktree.cliProvenance : null
   const metaComment = showComment ? hoverComment : null
-  // Why: review notes ride on the Notes property so no new card property crosses the client wire schema.
-  const metaUnsentReviewNoteCount = showComment ? hoverUnsentReviewNoteCount : 0
   const showInlineAgentList = cardDetails.inlineAgents
   const compactInlineAgentRows = useWorktreeAgentRows(
     worktree.id,
@@ -114,11 +103,6 @@ export function useWorktreeCardSecondaryDetails({
     agentActivityDisplayMode === 'compact' &&
     compactInlineAgentRows.length > 0
   const showAggregateCacheTimer = !compactCards && !compactInlineAgentRowsVisible
-  // Why: read the action at click time; a store subscription here would add a listener per card.
-  const handleOpenReviewNotes = useCallback(
-    () => useAppStore.getState().requestDiffNotesShelfReveal(worktree.id),
-    [worktree.id]
-  )
   const handleOpenGitHubIssueInOrca = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
@@ -281,7 +265,6 @@ export function useWorktreeCardSecondaryDetails({
       jiraIssue: metaJiraIssue,
       review: newCardStyle ? null : metaReview,
       comment: metaComment,
-      unsentReviewNoteCount: metaUnsentReviewNoteCount,
       automationProvenance: metaAutomationProvenance,
       cliProvenance: metaCliProvenance
     })
@@ -298,7 +281,6 @@ export function useWorktreeCardSecondaryDetails({
     hoverReview,
     statusLaneReview,
     hoverComment,
-    hoverUnsentReviewNoteCount,
     metaIssue,
     metaLinearIssue,
     metaJiraIssue,
@@ -306,8 +288,6 @@ export function useWorktreeCardSecondaryDetails({
     metaAutomationProvenance,
     metaCliProvenance,
     metaComment,
-    metaUnsentReviewNoteCount,
-    handleOpenReviewNotes,
     showInlineAgentList,
     compactInlineAgentRows,
     handleOpenGitHubIssueInOrca,

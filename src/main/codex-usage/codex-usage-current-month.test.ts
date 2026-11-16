@@ -40,7 +40,10 @@ describe('Codex local credit estimates', () => {
             outputTokens: 0,
             reasoningOutputTokens: 0,
             totalTokens: 1_000_000,
-            hasInferredPricing: false
+            hasInferredPricing: false,
+            longContextInputTokens: 0,
+            longContextCachedInputTokens: 0,
+            longContextOutputTokens: 0
           },
           {
             day: '2026-09-05',
@@ -55,7 +58,10 @@ describe('Codex local credit estimates', () => {
             outputTokens: 0,
             reasoningOutputTokens: 0,
             totalTokens: 1_000_000,
-            hasInferredPricing: false
+            hasInferredPricing: false,
+            longContextInputTokens: 0,
+            longContextCachedInputTokens: 0,
+            longContextOutputTokens: 0
           }
         ]
       },
@@ -89,7 +95,10 @@ describe('Codex local credit estimates', () => {
               outputTokens: 1_000,
               reasoningOutputTokens: 0,
               totalTokens: 2_000,
-              hasInferredPricing: true
+              hasInferredPricing: true,
+              longContextInputTokens: 0,
+              longContextCachedInputTokens: 0,
+              longContextOutputTokens: 0
             }
           ]
         },

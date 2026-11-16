@@ -8,16 +8,18 @@ export type ActivityItem = { lastActivityAt?: number }
 
 // Disambiguate each section’s own label, never its anchor checkout’s name: filtering checkout rows previously renamed
 // project headers (#16127). Path suffixes still resolve genuinely identical labels.
+// Qualification is unconditional (minDepth 2) so every header reads <parent>/<name> and 'name'
+// ordering can sort the string actually rendered.
 export function withRepoSectionDisplayLabels<
   E extends ProjectSectionEntry<ActivityItem, ProjectSectionRepo>
->(entries: readonly [string, E][]): [string, E][] {
+>(entries: readonly (readonly [string, E])[]): [string, E][] {
   const labelItems = entries.flatMap(([, group]) =>
     group.repo ? [{ ...group.repo, displayName: group.label }] : []
   )
   if (labelItems.length === 0) {
-    return [...entries]
+    return entries.map(([key, group]) => [key, group])
   }
-  const labelsByPath = getRepoDisplayLabelsByPath(labelItems)
+  const labelsByPath = getRepoDisplayLabelsByPath(labelItems, { minDepth: 2 })
   return entries.map(([key, group]) => [
     key,
     group.repo
@@ -112,7 +114,23 @@ export function getManualOrderAnchorRepo<R extends ProjectSectionRepo>(
   return anchor
 }
 
-/** Order headers by canonical repo order or newest visible workspace activity; inactive projects trail, then manual rank and label break ties. */
+/**
+ * Alphabetical order on the label each header renders. Entries stay unlabelled: callers label
+ * them later, and labelling twice would qualify the parent segment twice.
+ */
+export function sortProjectEntriesByRenderedLabel<
+  T extends readonly [string, ProjectSectionEntry<ActivityItem, ProjectSectionRepo>]
+>(entries: readonly T[]): T[] {
+  const rendered = new Map(
+    withRepoSectionDisplayLabels(entries).map(([key, group]) => [key, group.label])
+  )
+  const labelOf = (entry: T): string => rendered.get(entry[0]) ?? entry[1].label
+  return [...entries].sort(
+    (a, b) => compareSidebarText(labelOf(a), labelOf(b)) || compareCodePoints(a[0], b[0])
+  )
+}
+
+/** Order headers by canonical repo order or newest visible workspace activity; inactive projects trail, then manual rank and label break ties. Name is alphabetical on the rendered label. */
 export function sortProjectEntries<
   T extends readonly [string, ProjectSectionEntry<ActivityItem, ProjectSectionRepo>]
 >(
@@ -120,6 +138,11 @@ export function sortProjectEntries<
   projectOrderBy: ProjectOrderBy,
   repoOrder: ReadonlyMap<string, number> | undefined
 ): T[] {
+  // Ahead of the !repoOrder guard below: Name must work for users who never
+  // dragged a project and so have no persisted manual order.
+  if (projectOrderBy === 'name') {
+    return sortProjectEntriesByRenderedLabel(entries)
+  }
   if (projectOrderBy === 'recent') {
     if (entries.length < 2) {
       return [...entries]

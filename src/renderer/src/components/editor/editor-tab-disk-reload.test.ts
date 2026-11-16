@@ -55,6 +55,8 @@ describe('requestEditorTabDiskReload', () => {
       markFileDirty,
       setExternalMutation,
       editorDrafts,
+      editorBufferIdOf: {},
+      editorBufferViews: {},
       openFiles
     } as never)
   }

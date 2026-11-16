@@ -274,6 +274,8 @@ function setAgentLineageState(options: {
     activeTabType: null,
     agentStatusEpoch: 0,
     browserTabsByWorktree: {},
+    fetchProjectActivity: vi.fn(async () => {}),
+    unifiedTabsByWorktree: {},
     clearPendingRevealWorktreeId: vi.fn(),
     deleteStateByWorktreeId: {},
     detectedWorktreesByRepo: {},
@@ -348,7 +350,6 @@ function setAgentLineageState(options: {
     dismissRetainedAgent: vi.fn(),
     sendPromptToSidebarAgentTarget: vi.fn(),
     tabsByWorktree: { parent: [makeParentTab()] },
-    unifiedTabsByWorktree: {},
     structuredChatSleptAtByPaneKey: {},
     agentStatusByPaneKey
   }

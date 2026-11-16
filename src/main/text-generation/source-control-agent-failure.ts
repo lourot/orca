@@ -82,15 +82,31 @@ const EMPTY_RESULT_FAILURES = {
 
 const UNCODED_EMPTY_RESULT_NAMES = {
   'branch-name': 'branch name',
-  'conversation-name': 'chat name'
+  'conversation-name': 'chat name',
+  'dictation-cleanup': 'cleaned transcript',
+  'jira-jql': 'JQL'
 } as const
+
+/** Short background results (names, cleaned transcripts) keep agent CLI output out of their errors. */
+export function includesStdoutDetail(operation: TextGenerationOperation): boolean {
+  return (
+    operation !== 'branch-name' &&
+    operation !== 'conversation-name' &&
+    operation !== 'dictation-cleanup'
+  )
+}
 
 export function emptyResultFailure(
   operation: TextGenerationOperation,
   label: string,
   detail?: string | null
 ): TextGenerationFailureFields {
-  if (operation === 'branch-name' || operation === 'conversation-name') {
+  if (
+    operation === 'branch-name' ||
+    operation === 'conversation-name' ||
+    operation === 'dictation-cleanup' ||
+    operation === 'jira-jql'
+  ) {
     // Background rename failures are stored as English rename errors, outside the coded result path.
     const name = UNCODED_EMPTY_RESULT_NAMES[operation]
     return {

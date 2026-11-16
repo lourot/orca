@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { SshHostNotServedError } from '../providers/ssh-host-not-served-error'
 import type * as FileSystem from 'node:fs/promises'
 import {
-  authorizeExternalPathMock,
   enoent,
   readdirMock,
   resolveAuthorizedPathMock,
@@ -294,22 +293,26 @@ describe('RuntimeFileCommands', () => {
     expect(openFile).not.toHaveBeenCalled()
   })
 
-  it('opens a path outside every workspace for a local caller, granting it first', async () => {
+  it('opens a path outside every workspace for a local caller', async () => {
     const openFile = vi.fn()
     const { commands } = createRuntimeFileCommands({ openFile })
     resolveAuthorizedPathMock.mockResolvedValue('/home/alice/.zshrc')
     statMock.mockResolvedValue({ isDirectory: () => false })
 
-    const result = await commands.openMobileFile('id:wt-1', '/home/alice/.zshrc', {
-      allowOutsideWorkspace: true
-    })
+    const result = await commands.openMobileFile(
+      'id:wt-1',
+      '/home/alice/.zshrc',
+      undefined,
+      undefined,
+      { allowOutsideWorkspace: true }
+    )
 
-    // The grant has to precede the read, or the editor's own read and save are denied.
-    expect(authorizeExternalPathMock).toHaveBeenCalledWith('/home/alice/.zshrc')
+    // The absolute path as relativePath is what makes the renderer read it as a user-named file.
     expect(openFile).toHaveBeenCalledWith(
       'wt-1',
       '/home/alice/.zshrc',
       '/home/alice/.zshrc',
+      null,
       undefined
     )
     expect(result).toEqual({
@@ -329,12 +332,12 @@ describe('RuntimeFileCommands', () => {
 
     const result = await commands.openMobileFile('id:wt-1', '/repo/assets/../docs/readme.md')
 
-    // Inside the root after folding, so it takes the workspace-relative flow and needs no grant.
-    expect(authorizeExternalPathMock).not.toHaveBeenCalled()
+    // Inside the root after folding, so it takes the workspace-relative flow.
     expect(openFile).toHaveBeenCalledWith(
       'wt-1',
       '/repo/docs/readme.md',
       'docs/readme.md',
+      null,
       undefined
     )
     expect(result).toEqual({
@@ -352,7 +355,6 @@ describe('RuntimeFileCommands', () => {
     await expect(commands.openMobileFile('id:wt-1', '/home/alice/.zshrc')).rejects.toThrow(
       EXTERNAL_OPEN_PAIRED_CLIENT_MESSAGE
     )
-    expect(authorizeExternalPathMock).not.toHaveBeenCalled()
     expect(openFile).not.toHaveBeenCalled()
   })
 
@@ -369,9 +371,10 @@ describe('RuntimeFileCommands', () => {
     })
 
     await expect(
-      commands.openMobileFile('id:wt-1', '/home/alice/.zshrc', { allowOutsideWorkspace: true })
+      commands.openMobileFile('id:wt-1', '/home/alice/.zshrc', undefined, undefined, {
+        allowOutsideWorkspace: true
+      })
     ).rejects.toThrow(EXTERNAL_OPEN_NON_LOCAL_WORKSPACE_MESSAGE)
-    expect(authorizeExternalPathMock).not.toHaveBeenCalled()
     expect(openFile).not.toHaveBeenCalled()
   })
 
@@ -382,7 +385,9 @@ describe('RuntimeFileCommands', () => {
     statMock.mockResolvedValue({ isDirectory: () => true })
 
     await expect(
-      commands.openMobileFile('id:wt-1', '/home/alice/notes', { allowOutsideWorkspace: true })
+      commands.openMobileFile('id:wt-1', '/home/alice/notes', undefined, undefined, {
+        allowOutsideWorkspace: true
+      })
     ).rejects.toThrow('Cannot open a directory: /home/alice/notes')
     expect(openFile).not.toHaveBeenCalled()
   })

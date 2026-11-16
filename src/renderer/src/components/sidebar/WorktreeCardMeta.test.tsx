@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { WorktreeCardDetailsHover, WorktreeCardMetaBadges } from './WorktreeCardMeta'
+import { withReviewNotesDetails } from './WorktreeCardReviewNotesDetailSection'
 
 vi.mock('@/components/ui/hover-card', () => ({
   HoverCard: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -44,7 +45,7 @@ describe('WorktreeCardDetailsHover', () => {
           linearIssue={null}
           review={null}
           comment={null}
-          unsentReviewNoteCount={count}
+          detailsAfter={withReviewNotesDetails(count, null)}
         >
           <span>card</span>
         </WorktreeCardDetailsHover>
