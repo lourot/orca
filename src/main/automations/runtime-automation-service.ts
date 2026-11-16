@@ -15,6 +15,7 @@ import {
   createRuntimeAutomationRunTerminalObserver
 } from './runtime-terminal-run-observer'
 import { closeEarlierHookReviewRunTerminals } from './hook-review-blocked-run-terminals'
+import { isRunSessionLive } from './automation-run-guards'
 
 const MAX_REMEMBERED_LAUNCHES = 256
 
@@ -59,6 +60,7 @@ export function createRuntimeAutomationService(input: {
       }
     },
     onAutomationsChanged: (payload) => runtime.notifyAutomationsChanged(payload),
+    isRunSessionOpen: (run) => isRunSessionLive(runtime, run),
     allowRemoteHostScheduling: input.headless,
     headlessDispatcher: input.headless
       ? async (request) => {

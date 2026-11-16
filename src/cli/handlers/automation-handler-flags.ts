@@ -12,6 +12,7 @@ import { buildAutomationRrule } from '../../shared/automation-schedule-occurrenc
 import { isValidAutomationSchedule } from '../../shared/automation-schedule-parsing'
 import { isTuiAgent } from '../../shared/tui-agent-config'
 import {
+  getOptionalNonNegativeIntegerFlag,
   getOptionalPositiveIntegerFlag,
   getOptionalStringFlag,
   getRequiredStringFlag
@@ -197,14 +198,27 @@ export function getEnabledFlag(flags: Map<string, string | boolean>): boolean | 
   return getExclusiveBooleanPairFlag(flags, 'enabled', 'disabled')
 }
 
-export function getReuseSessionFlag(flags: Map<string, string | boolean>): boolean | undefined {
-  return getExclusiveBooleanPairFlag(flags, 'reuse-session', 'fresh-session')
-}
-
 export function getSkipWhileRunActiveFlag(
   flags: Map<string, string | boolean>
 ): boolean | undefined {
   return getExclusiveBooleanPairFlag(flags, 'skip-while-run-active', 'allow-overlapping-runs')
+}
+
+export function getKeepSessionOpenFlag(flags: Map<string, string | boolean>): boolean | undefined {
+  return getExclusiveBooleanPairFlag(flags, 'keep-session-open', 'close-session-when-done')
+}
+
+/** Missed-run grace, cooldown and overlap guards, shared by `automations create` and `update`. */
+export function getRunGuardFlags(flags: Map<string, string | boolean>): {
+  missedRunGraceMinutes: number | undefined
+  minMinutesSinceLastRun: number | undefined
+  skipWhileRunActive: boolean | undefined
+} {
+  return {
+    missedRunGraceMinutes: getOptionalPositiveIntegerFlag(flags, 'missed-run-grace-minutes'),
+    minMinutesSinceLastRun: getOptionalNonNegativeIntegerFlag(flags, 'min-minutes-since-last-run'),
+    skipWhileRunActive: getSkipWhileRunActiveFlag(flags)
+  }
 }
 
 export function getPrecheckFlag(

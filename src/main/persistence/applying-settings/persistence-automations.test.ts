@@ -136,6 +136,35 @@ describe('Store', () => {
     expect(store.listAutomations()).toHaveLength(1)
   })
 
+  it('keeps session reuse and skip-if-open mutually exclusive', async () => {
+    const store = await createStore()
+    store.addRepo(makeRepo())
+    const automation = store.createAutomation({
+      name: 'Digest',
+      prompt: 'Summarize changes',
+      agentId: 'claude',
+      projectId: 'r1',
+      workspaceMode: 'existing',
+      workspaceId: 'wt1',
+      skipWhileSessionOpen: true,
+      timezone: 'UTC',
+      rrule: 'FREQ=DAILY;BYHOUR=9;BYMINUTE=0',
+      dtstart: new Date('2026-05-13T00:00:00Z').getTime()
+    })
+
+    // An older client knows only reuseSession; turning it on must not leave skip behind.
+    const reused = store.updateAutomation(automation.id, { reuseSession: true })
+    expect(reused).toMatchObject({ reuseSession: true })
+    expect(reused.skipWhileSessionOpen).toBeUndefined()
+
+    const skipping = store.updateAutomation(automation.id, { skipWhileSessionOpen: true })
+    expect(skipping).toMatchObject({ reuseSession: false, skipWhileSessionOpen: true })
+
+    expect(() =>
+      store.updateAutomation(automation.id, { reuseSession: true, skipWhileSessionOpen: true })
+    ).toThrow('not both')
+  })
+
   it('persists session reuse only for existing-workspace automations', async () => {
     const store = await createStore()
     store.addRepo(makeRepo())

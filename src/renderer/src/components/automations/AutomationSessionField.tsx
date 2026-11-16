@@ -1,9 +1,23 @@
 import { Info } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { AUTOMATION_EDITOR_SECTION_LABEL_CLASS, Field } from './automation-page-parts'
 import type { AutomationDraft } from './AutomationEditorDialog'
 import { translate } from '@/i18n/i18n'
+
+type SessionChoice = 'fresh' | 'reuse' | 'skip'
+
+function sessionChoice(draft: AutomationDraft): SessionChoice {
+  if (draft.workspaceMode === 'existing' && draft.reuseSession) {
+    return 'reuse'
+  }
+  return draft.skipWhileSessionOpen ? 'skip' : 'fresh'
+}
+
+function isSessionChoice(value: string): value is SessionChoice {
+  return value === 'fresh' || value === 'reuse' || value === 'skip'
+}
 
 type AutomationSessionFieldProps = {
   draft: AutomationDraft
@@ -38,10 +52,24 @@ export function AutomationSessionField({
               </button>
             </TooltipTrigger>
             <TooltipContent side="top" sideOffset={6} className="max-w-72">
-              {translate(
-                'auto.components.automations.AutomationSessionField.b675112193',
-                'Reuse sends future runs to the previous live automation session. If that session is gone, Orca starts a fresh one.'
-              )}
+              <p>
+                {translate(
+                  'auto.components.automations.AutomationSessionField.b675112193',
+                  'Reuse sends future runs to the previous live automation session. If that session is gone, Orca starts a fresh one.'
+                )}
+              </p>
+              <p className="mt-1">
+                {translate(
+                  'auto.components.automations.AutomationSessionField.skipIfOpenHelp',
+                  "Skip if open skips a run while this automation's previous session is still open, including Run now. Once it is closed, the next run starts a fresh one."
+                )}
+              </p>
+              <p className="mt-1">
+                {translate(
+                  'auto.components.automations.AutomationSessionField.closeWhenDoneHelp',
+                  'Reuse and Skip if open always leave the session open when a run finishes.'
+                )}
+              </p>
             </TooltipContent>
           </Tooltip>
         </span>
@@ -50,14 +78,15 @@ export function AutomationSessionField({
       <ToggleGroup
         type="single"
         spacing={1}
-        value={draft.workspaceMode === 'existing' && draft.reuseSession ? 'reuse' : 'fresh'}
+        value={sessionChoice(draft)}
         onValueChange={(value) => {
-          if (!value) {
+          if (!isSessionChoice(value)) {
             return
           }
           onDraftChange((current) => ({
             ...current,
             reuseSession: value === 'reuse',
+            skipWhileSessionOpen: value === 'skip',
             workspaceMode: value === 'reuse' ? 'existing' : current.workspaceMode
           }))
         }}
@@ -70,7 +99,27 @@ export function AutomationSessionField({
         <ToggleGroupItem value="reuse" className={toggleItemClassName}>
           {translate('auto.components.automations.AutomationSessionField.f3c76dce51', 'Reuse')}
         </ToggleGroupItem>
+        <ToggleGroupItem value="skip" className={toggleItemClassName}>
+          {translate(
+            'auto.components.automations.AutomationSessionField.skipIfOpen',
+            'Skip if open'
+          )}
+        </ToggleGroupItem>
       </ToggleGroup>
+      {sessionChoice(draft) === 'fresh' ? (
+        <label className="flex items-center gap-2 pt-1 text-xs">
+          <Checkbox
+            checked={!draft.keepSessionOpen}
+            onCheckedChange={(checked) =>
+              onDraftChange((current) => ({ ...current, keepSessionOpen: checked !== true }))
+            }
+          />
+          {translate(
+            'auto.components.automations.AutomationSessionField.closeWhenDone',
+            'Close the session when the run finishes'
+          )}
+        </label>
+      ) : null}
     </Field>
   )
 }

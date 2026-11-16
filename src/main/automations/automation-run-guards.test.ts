@@ -6,16 +6,15 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type { Repo } from '../../shared/repo-types'
 import type { Automation, AutomationCreateInput } from '../../shared/automations-types'
+import { removeTreeSync } from '../../shared/windows-transient-lock-removal'
 import type { Store } from '../persistence'
+import { closeTestStores, createStore, testState } from '../persistence/persistence-test-harness'
 import { AutomationService } from './service'
-import { installFakeAppEnvironment } from '../../../config/scripts/vitest-host-ports-setup'
-
-const testState = { dir: '' }
 
 vi.mock('electron', () => ({
   app: {
@@ -27,14 +26,6 @@ vi.mock('electron', () => ({
     decryptString: (ciphertext: Buffer) => ciphertext.toString('utf-8').slice('encrypted:'.length)
   }
 }))
-
-async function createStore(): Promise<Store> {
-  vi.resetModules()
-  installFakeAppEnvironment({ getPath: () => testState.dir })
-  const { Store: StoreClass, initDataPath } = await import('../persistence')
-  initDataPath()
-  return new StoreClass()
-}
 
 const makeRepo = (): Repo => ({
   id: 'r1',
@@ -123,9 +114,10 @@ describe('automation run guards', () => {
     vi.setSystemTime(new Date('2026-05-13T08:00:00Z'))
   })
 
-  afterEach(() => {
+  afterEach(async () => {
+    await closeTestStores()
     vi.useRealTimers()
-    rmSync(testState.dir, { recursive: true, force: true })
+    removeTreeSync(testState.dir)
   })
 
   it('skips an occurrence inside the cooldown window', async () => {
@@ -228,7 +220,7 @@ describe('automation run guards', () => {
   // crashed-session row an existing store already holds -- into a dead automation.
   it.each([
     ['a dispatch that never reported back', 'dispatched' as const, '2026-05-14T10:01:00Z'],
-    ['a row an executor never picked up', null, '2026-05-13T09:04:00Z']
+    ['a handoff the executor dropped', null, '2026-05-13T10:01:00Z']
   ])('stops blocking on %s', async (_label, reported, when) => {
     const { store, automation } = await seedAutomation({ skipWhileRunActive: true })
     const service = attachedService(store)
@@ -239,6 +231,8 @@ describe('automation run guards', () => {
     }
     await passAt(service, when)
 
+    // A second row proves the stale run was stepped over rather than still being the newest.
+    expect(store.listAutomationRuns(automation.id)).toHaveLength(2)
     expect(newestRun(store, automation.id).status).toBe('dispatching')
   })
 
@@ -277,4 +271,86 @@ describe('automation run guards', () => {
       expect(nextRunAt(store, automation.id)).toBeGreaterThan(beforeSkip)
     }
   )
+
+  describe('skip while session open', () => {
+    const PANE_KEY = 'tab-1:3f2b8c1e-4d5a-4b6c-8d7e-9f0a1b2c3d4e'
+
+    /** Dispatches one occurrence into a terminal and lets the run finish; the pane stays open. */
+    async function runIntoTerminal(
+      store: Store,
+      service: AutomationService,
+      automation: Automation,
+      when: string
+    ): Promise<void> {
+      await passAt(service, when)
+      store.updateAutomationRun({
+        runId: newestRun(store, automation.id).id,
+        status: 'dispatched',
+        workspaceId: 'r1::wt1',
+        terminalPaneKey: PANE_KEY,
+        terminalPtyId: 'pty-1',
+        error: null
+      })
+      reportRunStatus(store, automation.id, 'completed')
+    }
+
+    function probedService(store: Store, openPtyIds: Set<string> | null): AutomationService {
+      const service = new AutomationService(store, {
+        tickMs: 60_000,
+        ...(openPtyIds
+          ? { isRunSessionOpen: (run) => openPtyIds.has(run.terminalPtyId ?? '') }
+          : {})
+      })
+      service.setWebContents({ isDestroyed: () => false, send: vi.fn() } as never)
+      return service
+    }
+
+    it.each([
+      ['skips while its session is open', true, new Set(['pty-1']), 'skipped_run_active'],
+      ['runs once its session is closed', true, new Set<string>(), 'dispatching'],
+      ['runs when the setting is off', false, new Set(['pty-1']), 'dispatching'],
+      ['runs when no host can see panes', true, null, 'dispatching']
+    ])('%s', async (_label, skipWhileSessionOpen, openPtyIds, expected) => {
+      const { store, automation } = await seedAutomation({ skipWhileSessionOpen })
+      const service = probedService(store, openPtyIds)
+
+      await runIntoTerminal(store, service, automation, '2026-05-13T09:01:00Z')
+      await passAt(service, '2026-05-13T10:01:00Z')
+
+      expect(newestRun(store, automation.id).status).toBe(expected)
+      if (expected === 'skipped_run_active') {
+        expect(newestRun(store, automation.id).errorCode).toBe('skippedSessionOpen')
+      }
+    })
+
+    it('folds repeated open-session skips into one record', async () => {
+      const { store, automation } = await seedAutomation({ skipWhileSessionOpen: true })
+      const service = probedService(store, new Set(['pty-1']))
+
+      await runIntoTerminal(store, service, automation, '2026-05-13T09:01:00Z')
+      await passAt(service, '2026-05-13T10:01:00Z')
+      await passAt(service, '2026-05-13T11:01:00Z')
+
+      const skips = store
+        .listAutomationRuns(automation.id)
+        .filter((run) => run.status === 'skipped_run_active')
+      expect(skips).toHaveLength(1)
+      expect(skips[0].occurrenceCount).toBe(2)
+    })
+
+    it('refuses a manual request while its session is open', async () => {
+      const { store, automation } = await seedAutomation({ skipWhileSessionOpen: true })
+      const service = probedService(store, new Set(['pty-1']))
+
+      await runIntoTerminal(store, service, automation, '2026-05-13T09:01:00Z')
+      vi.setSystemTime(new Date('2026-05-13T09:30:00Z'))
+      const run = await service.runNow(automation.id)
+
+      expect(run).toMatchObject({
+        status: 'skipped_run_active',
+        errorCode: 'skippedSessionOpen',
+        trigger: 'manual'
+      })
+    })
+  })
 })

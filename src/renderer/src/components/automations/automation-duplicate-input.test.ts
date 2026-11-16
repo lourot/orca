@@ -29,6 +29,8 @@ const configuration = {
   baseBranch: null,
   setupDecision: 'skip',
   reuseSession: false,
+  skipWhileSessionOpen: false,
+  keepSessionOpen: true,
   timezone: 'Pacific/Auckland',
   rrule: 'FREQ=WEEKLY;INTERVAL=2;BYDAY=TU,TH;BYHOUR=17;BYMINUTE=23',
   dtstart: 1_700_000_000_000,
@@ -48,6 +50,7 @@ describe('automation duplicate input', () => {
         workspaceId: workspaceMode === 'existing' ? configuration.workspaceId : null,
         baseBranch: workspaceMode === 'new_per_run' ? 'release' : null,
         reuseSession: workspaceMode === 'existing',
+        skipWhileSessionOpen: workspaceMode === 'new_per_run',
         extraAgentArgs: workspaceMode === 'existing' ? '' : configuration.extraAgentArgs,
         enabled: workspaceMode === 'new_per_run'
       }

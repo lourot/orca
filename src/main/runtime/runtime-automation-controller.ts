@@ -135,6 +135,8 @@ export class RuntimeAutomationController {
         baseBranch: input.baseBranch,
         setupDecision: input.setupDecision,
         reuseSession: input.reuseSession,
+        skipWhileSessionOpen: input.skipWhileSessionOpen,
+        keepSessionOpen: input.keepSessionOpen,
         timezone: input.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
         rrule: input.rrule,
         dtstart: input.dtstart,

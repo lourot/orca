@@ -55,12 +55,12 @@ import {
   getOptionalProviderFlag,
   getPrecheckFlag,
   getProviderFlag,
-  getReuseSessionFlag,
   getScheduleFlag,
   getSkipWhileRunActiveFlag,
   getSourceContextFlag,
   getWorkspaceModeFlag
 } from './automation-handler-flags'
+import { getSessionModeFlags } from './automation-session-mode-flags'
 import { getExtraAgentArgsFlag } from './automation-extra-agent-args-flag'
 
 type AutomationCreateParams = Omit<AutomationCreateInput, 'projectId' | 'timezone'> & {
@@ -212,7 +212,7 @@ export const AUTOMATION_HANDLERS: Record<string, CommandHandler> = {
       workspace: target.workspace,
       workspaceMode,
       baseBranch: getOptionalStringFlag(flags, 'base-branch'),
-      reuseSession: getReuseSessionFlag(flags),
+      ...getSessionModeFlags(flags),
       timezone: getOptionalStringFlag(flags, 'timezone'),
       enabled: getEnabledFlag(flags),
       missedRunGraceMinutes: getOptionalPositiveIntegerFlag(flags, 'missed-run-grace-minutes'),
@@ -249,7 +249,7 @@ export const AUTOMATION_HANDLERS: Record<string, CommandHandler> = {
       workspace: target.workspace,
       workspaceMode: getWorkspaceModeFlag(flags),
       baseBranch: getOptionalStringFlag(flags, 'base-branch'),
-      reuseSession: getReuseSessionFlag(flags),
+      ...getSessionModeFlags(flags),
       timezone: getOptionalStringFlag(flags, 'timezone'),
       enabled: getEnabledFlag(flags),
       missedRunGraceMinutes: getOptionalPositiveIntegerFlag(flags, 'missed-run-grace-minutes'),

@@ -133,6 +133,8 @@ export function useAutomationsPageLocalState(store: AutomationsPageStoreState) {
     baseBranch: '',
     setupDecision: undefined,
     reuseSession: false,
+    skipWhileSessionOpen: false,
+    keepSessionOpen: false,
     precheckCommand: '',
     precheckTimeoutSeconds: '60',
     preset: 'weekdays',

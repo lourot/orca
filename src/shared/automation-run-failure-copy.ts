@@ -9,6 +9,9 @@ export const AUTOMATION_RUN_FAILURE_COPY = {
   wslMoveOwnedByHost:
     "This automation's project now runs on its WSL host, which runs this automation there. Orca no longer runs this local copy.",
   missedGraceWindow: 'This run was past its missed-run grace window when Orca next checked.',
+  skippedCooldown: 'This automation ran recently, so the scheduled run was skipped.',
+  skippedRunActive: 'A previous run was still active, so the scheduled run was skipped.',
+  skippedSessionOpen: "This automation's previous session is still open, so the run was skipped.",
   targetMissing:
     'The automation host is no longer registered, so this automation has nowhere to run.',
   targetReplaced:

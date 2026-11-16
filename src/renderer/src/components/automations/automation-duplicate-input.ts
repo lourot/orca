@@ -36,6 +36,8 @@ export function buildAutomationDuplicateInput(
     baseBranch: source.baseBranch,
     setupDecision: source.setupDecision,
     reuseSession: source.reuseSession,
+    skipWhileSessionOpen: source.skipWhileSessionOpen,
+    keepSessionOpen: source.keepSessionOpen,
     timezone: source.timezone,
     rrule: source.rrule,
     dtstart: source.dtstart,

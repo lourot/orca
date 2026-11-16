@@ -21,7 +21,10 @@ const AUTOMATION_STATE_FLAGS = [
   'skip-while-run-active',
   'allow-overlapping-runs',
   'reuse-session',
-  'fresh-session'
+  'fresh-session',
+  'skip-if-session-open',
+  'keep-session-open',
+  'close-session-when-done'
 ]
 
 export const AUTOMATION_COMMAND_SPECS: CommandSpec[] = [
@@ -67,6 +70,8 @@ export const AUTOMATION_COMMAND_SPECS: CommandSpec[] = [
       'Use --precheck-timeout <seconds> to set the time limit (default 60 seconds). Skips appear in Orca run history and orca automations runs --id <automation-id> as skipped_precheck.',
       'Run now in Orca and orca automations run intentionally bypass the precheck so you can test or override the scheduled condition.',
       'Use --reuse-session only with existing-workspace automations to submit later runs to the previous live automation session when it is still available. Use --fresh-session to disable reuse.',
+      'Use --skip-if-session-open to skip a run, scheduled or manual, while a session this automation started is still open; once it is closed, the next run starts a fresh session. Use --fresh-session to turn it off.',
+      'A fresh-session run closes its session when it finishes. Use --keep-session-open to leave it open, and --close-session-when-done to go back. Reuse and skip-if-open always leave the session open.',
       'Use --extra-agent-args="--model opus --effort high" to add arguments after the host\'s default agent Arguments on each fresh run. Only model, effort, and a few safe options are accepted (Claude, Codex, CodeBuddy, Cursor, Grok, OMP); extras cannot be combined with --reuse-session. On edit, --extra-agent-args= clears them.'
     ],
     examples: [

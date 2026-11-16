@@ -27,7 +27,9 @@ const FINAL_RUN_STATUSES = new Set<unknown>([
   'skipped_precheck',
   'skipped_missed',
   'skipped_unavailable',
-  'skipped_needs_interactive_auth'
+  'skipped_needs_interactive_auth',
+  'skipped_cooldown',
+  'skipped_run_active'
 ])
 
 export function parseOrcadMigrationDormantAutomations(value: unknown): Automation[] {
@@ -136,6 +138,26 @@ function isMigratedAutomation(value: unknown): value is Automation {
     requiredFinite(record[field], `orcad_migration_dormant_automation_${field}_invalid`)
   }
   optionalFinite(record.lastRunAt, 'orcad_migration_dormant_automation_last_run_invalid')
+  optionalFinite(
+    record.lastDispatchedAt,
+    'orcad_migration_dormant_automation_last_dispatched_invalid'
+  )
+  optionalFinite(
+    record.minMinutesSinceLastRun,
+    'orcad_migration_dormant_automation_cooldown_invalid'
+  )
+  if (record.skipWhileRunActive !== undefined && typeof record.skipWhileRunActive !== 'boolean') {
+    throw new Error('orcad_migration_dormant_automation_overlap_invalid')
+  }
+  if (
+    record.skipWhileSessionOpen !== undefined &&
+    typeof record.skipWhileSessionOpen !== 'boolean'
+  ) {
+    throw new Error('orcad_migration_dormant_automation_session_mode_invalid')
+  }
+  if (record.keepSessionOpen !== undefined && typeof record.keepSessionOpen !== 'boolean') {
+    throw new Error('orcad_migration_dormant_automation_session_mode_invalid')
+  }
   if (record.missedRunPolicy !== 'run_once_within_grace') {
     throw new Error('orcad_migration_dormant_automation_missed_policy_invalid')
   }

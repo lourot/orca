@@ -27,11 +27,17 @@ export abstract class OrcaRuntimeWithMainLayoutAgentLaunchTabs extends OrcaRunti
 
   /** Whether a running process holds this pane now: such a pane is attached to, never launched into. */
   hasLiveTerminalForPaneKey(paneKey: string): boolean {
+    return this.getLiveTerminalPtyIdForPaneKey(paneKey) !== null
+  }
+
+  /** The PTY a running process holds this pane with, from desktop tabs and headless panes alike. */
+  getLiveTerminalPtyIdForPaneKey(paneKey: string): string | null {
     const pty = this.getPtyRecordForPaneKey(paneKey)
     // Main's bound terminal may survive listing gaps; only certified exit frees its pane.
-    return ORCA_LAYOUT_OWNER_IS_MAIN
+    const live = ORCA_LAYOUT_OWNER_IS_MAIN
       ? !!pty && this.getPtyLivenessVerdict(pty.ptyId)?.status !== 'exited'
       : pty?.connected === true
+    return live && pty ? pty.ptyId : null
   }
 
   /** Whether main's layout holds the tab's workspace, so main writes the tab itself. */

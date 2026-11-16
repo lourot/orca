@@ -121,13 +121,30 @@ describe('orca cli worktree awareness', () => {
     })
   })
 
-  it('rejects conflicting automation session reuse flags', async () => {
+  it('sends skip-if-session-open as an exclusive session mode', async () => {
+    queueFixtures(
+      callMock,
+      okFixture('req_edit_owner', { automation: { id: 'auto-1', name: 'Daily review' } }),
+      okFixture('req_edit', { automation: { id: 'auto-1', name: 'Daily review' } })
+    )
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    await main(['automations', 'edit', 'auto-1', '--skip-if-session-open', '--json'], '/tmp/repo')
+
+    expect(callMock).toHaveBeenCalledWith('automation.update', {
+      id: 'auto-1',
+      updates: expect.objectContaining({ reuseSession: false, skipWhileSessionOpen: true })
+    })
+  })
+
+  it.each([
+    ['--reuse-session', '--fresh-session'],
+    ['--reuse-session', '--skip-if-session-open'],
+    ['--skip-if-session-open', '--fresh-session']
+  ])('rejects conflicting automation session flags %s and %s', async (first, second) => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
-    await main(
-      ['automations', 'edit', 'auto-1', '--reuse-session', '--fresh-session', '--json'],
-      '/tmp/repo'
-    )
+    await main(['automations', 'edit', 'auto-1', first, second, '--json'], '/tmp/repo')
 
     expect(callMock).not.toHaveBeenCalled()
     expect(logSpy).toHaveBeenCalledTimes(1)
@@ -135,7 +152,7 @@ describe('orca cli worktree awareness', () => {
       ok: false,
       error: {
         code: 'invalid_argument',
-        message: expect.stringContaining('Use either --reuse-session or --fresh-session, not both.')
+        message: expect.stringContaining('Use only one of')
       }
     })
     expect(process.exitCode).toBe(1)

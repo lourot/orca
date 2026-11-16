@@ -44,6 +44,11 @@ const COPY: Record<
     translate('automations.runFailures.wslMoveOwnedByHost', EN.wslMoveOwnedByHost),
   missedGraceWindow: () =>
     translate('automations.runFailures.missedGraceWindow', EN.missedGraceWindow),
+  skippedCooldown: () => translate('automations.runFailures.skippedCooldown', EN.skippedCooldown),
+  skippedRunActive: () =>
+    translate('automations.runFailures.skippedRunActive', EN.skippedRunActive),
+  skippedSessionOpen: () =>
+    translate('automations.runFailures.skippedSessionOpen', EN.skippedSessionOpen),
   targetMissing: () => translate('automations.runFailures.targetMissing', EN.targetMissing),
   targetReplaced: () => translate('automations.runFailures.targetReplaced', EN.targetReplaced),
   workspaceHostAmbiguous: () =>

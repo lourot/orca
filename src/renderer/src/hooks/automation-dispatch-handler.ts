@@ -5,6 +5,7 @@ import { expandSidebarGroupsForWorkspace } from '@/lib/expand-sidebar-groups-for
 import { launchAgentBackgroundSession } from '@/lib/launch-agent-background-session'
 import { observeExistingAutomationSession } from '@/lib/automation-session-observer'
 import { findReusableAutomationSession } from '@/lib/automation-session-reuse'
+import { keepsAutomationSessionOpen } from '@/lib/automation-session-keep-open'
 import type { AutomationTerminalOwnership } from '@/lib/automation-terminal-ownership'
 import { useAppStore } from '@/store'
 import { captureWorkspaceSelection, restoreWorkspaceSelection } from '@/lib/active-workspace-host'
@@ -198,8 +199,7 @@ export async function handleAutomationDispatchRequest({
     }
     terminalOwnership = result.terminalOwnership
     completion.setSessionObserver(result.releaseRuntimeObservers)
-    if (automation.reuseSession) {
-      // Preserve the first fresh-launch seed under the same completion policy as reused tabs.
+    if (keepsAutomationSessionOpen(automation)) {
       releaseTerminalOwnership()
     }
     const launchedTabId = result.tabId

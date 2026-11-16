@@ -27,6 +27,8 @@ const DRAFT: AutomationDraft = {
   workspaceId: '',
   baseBranch: '',
   reuseSession: false,
+  skipWhileSessionOpen: false,
+  keepSessionOpen: false,
   precheckCommand: '',
   precheckTimeoutSeconds: '30',
   preset: 'weekly',

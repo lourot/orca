@@ -6,7 +6,9 @@ or the next available numbered variant. Rename it through **Edit**.
 
 All configurable settings are preserved, including its enabled or paused state,
 schedule and timezone, agent arguments, precheck, workspace target, setup choice,
-session reuse and run guards. An enabled copy follows its schedule independently.
+session mode (Fresh, Reuse or Skip if open), whether a Fresh session closes
+when the run finishes, and run guards. An enabled copy
+follows its schedule independently.
 Existing workspace targets, including folder workspaces, remain the same target.
 
 The copy has a new identity, timestamps and empty run history. Its next run is

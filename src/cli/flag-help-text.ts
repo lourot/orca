@@ -108,7 +108,12 @@ export const FLAG_HELP_TEXT: Record<string, string> = {
     '--full-tree           Return the whole accessibility tree instead of changes since the last snapshot',
   'reuse-session':
     '--reuse-session        Reuse the previous live session for existing-workspace runs',
-  'fresh-session': '--fresh-session        Disable session reuse for future runs',
+  'fresh-session': '--fresh-session        Start a fresh session for every future run',
+  'skip-if-session-open':
+    "--skip-if-session-open Skip a run while this automation's previous session is still open",
+  'keep-session-open': "--keep-session-open    Leave a fresh run's session open when it finishes",
+  'close-session-when-done':
+    "--close-session-when-done Close a fresh run's session when it finishes (default)",
   'extra-agent-args':
     '--extra-agent-args=<args> Extra agent arguments for fresh runs; empty clears',
   'workspace-mode': '--workspace-mode <mode> existing or new-per-run',

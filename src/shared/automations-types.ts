@@ -102,6 +102,12 @@ export type Automation = {
   baseBranch: string | null
   setupDecision?: SetupDecision
   reuseSession: boolean
+  /** Skip a run while a session this automation started is still open. Absent means off;
+   *  ignored when `reuseSession` is on. */
+  skipWhileSessionOpen?: boolean
+  /** Leave a Fresh run's session open when it finishes. Absent means Orca closes it; Reuse
+   *  and skip-if-open always leave it open. */
+  keepSessionOpen?: boolean
   timezone: string
   rrule: string
   dtstart: number
@@ -185,6 +191,8 @@ export type AutomationCreateInput = {
   baseBranch?: string | null
   setupDecision?: SetupDecision
   reuseSession?: boolean
+  skipWhileSessionOpen?: boolean
+  keepSessionOpen?: boolean
   timezone: string
   rrule: string
   dtstart: number
@@ -210,6 +218,8 @@ export type AutomationUpdateInput = Partial<
     | 'baseBranch'
     | 'setupDecision'
     | 'reuseSession'
+    | 'skipWhileSessionOpen'
+    | 'keepSessionOpen'
     | 'timezone'
     | 'rrule'
     | 'dtstart'

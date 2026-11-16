@@ -93,6 +93,8 @@ export function formatAutomationShow(result: AutomationShowPayload): string {
     `workspaceId: ${automation.workspaceId ?? 'null'}`,
     `baseBranch: ${automation.baseBranch ?? 'null'}`,
     `reuseSession: ${automation.reuseSession}`,
+    `skipWhileSessionOpen: ${automation.skipWhileSessionOpen === true}`,
+    `keepSessionOpen: ${automation.keepSessionOpen === true}`,
     `target: ${automation.executionTargetType}:${automation.executionTargetId}`,
     ...(result.owner ? [`host: ${formatOwnerSelector(result.owner.selector)}`] : []),
     `prompt: ${automation.prompt}`

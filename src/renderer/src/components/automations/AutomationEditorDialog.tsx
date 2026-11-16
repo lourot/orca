@@ -29,7 +29,7 @@ export const AUTOMATION_EDITOR_PICKER_TRIGGER_CLASS =
   'border-input bg-input/30 shadow-xs hover:bg-accent/60 dark:bg-input/30 dark:hover:bg-input/50'
 
 export const AUTOMATION_EDITOR_SEGMENTED_GROUP_CLASS =
-  'grid w-full grid-cols-2 rounded-md bg-muted p-0.5'
+  'grid w-full auto-cols-fr grid-flow-col rounded-md bg-muted p-0.5'
 
 export const AUTOMATION_EDITOR_SEGMENTED_ITEM_CLASS =
   'h-7 rounded-sm border-0 bg-transparent shadow-none hover:bg-card/70 data-[state=on]:bg-card data-[state=on]:text-card-foreground data-[state=on]:shadow-xs'
@@ -46,6 +46,8 @@ export type AutomationDraft = {
   baseBranch: string
   setupDecision?: Extract<SetupDecision, 'run' | 'skip'>
   reuseSession: boolean
+  skipWhileSessionOpen: boolean
+  keepSessionOpen: boolean
   precheckCommand: string
   precheckTimeoutSeconds: string
   preset: AutomationSchedulePreset

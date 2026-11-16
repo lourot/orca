@@ -32,6 +32,7 @@ import {
   normalizeAutomationSetupDecisionForWorkspaceMode,
   normalizeStoredAutomation
 } from './automation-context-migration'
+import { resolveAutomationSessionMode } from './automation-session-mode'
 import {
   automationProjectionContext,
   automationWorkspaceSshPin,
@@ -87,6 +88,9 @@ export function createAutomation(
   const schedulerOwner = getAutomationSchedulerOwner(repo)
   const contexts = getAutomationContextsForRepo(repo, operations.state.projectHostSetups ?? [])
   const extraAgentArgs = storedExtraAgentArgs(input.extraAgentArgs)
+  const sessionMode = resolveAutomationSessionMode(input.workspaceMode, input, {
+    reuseSession: false
+  })
   const automation: Automation = {
     id: randomUUID(),
     ...(input.creationKey ? { creationKey: input.creationKey } : {}),
@@ -108,7 +112,9 @@ export function createAutomation(
       input.workspaceMode,
       input.setupDecision
     ),
-    reuseSession: input.workspaceMode === 'existing' ? (input.reuseSession ?? false) : false,
+    reuseSession: sessionMode.reuseSession,
+    ...(sessionMode.skipWhileSessionOpen ? { skipWhileSessionOpen: true } : {}),
+    ...(input.keepSessionOpen ? { keepSessionOpen: true } : {}),
     timezone: input.timezone,
     rrule: input.rrule,
     dtstart: input.dtstart,
@@ -216,16 +222,19 @@ export function updateAutomation(
             )
           : normalizeAutomationSetupDecisionForWorkspaceMode(workspaceMode, current.setupDecision)
         : undefined,
-    reuseSession:
-      workspaceMode === 'existing'
-        ? (updates.reuseSession ?? current.reuseSession ?? false)
-        : false,
+    ...resolveAutomationSessionMode(workspaceMode, updates, current),
     rrule,
     dtstart,
     nextRunAt: scheduleChanged
       ? nextAutomationOccurrenceAfter(rrule, dtstart, Date.now())
       : current.nextRunAt,
     updatedAt: Date.now()
+  }
+  if (!merged.skipWhileSessionOpen) {
+    delete merged.skipWhileSessionOpen
+  }
+  if (!merged.keepSessionOpen) {
+    delete merged.keepSessionOpen
   }
   if (extraAgentArgs === undefined) {
     delete merged.extraAgentArgs

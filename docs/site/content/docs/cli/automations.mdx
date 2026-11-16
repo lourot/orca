@@ -129,6 +129,26 @@ orca automations create \
 
 Use `orca automations edit <automationId> --fresh-session --json` to switch the automation back to a fresh terminal per run.
 
+## Skip runs while the previous session is open
+
+Add `--skip-if-session-open` when an automation should never have more than one session at a time. While a terminal this automation started is still open, scheduled runs and Run now are skipped and recorded in run history as `skipped_run_active`. Once you close that terminal, the next run starts a fresh session. It works with both existing-workspace and new-worktree automations:
+
+```bash
+orca automations edit <automationId> --skip-if-session-open --json
+```
+
+`--reuse-session`, `--skip-if-session-open`, and `--fresh-session` are mutually exclusive; `--fresh-session` turns either one off.
+
+## Keep a fresh session open after the run
+
+By default, a fresh-session run closes its terminal when the agent finishes cleanly. Failed runs, and terminals you clicked into or typed in during the run, stay open. Add `--keep-session-open` to leave every run's terminal open so you can read or continue the conversation; `--close-session-when-done` restores the default:
+
+```bash
+orca automations edit <automationId> --keep-session-open --json
+```
+
+Reuse and skip-if-open always leave the session open, since the next run depends on it.
+
 ## Extra agent arguments
 
 Add arguments to the agent command for one automation, for example a different model:

@@ -7,6 +7,7 @@ import type {
 } from '../../shared/automations-types'
 import { runAutomationPrecheck } from './precheck-runner'
 import type { AutomationRunTargetResult } from './run-target-resolution'
+import type { Store } from '../persistence'
 
 /** Null when this run has no precheck to run: manual triggers skip it by design. */
 export async function runAutomationRunPrecheck(input: {
@@ -42,4 +43,21 @@ export async function runAutomationRunPrecheck(input: {
         ? { type: 'ssh', cwd: target.cwd, connectionId: automation.executionTargetId }
         : { type: 'local', cwd: target.cwd }
   })
+}
+
+/** `runAutomationRunPrecheck` for a stored automation and run, looked up by id. */
+export async function runStoredAutomationRunPrecheck(
+  store: Pick<Store, 'listAutomations' | 'listAutomationRuns'>,
+  ids: { automationId: string; runId: string },
+  resolveTarget: (automation: Automation) => AutomationRunTargetResult
+): Promise<AutomationPrecheckResult | null> {
+  const automation = store.listAutomations().find((entry) => entry.id === ids.automationId)
+  if (!automation) {
+    throw new Error('Automation not found.')
+  }
+  const run = store.listAutomationRuns(ids.automationId).find((entry) => entry.id === ids.runId)
+  if (!run) {
+    throw new Error('Automation run not found.')
+  }
+  return await runAutomationRunPrecheck({ automation, run, target: resolveTarget(automation) })
 }
